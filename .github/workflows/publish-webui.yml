@@ -69,7 +69,7 @@ jobs:
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
-      - name: Build webui package
+      - name: Prepare webui package
         working-directory: webui
         env:
           VERSION: ${{ needs.prepare.outputs.release-version }}
@@ -78,7 +78,6 @@ jobs:
           rm ../package.json
           yarn install --immutable
           npm version ${VERSION} --allow-same-version
-          yarn run prepare
       - name: Publish
         working-directory: webui
         env:
