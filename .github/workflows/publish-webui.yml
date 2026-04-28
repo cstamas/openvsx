@@ -71,12 +71,12 @@ jobs:
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
-      - name: Build CLI
+      - name: Build webui package
         working-directory: webui
         env:
           VERSION: ${{ needs.prepare.outputs.release-version }}
         run: |
-          yarn
+          yarn install
           npm version ${VERSION} --allow-same-version
           yarn run prepare
       - name: Publish
