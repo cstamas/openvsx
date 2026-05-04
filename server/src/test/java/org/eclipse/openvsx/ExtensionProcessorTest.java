@@ -9,7 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.util.TempFile;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatObject;
 
 class ExtensionProcessorTest {
 
