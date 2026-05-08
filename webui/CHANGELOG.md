@@ -2,7 +2,7 @@
 
 This change log covers only the frontend library (webui) of Open VSX.
 
-## [next] (unreleased)
+## [v0.20.3] (08/05/2026)
 
 ### Changed
 
