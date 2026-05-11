@@ -2,6 +2,12 @@
 
 This change log covers only the frontend library (webui) of Open VSX.
 
+## [unreleased]
+
+### Added
+
+- Add support to retry failed scanner jobs in the admin dashboard ([#1832](https://github.com/eclipse-openvsx/openvsx/pull/1832))
+
 ## [v0.20.3] (08/05/2026)
 
 ### Changed
