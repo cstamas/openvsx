@@ -182,7 +182,8 @@ jooq {
                 name = 'org.jooq.meta.postgres.PostgresDatabase'
                 inputSchema = 'public'
                 includes = '.*'
-                excludes = ''
+                excludes = 'jobrunr.*'
+                includeRoutines = false
             }
             target {
                 packageName = 'org.eclipse.openvsx.jooq'
