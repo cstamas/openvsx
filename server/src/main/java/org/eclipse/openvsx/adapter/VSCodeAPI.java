@@ -28,17 +28,14 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static org.eclipse.openvsx.adapter.ExtensionQueryParam.*;
 import static org.eclipse.openvsx.adapter.ExtensionQueryResult.ExtensionFile.*;
 import static org.eclipse.openvsx.util.TargetPlatform.*;
 
@@ -165,7 +162,11 @@ public class VSCodeAPI {
                     // Try the next registry
                 }
             }
-            return ResponseEntity.notFound().build();
+
+            return ResponseEntity
+                    .notFound()
+                    .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                    .build();
         } catch (ErrorResultException ex) {
             logger.error(ex.getMessage());
             return ResponseEntity.internalServerError().build();
@@ -195,11 +196,10 @@ public class VSCodeAPI {
             description = "The specified item could not be found",
             content = @Content()
     )
-    public ModelAndView getItemUrl(
+    public ResponseEntity<String> getItemUrl(
             @RequestParam
             @Parameter(description = "Identifier in the format {publisher}.{name}", example = "foo.bar")
-            String itemName,
-            ModelMap model
+            String itemName
     ) {
         var dotIndex = itemName.indexOf('.');
         if (dotIndex < 0) {
@@ -211,13 +211,19 @@ public class VSCodeAPI {
         for (var service : getVSCodeServices()) {
             try {
                 var itemUrl = service.getItemUrl(namespace, extension);
-                return new ModelAndView("redirect:" + itemUrl, model);
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic())
+                        .location(URI.create(itemUrl))
+                        .build();
             } catch (NotFoundException exc) {
                 // Try the next registry
             }
         }
 
-        return new ModelAndView(null, HttpStatus.NOT_FOUND);
+        return ResponseEntity
+                .notFound()
+                .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                .build();
     }
 
     @GetMapping("/vscode/gallery/publishers/{namespaceName}/vsextensions/{extensionName}/{version}/vspackage")
@@ -243,7 +249,7 @@ public class VSCodeAPI {
             description = "The specified package could not be found",
             content = @Content()
     )
-    public ModelAndView download(
+    public ResponseEntity<String> download(
             @PathVariable @Parameter(description = "Extension namespace", example = "JFrog") String namespaceName,
             @PathVariable @Parameter(description = "Extension name", example = "jfrog-vscode-extension") String extensionName,
             @PathVariable @Parameter(description = "Extension version", example = "2.11.7") String version,
@@ -259,19 +265,24 @@ public class VSCodeAPI {
                             NAME_WEB, NAME_UNIVERSAL
                     })
             )
-            String targetPlatform,
-            ModelMap model
+            String targetPlatform
     ) {
         for (var service : getVSCodeServices()) {
             try {
                 var downloadUrl = service.download(namespaceName, extensionName, version, targetPlatform);
-                return new ModelAndView("redirect:" + downloadUrl, model);
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic())
+                        .location(URI.create(downloadUrl))
+                        .build();
             } catch (NotFoundException exc) {
                 // Try the next registry
             }
         }
 
-        return new ModelAndView(null, HttpStatus.NOT_FOUND);
+        return ResponseEntity
+                .notFound()
+                .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                .build();
     }
 
     @Observed
@@ -321,7 +332,11 @@ public class VSCodeAPI {
                     // Try the next registry
                 }
             }
-            return ResponseEntity.notFound().build();
+
+            return ResponseEntity
+                    .notFound()
+                    .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                    .build();
         } catch (ErrorResultException ex) {
             logger.error(ex.getMessage());
             return ResponseEntity.internalServerError().build();
@@ -358,7 +373,11 @@ public class VSCodeAPI {
                     // Try the next registry
                 }
             }
-            return ResponseEntity.notFound().build();
+
+            return ResponseEntity
+                    .notFound()
+                    .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                    .build();
         } catch (ErrorResultException ex) {
             logger.error(ex.getMessage());
             return ResponseEntity.internalServerError().build();
