@@ -107,13 +107,37 @@ public class CacheConfig {
     public @Qualifier("fileCacheManager") CacheManager fileCacheManager(
             Cache<Object, Object> extensionCache,
             Cache<Object, Object> webResourceCache,
-            Cache<Object, Object> browseCache
+            Cache<Object, Object> browseCache,
+            Cache<Object, Object> settingCache
     ) {
         logger.info("Configure file cache manager");
         CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
         caffeineCacheManager.registerCustomCache(CACHE_EXTENSION_FILES, extensionCache);
         caffeineCacheManager.registerCustomCache(CACHE_WEB_RESOURCE_FILES, webResourceCache);
         caffeineCacheManager.registerCustomCache(CACHE_BROWSE_EXTENSION_FILES, browseCache);
+        caffeineCacheManager.registerCustomCache(CACHE_SETTING, settingCache);
+
+        return caffeineCacheManager;
+    }
+
+    @Bean
+    public Cache<Object, Object> settingCache(
+            @Value("${ovsx.caching.setting.ttl:PT1M}") Duration timeToIdle
+    ) {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(timeToIdle)
+                .scheduler(Scheduler.systemScheduler())
+                .recordStats()
+                .build();
+    }
+
+    @Bean
+    public @Qualifier("localCacheManager") CacheManager localCacheManager(
+            Cache<Object, Object> settingCache
+    ) {
+        logger.info("Configure local cache manager");
+        CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
+        caffeineCacheManager.registerCustomCache(CACHE_SETTING, settingCache);
 
         return caffeineCacheManager;
     }

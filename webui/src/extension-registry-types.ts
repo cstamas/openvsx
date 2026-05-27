@@ -500,3 +500,7 @@ export interface LogPageableList {
         totalPages: number;
     };
 }
+
+export interface Settings {
+    readOnly: boolean;
+}

@@ -16,6 +16,7 @@ import {
     FilesResponse, FileDecisionCountsJson, ScanDecisionRequest, ScanDecisionResponse,
     FileDecisionRequest, FileDecisionResponse, FileDecisionDeleteRequest, FileDecisionDeleteResponse,
     Tier, TierList, Customer, CustomerList, UsageStatsList, LogPageableList, CustomerMembershipList, RateLimitToken,
+    Settings,
 } from './extension-registry-types';
 import { createAbsoluteURL, addQuery } from './utils';
 import { sendRequest, ErrorResponse } from './server-request';
@@ -538,6 +539,8 @@ export interface AdminService {
     getCustomerRateLimitTokens(abortController: AbortController, customerName: string): Promise<Readonly<RateLimitToken[]>>;
     createCustomerRateLimitToken(abortController: AbortController, customerName: string, description: string): Promise<Readonly<RateLimitToken>>;
     deleteCustomerRateLimitToken(abortController: AbortController, customerName: string, tokenId: number): Promise<Readonly<SuccessResult | ErrorResult>>;
+    getSettings(abortController: AbortController): Promise<Readonly<Settings>>;
+    updateSettings(abortController: AbortController, settings: Settings): Promise<Readonly<Settings>>;
 }
 
 export interface AdminServiceConstructor {
@@ -1146,6 +1149,34 @@ export class AdminServiceImpl implements AdminService {
             method: 'DELETE',
             credentials: true,
             endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'ratelimit', 'customers', customerName, 'tokens', `${tokenId}`]),
+            headers
+        }, false);
+    }
+
+    async getSettings(abortController: AbortController): Promise<Readonly<Settings>> {
+        return sendRequest({
+            abortController,
+            credentials: true,
+            endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'settings']),
+        }, false);
+    }
+
+    async updateSettings(abortController: AbortController, settings: Settings): Promise<Readonly<Settings>> {
+        const csrfResponse = await this.registry.getCsrfToken(abortController);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json;charset=UTF-8'
+        };
+        if (!isError(csrfResponse)) {
+            const csrfToken = csrfResponse as CsrfTokenJson;
+            headers[csrfToken.header] = csrfToken.value;
+        }
+
+        return sendRequest({
+            abortController,
+            method: 'PUT',
+            payload: settings,
+            credentials: true,
+            endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'settings']),
             headers
         }, false);
     }
