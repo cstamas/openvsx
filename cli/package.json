@@ -1,6 +1,6 @@
 {
     "name": "ovsx",
-    "version": "0.10.13",
+    "version": "1.0.0",
     "description": "Command line interface for Eclipse Open VSX",
     "keywords": [
         "cli",
