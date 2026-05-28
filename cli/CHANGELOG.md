@@ -2,7 +2,7 @@
 
 This change log covers only the command line interface (CLI) of Open VSX.
 
-### [next] (unreleased)
+### [v0.10.13] (28/05/2026)
 
 #### Dependencies
 
