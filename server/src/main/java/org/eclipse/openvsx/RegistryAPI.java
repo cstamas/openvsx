@@ -165,7 +165,8 @@ public class RegistryAPI {
         for (var registry : getRegistries()) {
             try {
                 return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                        // do not cache to avoid stale data
+                        .cacheControl(CacheControl.noCache().cachePublic())
                         .body(registry.getNamespaceDetails(namespace));
             } catch (NotFoundException exc) {
                 // Try the next registry
@@ -250,7 +251,8 @@ public class RegistryAPI {
         for (var registry : getRegistries()) {
             try {
                 return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                        // do not cache the response, avoid stale data
+                        .cacheControl(CacheControl.noCache().cachePublic())
                         .body(registry.getExtension(namespace, extension, null));
             } catch (NotFoundException exc) {
                 // Try the next registry
@@ -297,7 +299,8 @@ public class RegistryAPI {
         for (var registry : getRegistries()) {
             try {
                 return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                        // do not cache the response, avoid stale data
+                        .cacheControl(CacheControl.noCache().cachePublic())
                         .body(registry.getExtension(namespace, extension, targetPlatform.toString()));
             } catch (NotFoundException exc) {
                 // Try the next registry
@@ -332,9 +335,15 @@ public class RegistryAPI {
     ) {
         for (var registry : getRegistries()) {
             try {
-                return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
-                        .body(registry.getExtension(namespace, extension, null, version));
+                var result = registry.getExtension(namespace, extension, null, version);
+                var response = ResponseEntity.ok();
+                if (VersionAlias.isAlias(version)) {
+                    // if it's a version alias, do not cache the response, avoid stale data
+                    response = response.cacheControl(CacheControl.noCache().cachePublic());
+                } else {
+                    response = response.cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic());
+                }
+                return response.body(result);
             } catch (NotFoundException exc) {
                 // Try the next registry
             }
@@ -381,9 +390,15 @@ public class RegistryAPI {
     ) {
         for (var registry : getRegistries()) {
             try {
-                return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
-                        .body(registry.getExtension(namespace, extension, targetPlatform, version));
+                var result = registry.getExtension(namespace, extension, targetPlatform, version);
+                var response = ResponseEntity.ok();
+                if (VersionAlias.isAlias(version)) {
+                    // if it's a version alias, do not cache the response, avoid stale data
+                    response = response.cacheControl(CacheControl.noCache().cachePublic());
+                } else {
+                    response = response.cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic());
+                }
+                return response.body(result);
             } catch (NotFoundException exc) {
                 // Try the next registry
             }
@@ -476,6 +491,8 @@ public class RegistryAPI {
         }
         for (var registry : getRegistries()) {
             try {
+                // allow to cache the response for upto 5 min and force clients to revalidate
+                // as the response is not yet cached internally and will require DB access
                 return ResponseEntity.ok()
                         .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
                         .body(registry.getVersions(namespace, extension, targetPlatform, size, offset));
@@ -571,6 +588,8 @@ public class RegistryAPI {
         }
         for (var registry : getRegistries()) {
             try {
+                // allow to cache the response for upto 5 min and force clients to revalidate
+                // as the response is not yet cached internally and will require DB access
                 return ResponseEntity.ok()
                         .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
                         .body(registry.getVersionReferences(namespace, extension, targetPlatform, size, offset));
@@ -705,7 +724,8 @@ public class RegistryAPI {
         for (var registry : getRegistries()) {
             try {
                 return ResponseEntity.ok()
-                        .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                        // do not cache to avoid stale data and show reviews immediately
+                        .cacheControl(CacheControl.noCache().cachePublic())
                         .body(registry.getReviews(namespace, extension));
             } catch (NotFoundException exc) {
                 // Try the next registry
@@ -809,7 +829,8 @@ public class RegistryAPI {
         result.setTotalSize(resultSize);
         result.setExtensions(resultExtensions);
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                // do not cache to avoid stale data, elasticsearch in general is fast
+                .cacheControl(CacheControl.noCache().cachePublic().mustRevalidate())
                 .body(result);
     }
 
@@ -939,6 +960,7 @@ public class RegistryAPI {
         result.setTotalSize(resultSize);
         result.setExtensions(resultExtensions);
         return ResponseEntity.ok()
+                // cache the response for upto 5 min and force clients to revalidate
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
                 .body(result);
     }
@@ -1052,6 +1074,7 @@ public class RegistryAPI {
         result.setOffset(resultOffset);
         result.setExtensions(resultExtensions);
         return ResponseEntity.ok()
+                // cache the response for upto 5 min and force client to revalidate
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
                 .body(result);
     }

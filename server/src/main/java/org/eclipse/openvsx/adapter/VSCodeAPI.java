@@ -130,6 +130,9 @@ public class VSCodeAPI {
         var result = extensionQueryRequestHandler.getResult(param, size, DEFAULT_PAGE_SIZE);
 
         return ResponseEntity.ok()
+                // support caching the result of extensionquery upto 5 min and force the client to revalidate
+                // this is a temporary measure to reduce load as extensionquery is really slow and we want to benefit
+                // from caching the same queries
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
                 .body(result);
     }
@@ -394,7 +397,8 @@ public class VSCodeAPI {
                 try {
                     var result = service.latest(namespaceName, extensionName);
                     return ResponseEntity.ok()
-                            .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic().mustRevalidate())
+                            // do not cache the response, avoid stale data
+                            .cacheControl(CacheControl.noCache().cachePublic())
                             .body(result);
                 } catch (NotFoundException exc) {
                     // Try the next registry
