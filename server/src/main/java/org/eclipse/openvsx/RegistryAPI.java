@@ -18,6 +18,8 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.openvsx.entities.SemanticVersion;
 import org.eclipse.openvsx.settings.MutatingOperation;
@@ -27,10 +29,8 @@ import org.eclipse.openvsx.search.SortBy;
 import org.eclipse.openvsx.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static org.eclipse.openvsx.util.TargetPlatform.*;
 
 @RestController
+@Validated
 public class RegistryAPI {
     private static final int REVIEW_TITLE_SIZE = 255;
     private static final int REVIEW_COMMENT_SIZE = 2048;
@@ -182,18 +183,6 @@ public class RegistryAPI {
 
     private String namespaceNotFoundMessage(String namespace) {
         return "Namespace not found: " + namespace;
-    }
-
-    private String negativeSizeMessage() {
-      return negativeParameterMessage("size");
-    }
-
-    private String negativeOffsetMessage() {
-        return negativeParameterMessage("offset");
-    }
-
-    private String negativeParameterMessage(String field) {
-        return "The parameter '" + field + "' must not be negative.";
     }
 
     @GetMapping(
@@ -428,9 +417,12 @@ public class RegistryAPI {
             @PathVariable @Parameter(description = "Extension name", example = "vim")
             String extension,
             @RequestParam(defaultValue = "18")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "18"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not exceed 100")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
@@ -471,9 +463,12 @@ public class RegistryAPI {
             )
             String targetPlatform,
             @RequestParam(defaultValue = "18")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "18"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not exceed 100")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
@@ -481,14 +476,6 @@ public class RegistryAPI {
     }
 
     private ResponseEntity<VersionsJson> handleGetVersions(String namespace, String extension, String targetPlatform, int size, int offset) {
-        if (size < 0) {
-            var json = VersionsJson.error(negativeSizeMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if (offset < 0) {
-            var json = VersionsJson.error(negativeOffsetMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
         for (var registry : getRegistries()) {
             try {
                 // allow to cache the response for upto 5 min and force clients to revalidate
@@ -525,9 +512,12 @@ public class RegistryAPI {
             @PathVariable @Parameter(description = "Extension name", example = "svelte-vscode")
             String extension,
             @RequestParam(defaultValue = "18")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "18"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not exceed 100")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
@@ -568,9 +558,12 @@ public class RegistryAPI {
             )
             String targetPlatform,
             @RequestParam(defaultValue = "18")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "18"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not exceed 100")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
@@ -578,14 +571,6 @@ public class RegistryAPI {
     }
 
     private ResponseEntity<VersionReferencesJson> handleGetVersionReferences(String namespace, String extension, String targetPlatform, int size, int offset) {
-        if (size < 0) {
-            var json = VersionReferencesJson.error(negativeSizeMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if (offset < 0) {
-            var json = VersionReferencesJson.error(negativeOffsetMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
         for (var registry : getRegistries()) {
             try {
                 // allow to cache the response for upto 5 min and force clients to revalidate
@@ -774,9 +759,12 @@ public class RegistryAPI {
             )
             String targetPlatform,
             @RequestParam(defaultValue = "18")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "18"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 1000, message = "parameter must not exceed 1000")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "1000", defaultValue = "18"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset,
             @RequestParam(defaultValue = "desc") 
@@ -789,15 +777,6 @@ public class RegistryAPI {
             @Parameter(description = "Whether to include information on all available versions for each returned entry")
             boolean includeAllVersions
     ) {
-        if (size < 0) {
-            var json = SearchResultJson.error(negativeSizeMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if (offset < 0) {
-            var json = SearchResultJson.error(negativeOffsetMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-
         var options = new ISearchService.Options(query, category, targetPlatform, size, offset, sortOrder, sortBy, includeAllVersions, null);
         var resultOffset = 0;
         var resultSize = 0;
@@ -901,21 +880,16 @@ public class RegistryAPI {
             )
             String targetPlatform,
             @RequestParam(defaultValue = "100")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "100"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 1000, message = "parameter must not exceed 1000")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "1000", defaultValue = "100"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
-        if (size < 0) {
-            var json = QueryResultJson.error(negativeSizeMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if (offset < 0) {
-            var json = QueryResultJson.error(negativeOffsetMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if(!List.of("true", "false", "links").contains(includeAllVersions)) {
+        if (!List.of("true", "false", "links").contains(includeAllVersions)) {
             var json = QueryResultJson.error("Invalid includeAllVersions value: " + includeAllVersions + ".");
             return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
         }
@@ -1019,21 +993,15 @@ public class RegistryAPI {
             )
             String targetPlatform,
             @RequestParam(defaultValue = "100")
-            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", defaultValue = "100"))
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 1000, message = "parameter must not exceed 1000")
+            @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "1000", defaultValue = "100"))
             int size,
             @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
             @Parameter(description = "Number of entries to skip (usually a multiple of the page size)", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             int offset
     ) {
-        if (size < 0) {
-            var json = QueryResultJson.error(negativeSizeMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        if (offset < 0) {
-            var json = QueryResultJson.error(negativeOffsetMessage());
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-        
         var request = new QueryRequest(
                 namespaceName,
                 extensionName,
