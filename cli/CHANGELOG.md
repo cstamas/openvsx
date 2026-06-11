@@ -2,11 +2,11 @@
 
 This change log covers only the command line interface (CLI) of Open VSX.
 
-### [next] (unreleased)
+### [v1.0.1] (11/06/2026)
 
 ### Fixes
 
-- Properly encode path segments in getUrl method ([#1893](https://github.com/eclipse/openvsx/pull/1893))
+- Properly encode path segments in `getUrl` method ([#1893](https://github.com/eclipse/openvsx/pull/1893))
 
 ### [v1.0.0] (28/05/2026)
 
