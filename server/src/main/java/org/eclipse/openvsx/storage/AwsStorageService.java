@@ -16,6 +16,7 @@ import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.util.FileUtil;
+import org.eclipse.openvsx.util.HttpHeadersUtil;
 import org.eclipse.openvsx.util.TempFile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -214,12 +215,20 @@ public class AwsStorageService implements IStorageService {
     }
 
     protected void uploadFile(TempFile file, String fileName, String objectKey) {
+        var headers = HttpHeadersUtil.createFileResponseHeaders(file.getPath(), fileName);
+
+        // see https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html
         var metadata = new HashMap<String, String>();
-        metadata.put("Content-Type", StorageUtil.getFileType(fileName).toString());
-        if (fileName.endsWith(".vsix")) {
-            metadata.put("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-        } else {
-            metadata.put("Cache-Control", StorageUtil.getCacheControl(fileName).getHeaderValue());
+        if (headers.getContentType() != null) {
+            metadata.put("Content-Type", headers.getContentType().toString());
+        }
+
+        if (StringUtils.isNotBlank(headers.getContentDisposition().toString())) {
+            metadata.put("Content-Disposition", headers.getContentDisposition().toString());
+        }
+
+        if (headers.getCacheControl() != null) {
+            metadata.put("Cache-Control", headers.getCacheControl());
         }
 
         var request = PutObjectRequest.builder()
