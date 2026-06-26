@@ -171,6 +171,21 @@ export interface UserData {
     additionalLogins?: UserData[];
 }
 
+export interface UserRelationships {
+    user: UserData;
+    namespaces: NamespaceDetails[];
+}
+
+export interface UserSearchResult {
+    content: UserRelationships[];
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
 export function isEqualUser(u1: UserData, u2: UserData): boolean {
     return u1.loginName === u2.loginName;
 }

@@ -4,6 +4,10 @@ This change log covers only the frontend library (webui) of Open VSX.
 
 ## [next] (unreleased)
 
+### Added
+
+- Support searching users and managing their roles in the admin dashboard ([#1847](https://github.com/eclipse-openvsx/openvsx/pull/1847))
+
 ### Changed
 
 - Migrate unit test framework from mocha to vitest
