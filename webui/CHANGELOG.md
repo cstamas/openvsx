@@ -10,8 +10,13 @@ This change log covers only the frontend library (webui) of Open VSX.
 
 ### Changed
 
-- Migrate unit test framework from mocha to vitest
 - Replace formatting from `stylistic` with `prettier` ([#1916](https://github.com/eclipse-openvsx/openvsx/pull/1916))
+
+## [v1.0.2] (23/06/2026)
+
+### Changed
+
+- Migrate unit test framework from mocha to vitest
 
 ### Dependencies
 
