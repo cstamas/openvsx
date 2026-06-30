@@ -9,8 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.ArrayUtils;
@@ -51,8 +49,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -67,6 +64,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -91,7 +90,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RegistryAPI.class)
-@AutoConfigureWebClient
 @MockitoBean(types = {
     ClientRegistrationRepository.class, UpstreamRegistryService.class, GoogleCloudStorageService.class,
     AzureBlobStorageService.class, AwsStorageService.class, VSCodeIdService.class, DownloadCountService.class, ExtensionDownloadMetrics.class,
@@ -748,14 +746,14 @@ class RegistryAPITest {
         extVersionsList.forEach(extVersion -> {
             var extension = extVersion.getExtension();
             extension.setActive(false);
-            extension.getVersions().get(0).setActive(false);
+            extension.getVersions().getFirst().setActive(false);
         });
         Mockito.when(repositories.findLatestVersions(extVersionsList.stream().map(ExtensionVersion::getExtension).map(Extension::getId).toList()))
                 .thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/-/search?query={query}&size={size}&offset={offset}", "foo", "10", "0"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("{\"offset\":0,\"totalSize\":1,\"extensions\":[]}"));
+                .andExpect(content().json("{\"offset\":0,\"totalSize\":1,\"extensions\":[]}"));
     }
 
     @Test
@@ -2029,10 +2027,10 @@ class RegistryAPITest {
         return namespace;
     }
 
-    private String namespaceJson(Consumer<NamespaceJson> content) throws JsonProcessingException {
+    private String namespaceJson(Consumer<NamespaceJson> content) throws JacksonException {
         var json = new NamespaceJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private void mockInactiveExtensionVersion(String namespaceName, String extensionName) {
@@ -2127,9 +2125,9 @@ class RegistryAPITest {
         Mockito.when(repositories.findActiveExtensionVersions(Set.of(extension.getId()), null))
                 .thenReturn(versions);
         Mockito.when(repositories.findLatestVersionsIsPreview(Set.of(extension.getId())))
-                .thenReturn(Map.of(extension.getId(), versions.get(0).isPreview()));
+                .thenReturn(Map.of(extension.getId(), versions.getFirst().isPreview()));
         Mockito.when(repositories.findActiveVersionStringsSorted(Set.of(extension.getId()), null))
-                .thenReturn(versions.stream().collect(Collectors.groupingBy(ev -> ev.getExtension().getId(), Collectors.mapping(ev -> ev.getVersion(), Collectors.toList()))));
+                .thenReturn(versions.stream().collect(Collectors.groupingBy(ev -> ev.getExtension().getId(), Collectors.mapping(ExtensionVersion::getVersion, Collectors.toList()))));
         Mockito.when(repositories.findVersionStringsSorted(extension, targetPlatform, true))
                 .thenReturn(versions.stream().map(ExtensionVersion::getVersion).collect(Collectors.toList()));
 
@@ -2268,13 +2266,13 @@ class RegistryAPITest {
         return extVersion;
     }
 
-    private String extensionJson(Consumer<ExtensionJson> content) throws JsonProcessingException {
+    private String extensionJson(Consumer<ExtensionJson> content) throws JacksonException {
         var json = new ExtensionJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String queryResultJson(Consumer<ExtensionJson>... contents) throws JsonProcessingException {
+    private String queryResultJson(Consumer<ExtensionJson>... contents) throws JacksonException {
         var extensionJsons = new ArrayList<String>();
         for(var content : contents) {
             extensionJsons.add(extensionJson(content));
@@ -2390,11 +2388,11 @@ class RegistryAPITest {
                 .thenReturn(Streamable.of(review1, review2));
     }
 
-    private String reviewsJson(Consumer<ReviewListJson> content) throws JsonProcessingException {
+    private String reviewsJson(Consumer<ReviewListJson> content) throws JacksonException {
         var json = new ReviewListJson();
         json.setReviews(new ArrayList<>());
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private List<ExtensionVersion> mockSearch() {
@@ -2425,11 +2423,11 @@ class RegistryAPITest {
         return List.of(extVersion);
     }
 
-    private String searchJson(Consumer<SearchResultJson> content) throws JsonProcessingException {
+    private String searchJson(Consumer<SearchResultJson> content) throws JacksonException {
         var json = new SearchResultJson();
         json.setExtensions(new ArrayList<>());
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private PersonalAccessToken mockAccessToken() {
@@ -2559,10 +2557,10 @@ class RegistryAPITest {
                 .then((Answer<Extension>) invocation -> invocation.getArgument(0, Extension.class));
     }
 
-    private String reviewJson(Consumer<ReviewJson> content) throws JsonProcessingException {
+    private String reviewJson(Consumer<ReviewJson> content) throws JacksonException {
         var json = new ReviewJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private UserData mockUserData() {
@@ -2574,19 +2572,19 @@ class RegistryAPITest {
         return userData;
     }
 
-    private String successJson(String message) throws JsonProcessingException {
+    private String successJson(String message) throws JacksonException {
         var json = ResultJson.success(message);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String errorJson(String message) throws JsonProcessingException {
+    private String errorJson(String message) throws JacksonException {
         var json = ResultJson.error(message);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String warningJson(String message) throws JsonProcessingException {
+    private String warningJson(String message) throws JacksonException {
         var json = ResultJson.warning(message);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private byte[] createExtensionPackage(String name, String version, String license) throws IOException {

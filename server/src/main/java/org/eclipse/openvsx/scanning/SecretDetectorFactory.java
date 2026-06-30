@@ -14,8 +14,8 @@ package org.eclipse.openvsx.scanning;
 
 import com.google.re2j.Pattern;
 import jakarta.annotation.PostConstruct;
-import jakarta.validation.constraints.NotNull;
-import jakarta.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -57,9 +57,9 @@ public class SecretDetectorFactory {
     private volatile SecretDetector scanner;
 
     public SecretDetectorFactory(
-            @NotNull SecretRuleLoader ruleLoader,
-            @NotNull SecretDetectorConfig config,
-            @NotNull ExtensionScanConfig scanConfig,
+            @NonNull SecretRuleLoader ruleLoader,
+            @NonNull SecretDetectorConfig config,
+            @NonNull ExtensionScanConfig scanConfig,
             @Nullable GitleaksRulesService gitleaksService) {
         this.ruleLoader = ruleLoader;
         this.config = config;
@@ -80,8 +80,8 @@ public class SecretDetectorFactory {
 
         // Load all rules from the rule paths
         SecretRuleLoader.LoadedRules loaded = ruleLoader.loadAll(rulePaths);
-        List<SecretRule> loadedRules = loaded.getRules();
-        SecretRuleLoader.GlobalAllowlist globalAllowlist = loaded.getGlobalAllowlist();
+        List<SecretRule> loadedRules = loaded.rules();
+        SecretRuleLoader.GlobalAllowlist globalAllowlist = loaded.globalAllowlist();
 
         // Build the keyword index for efficient keyword matching based on all loaded rules
         Set<String> allKeywords = new HashSet<>();
@@ -148,19 +148,19 @@ public class SecretDetectorFactory {
         return scanner;
     }
 
-    public @NotNull List<SecretRule> getRules() {
+    public @NonNull List<SecretRule> getRules() {
         return rules;
     }
 
-    public @NotNull Map<String, List<SecretRule>> getKeywordToRules() {
+    public @NonNull Map<String, List<SecretRule>> getKeywordToRules() {
         return keywordToRules;
     }
 
-    public @NotNull AhoCorasick getKeywordMatcher() {
+    public @NonNull AhoCorasick getKeywordMatcher() {
         return keywordMatcher;
     }
 
-    private Map<String, List<SecretRule>> buildKeywordIndex(@NotNull List<SecretRule> sourceRules, @NotNull Set<String> allKeywords) {
+    private Map<String, List<SecretRule>> buildKeywordIndex(@NonNull List<SecretRule> sourceRules, @NonNull Set<String> allKeywords) {
         Map<String, List<SecretRule>> index = new HashMap<>();
 
         for (SecretRule rule : sourceRules) {
@@ -206,8 +206,8 @@ public class SecretDetectorFactory {
      * Combines extensions from the global allowlist in the YAML with extensions from config.
      */
     private List<String> getGlobalExcludedExtensions(
-            @Nullable SecretRuleLoader.GlobalAllowlist globalAllowlist,
-            @NotNull SecretDetectorConfig config) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
+            @NonNull SecretDetectorConfig config) {
         List<String> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.fileExtensions != null) {
@@ -225,8 +225,8 @@ public class SecretDetectorFactory {
      * Combines paths from the global allowlist in the YAML with paths from config.
      */
     private List<Pattern> getGlobalExcludedPathPatterns(
-            @Nullable SecretRuleLoader.GlobalAllowlist globalAllowlist,
-            @NotNull SecretDetectorConfig config) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
+            @NonNull SecretDetectorConfig config) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.paths != null) {
@@ -243,8 +243,8 @@ public class SecretDetectorFactory {
      * Uses regex patterns from the global allowlist in the YAML, falling back to config.
      */
     private List<Pattern> getGlobalAllowlistPatterns(
-            @Nullable SecretRuleLoader.GlobalAllowlist globalAllowlist,
-            @NotNull SecretDetectorConfig config) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
+            @NonNull SecretDetectorConfig config) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.regexes != null && !globalAllowlist.regexes.isEmpty()) {
@@ -261,8 +261,8 @@ public class SecretDetectorFactory {
      * Uses stopwords from the global allowlist in the YAML, falling back to config.
      */
     private List<String> getGlobalStopwords(
-            @Nullable SecretRuleLoader.GlobalAllowlist globalAllowlist,
-            @NotNull SecretDetectorConfig config) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
+            @NonNull SecretDetectorConfig config) {
         List<String> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.stopwords != null) {
@@ -278,7 +278,7 @@ public class SecretDetectorFactory {
      * Get suppression markers from config.
      * Returns lowercase versions for case-insensitive matching.
      */
-    private List<String> getSuppressionMarkers(@NotNull SecretDetectorConfig config) {
+    private List<String> getSuppressionMarkers(@NonNull SecretDetectorConfig config) {
         return config.getSuppressionMarkers().stream()
                 .map(String::toLowerCase)
                 .toList();
@@ -290,7 +290,7 @@ public class SecretDetectorFactory {
      * Uses case-insensitive matching.
      */
     private List<Pattern> getSkipMimeTypePatterns(
-            @Nullable SecretRuleLoader.GlobalAllowlist globalAllowlist) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.skipMimeTypes != null) {

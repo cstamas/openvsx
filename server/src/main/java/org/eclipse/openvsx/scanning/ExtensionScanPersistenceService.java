@@ -12,9 +12,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.eclipse.openvsx.entities.*;
 import org.eclipse.openvsx.repositories.FileDecisionRepository;
@@ -22,12 +19,16 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.repositories.ScanCheckResultRepository;
 import org.eclipse.openvsx.repositories.ScannerJobRepository;
 import org.eclipse.openvsx.util.TimeUtil;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class ExtensionScanPersistenceService {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionScanPersistenceService.class);
 
     private final RepositoryService repositories;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final FileDecisionRepository fileDecisionRepository;
     private final ScannerJobRepository scannerJobRepository;
     private final ScanCheckResultRepository scanCheckResultRepository;
@@ -62,14 +63,14 @@ public class ExtensionScanPersistenceService {
 
     public ExtensionScanPersistenceService(
             RepositoryService repositories,
-            ObjectMapper objectMapper,
+            JsonMapper jsonMapper,
             FileDecisionRepository fileDecisionRepository,
             ScannerJobRepository scannerJobRepository,
             ScanCheckResultRepository scanCheckResultRepository,
             ScannerRegistry scannerRegistry
     ) {
         this.repositories = repositories;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.fileDecisionRepository = fileDecisionRepository;
         this.scannerJobRepository = scannerJobRepository;
         this.scanCheckResultRepository = scanCheckResultRepository;
@@ -80,14 +81,14 @@ public class ExtensionScanPersistenceService {
      * Creates and persists a new scan record BEFORE an extension version exists.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    @Nonnull
+    @NonNull
     public ExtensionScan initializeScan(
-            @Nonnull String namespaceName,
-            @Nonnull String extensionName,
-            @Nonnull String version,
+            @NonNull String namespaceName,
+            @NonNull String extensionName,
+            @NonNull String version,
             @Nullable String targetPlatform,
             @Nullable String displayName,
-            @Nonnull UserData user
+            @NonNull UserData user
     ) {
         var isUniversal = targetPlatform == null || "universal".equals(targetPlatform);
         if (displayName == null || displayName.isBlank()) {
@@ -146,7 +147,7 @@ public class ExtensionScanPersistenceService {
      * Persists a status change. The caller is responsible for validating the transition.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public void updateStatus(@Nonnull ExtensionScan scan, @Nonnull ScanStatus newStatus) {
+    public void updateStatus(@NonNull ExtensionScan scan, @NonNull ScanStatus newStatus) {
         scan.setStatus(newStatus);
         repositories.saveExtensionScan(scan);
     }
@@ -155,7 +156,7 @@ public class ExtensionScanPersistenceService {
      * Persists a terminal status change with completion timestamp.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public void completeWithStatus(@Nonnull ExtensionScan scan, @Nonnull ScanStatus newStatus) {
+    public void completeWithStatus(@NonNull ExtensionScan scan, @NonNull ScanStatus newStatus) {
         scan.setStatus(newStatus);
         scan.setCompletedAt(TimeUtil.getCurrentUTC());
         repositories.saveExtensionScan(scan);
@@ -165,7 +166,7 @@ public class ExtensionScanPersistenceService {
      * Persists an error status with message.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public void markAsErrored(@Nonnull ExtensionScan scan, @Nullable String errorMessage) {
+    public void markAsErrored(@NonNull ExtensionScan scan, @Nullable String errorMessage) {
         scan.setStatus(ScanStatus.ERRORED);
         scan.setErrorMessage(errorMessage);
         scan.setCompletedAt(TimeUtil.getCurrentUTC());
@@ -176,7 +177,7 @@ public class ExtensionScanPersistenceService {
      * Removes a scan.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public void removeScan(@Nonnull ExtensionScan scan) {
+    public void removeScan(@NonNull ExtensionScan scan) {
         repositories.deleteExtensionScan(scan);
     }
 
@@ -188,7 +189,7 @@ public class ExtensionScanPersistenceService {
      * {@code scan}, that the job is FAILED, and that the scan is terminal.
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public void resetJobForRetry(@Nonnull ExtensionScan scan, @Nonnull ScannerJob job) {
+    public void resetJobForRetry(@NonNull ExtensionScan scan, @NonNull ScannerJob job) {
         // Drop the stale check result so the retry's outcome is the only record the UI shows
         scanCheckResultRepository.deleteByScannerJobId(job.getId());
 
@@ -204,9 +205,9 @@ public class ExtensionScanPersistenceService {
      */
     @Transactional(TxType.REQUIRES_NEW)
     public void recordValidationFailure(
-            @Nonnull ExtensionScan scan,
-            @Nonnull String checkType,
-            @Nonnull String ruleName,
+            @NonNull ExtensionScan scan,
+            @NonNull String checkType,
+            @NonNull String ruleName,
             @Nullable String reason,
             boolean enforced
     ) {
@@ -224,12 +225,12 @@ public class ExtensionScanPersistenceService {
      */
     @Transactional(TxType.REQUIRES_NEW)
     public void recordCheckResult(
-            @Nonnull ExtensionScan scan,
-            @Nonnull String checkType,
-            @Nonnull ScanCheckResult.CheckCategory category,
-            @Nonnull ScanCheckResult.CheckResult result,
-            @Nonnull LocalDateTime startedAt,
-            @Nonnull LocalDateTime completedAt,
+            @NonNull ExtensionScan scan,
+            @NonNull String checkType,
+            ScanCheckResult.@NonNull CheckCategory category,
+            ScanCheckResult.@NonNull CheckResult result,
+            @NonNull LocalDateTime startedAt,
+            @NonNull LocalDateTime completedAt,
             @Nullable Integer filesScanned,
             int findingsCount,
             @Nullable String summary,
@@ -266,10 +267,10 @@ public class ExtensionScanPersistenceService {
      */
     @Transactional(TxType.REQUIRES_NEW)
     public void recordScannerJobResult(
-            @Nonnull String scanId,
-            @Nonnull ScannerJob job,
-            @Nonnull ScanCheckResult.CheckResult result,
-            @Nonnull LocalDateTime startedAt,
+            @NonNull String scanId,
+            @NonNull ScannerJob job,
+            ScanCheckResult.@NonNull CheckResult result,
+            @NonNull LocalDateTime startedAt,
             @Nullable Integer filesScanned,
             int findingsCount,
             @Nullable String summary,
@@ -339,7 +340,7 @@ public class ExtensionScanPersistenceService {
      * - If enforced threats exist → check FOUND (blocks publication)
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public ThreatSaveResult saveThreats(@Nonnull ScannerJob job, @Nonnull Scanner.Result result, boolean scannerEnforced) {
+    public ThreatSaveResult saveThreats(@NonNull ScannerJob job, Scanner.@NonNull Result result, boolean scannerEnforced) {
         if (result.isClean()) {
             logger.debug("No threats to save for scanner job {}", job.getId());
             return ThreatSaveResult.clean();
@@ -411,10 +412,10 @@ public class ExtensionScanPersistenceService {
      */
     @Transactional(TxType.REQUIRES_NEW)
     public CompletedScanResult processCompletedScan(
-            @Nonnull ScannerJob job,
-            @Nonnull Scanner.Result result,
+            @NonNull ScannerJob job,
+            Scanner.@NonNull Result result,
             boolean scannerEnforced,
-            @Nonnull LocalDateTime startedAt
+            @NonNull LocalDateTime startedAt
     ) {
         int threatCount = 0;
         String summary;
@@ -468,14 +469,14 @@ public class ExtensionScanPersistenceService {
      */
     @Transactional(TxType.REQUIRES_NEW)
     public void recordThreat(
-            @Nonnull ExtensionScan scan,
-            @Nonnull String fileName,
+            @NonNull ExtensionScan scan,
+            @NonNull String fileName,
             @Nullable String fileHash,
             @Nullable String fileExtension,
-            @Nonnull String scannerType,
-            @Nonnull String ruleName,
+            @NonNull String scannerType,
+            @NonNull String ruleName,
             @Nullable String reason,
-            @Nonnull String severity,
+            @NonNull String severity,
             boolean enforced
     ) {
         var threat = ExtensionThreat.create(
@@ -501,8 +502,8 @@ public class ExtensionScanPersistenceService {
             return null;
         }
         try {
-            return objectMapper.writeValueAsString(fileHashes);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(fileHashes);
+        } catch (JacksonException e) {
             logger.warn("Failed to serialize file hashes: {}", e.getMessage());
             return null;
         }
@@ -586,8 +587,8 @@ public class ExtensionScanPersistenceService {
             return Collections.emptyMap();
         }
         try {
-            return objectMapper.readValue(fileHashesJson, new TypeReference<Map<String, String>>() {});
-        } catch (JsonProcessingException e) {
+            return jsonMapper.readValue(fileHashesJson, new TypeReference<Map<String, String>>() {});
+        } catch (JacksonException e) {
             logger.warn("Failed to parse file hashes JSON: {}", e.getMessage());
             return Collections.emptyMap();
         }

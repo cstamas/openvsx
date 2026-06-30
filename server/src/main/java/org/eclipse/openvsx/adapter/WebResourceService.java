@@ -9,9 +9,6 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.adapter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.micrometer.observation.annotation.Observed;
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
@@ -27,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,6 +45,7 @@ public class WebResourceService {
     private final RepositoryService repositories;
     private final CacheService cache;
     private final FilesCacheKeyGenerator filesCacheKeyGenerator;
+    private final JsonMapper jsonMapper;
 
     public WebResourceService(
             StorageUtilService storageUtil,
@@ -57,6 +57,7 @@ public class WebResourceService {
         this.repositories = repositories;
         this.cache = cache;
         this.filesCacheKeyGenerator = filesCacheKeyGenerator;
+        this.jsonMapper = JsonMapper.shared();
     }
 
     public Path getExtensionDownload(String namespace, String extension, String targetPlatform, String version) {
@@ -110,8 +111,7 @@ public class WebResourceService {
             }
 
             var baseUrl = UrlUtil.createApiUrl("", "vscode", "unpkg", namespace, extension, version);
-            var mapper = new ObjectMapper();
-            var node = mapper.createArrayNode();
+            var node = jsonMapper.createArrayNode();
             for (var entry : dirEntries) {
                 node.add(baseUrl + "/" + entry);
             }
@@ -136,16 +136,6 @@ public class WebResourceService {
             try (var in = zip.getInputStream(fileEntry)) {
                 Files.copy(in, p);
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        });
-    }
-
-    private void writeJsonFile(Path file, ObjectMapper mapper, JsonNode node) {
-        FileUtil.writeSync(file, p -> {
-            try {
-                mapper.writeValue(p.toFile(), node);
-            } catch(IOException e) {
                 throw new UncheckedIOException(e);
             }
         });

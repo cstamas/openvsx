@@ -56,8 +56,10 @@ import jakarta.transaction.Transactional;
  * Run the DB queries and assert no DB error, just to ensure that the queries
  * are consistent with the schema.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "ovsx.elasticsearch.enabled=false"
+})
+@ActiveProfiles("test_db")
 class RepositoryServiceSmokeTest {
 
     private static final List<String> STRING_LIST = List.of("id1", "id2");

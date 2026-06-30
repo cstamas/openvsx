@@ -10,8 +10,7 @@
 package org.eclipse.openvsx.cache;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.json.JsonMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -30,7 +29,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -140,7 +139,7 @@ public class CacheConfig {
 
     @Bean
     @ConditionalOnExpression("${bucket4j.enabled:false} && '${bucket4j.cache-to-use:}' == 'redis-jedis'")
-    public RedisClient redisClient(RedisProperties properties) {
+    public RedisClient redisClient(DataRedisProperties properties) {
         logger.info("Configure 'redis-jedis' bucket4j rate-limiting cache");
         var builder = RedisClient.builder();
 
@@ -152,7 +151,7 @@ public class CacheConfig {
 
     @Bean
     @ConditionalOnExpression("${bucket4j.enabled:false} && '${bucket4j.cache-to-use:}' == 'redis-cluster-jedis'")
-    public RedisClusterClient redisClusterClient(RedisProperties properties) {
+    public RedisClusterClient redisClusterClient(DataRedisProperties properties) {
         logger.info("Configure 'redis-cluster-jedis' bucket4j rate-limiting cache");
 
         var builder = RedisClusterClient.builder();
@@ -250,38 +249,41 @@ public class CacheConfig {
     ) {
         logger.info("Configure Redis cache manager");
         var extensionVersionMapper = JsonMapper.builder()
-                .addModule(new JavaTimeModule())
-                .serializationInclusion(JsonInclude.Include.NON_NULL)
+                .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL).
+                        withValueInclusion(JsonInclude.Include.NON_NULL))
                 .build();
+
+        var genericMapper = JsonMapper.shared();
+
         return RedisCacheManager.builder(redisConnectionFactory)
                 .withCacheConfiguration(
                         CACHE_AVERAGE_REVIEW_RATING,
-                        redisCacheConfig(new GenericJackson2JsonRedisSerializer(), averageReviewRatingTtl)
+                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), averageReviewRatingTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_NAMESPACE_DETAILS_JSON,
-                        redisCacheConfig(new Jackson2JsonRedisSerializer<>(NamespaceDetailsJson.class), namespaceDetailsJsonTtl)
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(NamespaceDetailsJson.class), namespaceDetailsJsonTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_DATABASE_SEARCH,
-                        redisCacheConfig(new Jackson2JsonRedisSerializer<>(SearchResult.class), databaseSearchTtl)
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(SearchResult.class), databaseSearchTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_EXTENSION_JSON,
-                        redisCacheConfig(new Jackson2JsonRedisSerializer<>(ExtensionJson.class), extensionJsonTtl)
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(ExtensionJson.class), extensionJsonTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSION_VSCODE,
-                        redisCacheConfig(new Jackson2JsonRedisSerializer<>(ExtensionQueryResult.Extension.class), latestExtensionVersionVscodeTtl)
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(ExtensionQueryResult.Extension.class), latestExtensionVersionVscodeTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSION,
-                        redisCacheConfig(new Jackson2JsonRedisSerializer<>(extensionVersionMapper, ExtensionVersion.class), latestExtensionVersionTtl)
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(extensionVersionMapper, ExtensionVersion.class), latestExtensionVersionTtl)
                 )
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSIONS_BY_PLATFORM,
                         redisCacheConfig(
-                                new Jackson2JsonRedisSerializer<>(
+                                new JacksonJsonRedisSerializer<>(
                                         extensionVersionMapper,
                                         extensionVersionMapper.getTypeFactory().constructParametricType(List.class, ExtensionVersion.class)
                                 ),
@@ -294,7 +296,7 @@ public class CacheConfig {
                 )
                 .withCacheConfiguration(
                         CACHE_MALICIOUS_EXTENSIONS,
-                        redisCacheConfig(new GenericJackson2JsonRedisSerializer(), maliciousExtensionsTtl)
+                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), maliciousExtensionsTtl)
                 )
                 .build();
     }

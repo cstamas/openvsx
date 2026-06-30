@@ -10,8 +10,21 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *****************************************************************************/
-package org.eclipse.openvsx.storage.log;
+package org.eclipse.openvsx;
 
-import org.jspecify.annotations.NonNull;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
-public record LogRecord(@NonNull String method, int status, @NonNull String url) {}
+@Configuration
+@Profile("test_db")
+public class TestDatabaseConfig {
+
+    @Bean
+    @ServiceConnection
+    PostgreSQLContainer postgreSQLContainer() {
+        return new PostgreSQLContainer("postgres:16.2");
+    }
+}

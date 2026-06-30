@@ -7,21 +7,20 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  ********************************************************************************/
-
 package org.eclipse.openvsx.search;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.Nullable;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TimeUtil;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -30,12 +29,13 @@ import java.util.Optional;
 /**
  * Provides relevance for a given extension
  */
-@Component
+@Service
 public class RelevanceService {
 
     protected final Logger logger = LoggerFactory.getLogger(RelevanceService.class);
 
     private final RepositoryService repositories;
+    private final JsonMapper jsonMapper;
 
     @Value("${ovsx.search.relevance.rating:1.0}")
     double ratingRelevance;
@@ -50,6 +50,7 @@ public class RelevanceService {
 
     public RelevanceService(RepositoryService repositories) {
         this.repositories = repositories;
+        this.jsonMapper = JsonMapper.shared();
     }
 
     public @Nullable ExtensionSearch toSearchEntry(Extension extension, SearchStats stats) {
@@ -111,8 +112,8 @@ public class RelevanceService {
             logger.debug("[{}] INVALID RELEVANCE", extensionId);
             var message = "Invalid relevance for entry " + NamingUtil.toExtensionId(entry);
             try {
-                message += " " + new ObjectMapper().writeValueAsString(stats);
-            } catch (JsonProcessingException exc) {
+                message += " " + jsonMapper.writeValueAsString(stats);
+            } catch (JacksonException exc) {
                 // Ignore exception
             }
             logger.error(message);
@@ -124,12 +125,7 @@ public class RelevanceService {
     }
 
     private double limit(double value) {
-        if (value < 0.0)
-            return 0.0;
-        else if (value > 1.0)
-            return 1.0;
-        else
-            return value;
+        return Math.clamp(value, 0.0, 1.0);
     }
 
     private double saturate(double value, double factor) {

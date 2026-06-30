@@ -9,25 +9,25 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.metrics;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationConvention;
 import io.micrometer.observation.aop.ObservedAspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.jspecify.annotations.NonNull;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 public class RegistryObservationConvention implements ObservationConvention<ObservedAspect.ObservedAspectContext> {
 
-    private ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     public RegistryObservationConvention() {
-        this.mapper = new ObjectMapper();
+        this.mapper = JsonMapper.shared();
     }
 
     @Override
-    public KeyValues getHighCardinalityKeyValues(ObservedAspect.ObservedAspectContext context) {
+    public KeyValues getHighCardinalityKeyValues(ObservedAspect.@NonNull ObservedAspectContext context) {
 //        var joinPoint = context.getProceedingJoinPoint();
 //        var args = joinPoint.getArgs();
 //        var methodSignature = (MethodSignature) joinPoint.getSignature();
@@ -50,14 +50,14 @@ public class RegistryObservationConvention implements ObservationConvention<Obse
         } else {
             try {
                 return mapper.writeValueAsString(arg);
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 return  "";
             }
         }
     }
 
     @Override
-    public boolean supportsContext(Observation.Context context) {
+    public boolean supportsContext(Observation.@NonNull Context context) {
         return context instanceof ObservedAspect.ObservedAspectContext;
     }
 

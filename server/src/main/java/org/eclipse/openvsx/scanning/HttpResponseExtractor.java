@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,10 +28,10 @@ import java.util.Map;
 @Component
 public class HttpResponseExtractor {
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public HttpResponseExtractor(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public HttpResponseExtractor(JsonMapper jsonMapper) {
+        this.jsonMapper = jsonMapper;
     }
 
     /**
@@ -68,15 +68,15 @@ public class HttpResponseExtractor {
 
     private JsonNode parseJson(String json) throws ScannerException {
         try {
-            return objectMapper.readTree(json);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.readTree(json);
+        } catch (JacksonException e) {
             throw new ScannerException("Failed to parse JSON response", e);
         }
     }
 
     private String extractJsonString(String json, String jsonPath) throws ScannerException {
         JsonNode node = pickFirst(parseJson(json), jsonPath);
-        return node != null && !node.isMissingNode() ? node.asText(null) : null;
+        return node != null && !node.isMissingNode() ? node.asString(null) : null;
     }
 
     private List<Map<String, Object>> extractJsonList(String json, String jsonPath) throws ScannerException {
@@ -86,23 +86,23 @@ public class HttpResponseExtractor {
         List<Map<String, Object>> result = new ArrayList<>();
         for (JsonNode node : nodes) {
             if (node.isObject()) {
-                Map<String, Object> map = objectMapper.convertValue(
+                Map<String, Object> map = jsonMapper.convertValue(
                         node, new TypeReference<Map<String, Object>>() {
                         });
                 result.add(map);
             } else if (node.isArray()) {
                 for (JsonNode child : node) {
                     if (child.isObject()) {
-                        Map<String, Object> map = objectMapper.convertValue(
+                        Map<String, Object> map = jsonMapper.convertValue(
                                 child, new TypeReference<Map<String, Object>>() {
                                 });
                         result.add(map);
                     } else {
-                        result.add(Map.of("value", child.asText(null)));
+                        result.add(Map.of("value", child.asString(null)));
                     }
                 }
             } else {
-                result.add(Map.of("value", node.asText(null)));
+                result.add(Map.of("value", node.asString(null)));
             }
         }
 
@@ -146,7 +146,7 @@ public class HttpResponseExtractor {
             if (node.isArray()) {
                 node.forEach(result::add);
             } else if (node.isObject()) {
-                node.fields().forEachRemaining(entry -> result.add(entry.getValue()));
+                node.properties().iterator().forEachRemaining(entry -> result.add(entry.getValue()));
             }
             return result;
         }

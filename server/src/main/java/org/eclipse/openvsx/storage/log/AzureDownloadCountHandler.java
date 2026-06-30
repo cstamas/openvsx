@@ -17,8 +17,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.migration.HandlerJobRequest;
@@ -33,6 +31,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.web.util.UriUtils;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -59,8 +59,8 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
 
     private final SettingsService settings;
     private final DownloadCountProcessor processor;
+    private final JsonMapper jsonMapper;
     private BlobContainerClient containerClient;
-    private ObjectMapper objectMapper;
     private Pattern blobItemNamePattern;
 
     @Value("${ovsx.logs.azure.sas-token:}")
@@ -84,6 +84,7 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
     public AzureDownloadCountHandler(SettingsService settings, DownloadCountProcessor processor) {
         this.settings = settings;
         this.processor = processor;
+        this.jsonMapper = JsonMapper.shared();
     }
 
     public String getRecurringJobId() {
@@ -210,10 +211,10 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
             var lines = reader.lines().iterator();
             while (lines.hasNext()) {
                 var line = lines.next();
-                var node = getObjectMapper().readTree(line);
+                var node = jsonMapper.readTree(line);
                 String[] pathParams = null;
                 if (isGetBlobOperation(node) && isStatusOk(node) && isExtensionPackageUri(node) && isNotOpenVSXUserAgent(node)) {
-                    var uri = node.get("uri").asText();
+                    var uri = node.get("uri").asString();
                     pathParams = uri.substring(storageServiceEndpoint.length()).split("/");
                 }
                 if (pathParams != null && storageBlobContainer.equals(pathParams[1])) {
@@ -226,7 +227,7 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
     }
 
     private boolean isGetBlobOperation(JsonNode node) {
-        return node.get("operationName").asText().equals("GetBlob");
+        return node.get("operationName").asString().equals("GetBlob");
     }
 
     private boolean isStatusOk(JsonNode node) {
@@ -234,11 +235,11 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
     }
 
     private boolean isExtensionPackageUri(JsonNode node) {
-        return node.get("uri").asText().endsWith(".vsix");
+        return node.get("uri").asString().endsWith(".vsix");
     }
 
     private boolean isNotOpenVSXUserAgent(JsonNode node) {
-        var userAgentHeader = node.path("properties").path("userAgentHeader").asText();
+        var userAgentHeader = node.path("properties").path("userAgentHeader").asString();
         return !AZURE_USER_AGENT.equals(userAgentHeader);
     }
 
@@ -285,14 +286,6 @@ public class AzureDownloadCountHandler implements JobRequestHandler<HandlerJobRe
         }
 
         return containerClient;
-    }
-
-    private ObjectMapper getObjectMapper() {
-        if (objectMapper == null) {
-            objectMapper = new ObjectMapper();
-        }
-
-        return objectMapper;
     }
 
     private boolean isCorrectName(String name) {

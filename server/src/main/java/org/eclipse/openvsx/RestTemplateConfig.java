@@ -15,12 +15,12 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
@@ -31,7 +31,7 @@ public class RestTemplateConfig {
 
     /**
      * Use to serve requests to ensure that response is given within 30 seconds.
-     * VS Code does not wait more than it and will timeout a request.
+     * VS Code does not wait more than it and will time out a request.
      */
     @Bean
     public HttpConnPoolConfig foregroundHttpConnPool(
@@ -60,18 +60,14 @@ public class RestTemplateConfig {
     }
 
     private HttpConnPoolConfig createHttpConnPoolConfig(int maxTotal, int defaultMaxPerRoute, int connectionRequestTimeout, int connectTimeout, int socketTimeout) {
-        var connectionConfig = ConnectionConfig.custom()
-                .setConnectTimeout(Timeout.of(connectTimeout, TimeUnit.MILLISECONDS))
-                .setSocketTimeout(Timeout.of(socketTimeout, TimeUnit.MILLISECONDS))
-                .build();
-
         PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(maxTotal);
         connectionManager.setDefaultMaxPerRoute(defaultMaxPerRoute);
-        connectionManager.setDefaultConnectionConfig(connectionConfig);
         return new HttpConnPoolConfig(
                 connectionManager,
-                connectionRequestTimeout
+                connectionRequestTimeout,
+                connectTimeout,
+                socketTimeout
         );
     }
 
@@ -86,7 +82,7 @@ public class RestTemplateConfig {
                 })
                 .messageConverters(
                         new StringHttpMessageConverter(),
-                        new MappingJackson2HttpMessageConverter())
+                        new JacksonJsonHttpMessageConverter())
                 .build();
     }
 
@@ -111,7 +107,7 @@ public class RestTemplateConfig {
                 .uriTemplateHandler(defaultUriBuilderFactory)
                 .messageConverters(
                         new StringHttpMessageConverter(),
-                        new MappingJackson2HttpMessageConverter())
+                        new JacksonJsonHttpMessageConverter())
                 .requestFactory(() -> {
                     HttpComponentsClientHttpRequestFactory f = new HttpComponentsClientHttpRequestFactory();
                     f.setHttpClient(httpClient);
@@ -145,33 +141,22 @@ public class RestTemplateConfig {
     }
 
     private HttpClientBuilder createHttpClientBuilder(HttpConnPoolConfig httpConnPoolConfig) {
+        var connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.of(httpConnPoolConfig.connectTimeout(), TimeUnit.MILLISECONDS))
+                .build();
+        httpConnPoolConfig.connectionManager().setDefaultConnectionConfig(connectionConfig);
         var requestConfig = RequestConfig.custom()
-                .setConnectionRequestTimeout(Timeout.of(httpConnPoolConfig.getConnectionRequestTimeout(), TimeUnit.MILLISECONDS))
+                .setConnectionRequestTimeout(Timeout.of(httpConnPoolConfig.connectionRequestTimeout(), TimeUnit.MILLISECONDS))
                 .build();
         return HttpClientBuilder
                 .create()
-                .setConnectionManager(httpConnPoolConfig.getConnectionManager())
+                .setConnectionManager(httpConnPoolConfig.connectionManager())
                 .setDefaultRequestConfig(requestConfig);
     }
 
-    public static class HttpConnPoolConfig {
-
-        private final PoolingHttpClientConnectionManager connectionManager;
-        private final int connectionRequestTimeout;
-
-        public HttpConnPoolConfig(PoolingHttpClientConnectionManager connectionManager, int connectionRequestTimeout) {
-            this.connectionManager = connectionManager;
-            this.connectionRequestTimeout = connectionRequestTimeout;
-        }
-
-        public PoolingHttpClientConnectionManager getConnectionManager() {
-            return connectionManager;
-        }
-        /**
-         *  the time to wait for a connection from the connection manager/pool
-         */
-        public int getConnectionRequestTimeout() {
-            return connectionRequestTimeout;
-        }
-    }
+    public record HttpConnPoolConfig(
+            PoolingHttpClientConnectionManager connectionManager,
+            int connectionRequestTimeout,
+            int connectTimeout,
+            int socketTimeout) {}
 }

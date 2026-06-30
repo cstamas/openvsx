@@ -15,16 +15,15 @@ plugins {
 
 def jooqSrcDir = 'src/main/jooq-gen'
 
-ext['junit-jupiter.version'] = libs.versions.junit.get()
+//ext['junit-jupiter.version'] = libs.versions.junit.get()
 
 // override spring boot managed versions
 // see https://docs.spring.io/spring-boot/gradle-plugin/managing-dependencies.html
 // example:
 // ext['netty.version'] = '4.1.132.Final'
 
-ext['postgresql.version'] = '42.7.11'
-ext['netty.version'] = '4.1.135.Final'
 ext['opentelemetry.version'] = '1.63.0'
+ext['flyway.version'] = libs.versions.flyway
 
 java {
     sourceCompatibility = libs.versions.java.get()
@@ -49,33 +48,18 @@ configurations {
     devImplementation.extendsFrom implementation
     devRuntimeOnly.extendsFrom runtimeOnly
 
-    // exclude commons-logging to avoid runtime warnings like these
-    // Standard Commons Logging discovery in action with spring-jcl:
-    //    please remove commons-logging.jar from classpath in order to avoid potential conflicts
-    configureEach {
-        exclude group: "commons-logging", module: "commons-logging"
-    }
-
-    // Gatling 3.15 requires Netty 4.2.x but Spring Boot's dependency management forces 4.1.x.
-    // Override all io.netty modules (except tcnative which has its own versioning) on the
-    // gatling configuration to keep its classpath internally consistent.
-    matching { it.name.startsWith('gatling') }.configureEach {
-        resolutionStrategy.eachDependency { details ->
-            if (details.requested.group == 'io.netty' && !details.requested.name.startsWith('netty-tcnative')) {
-                details.useVersion '4.2.13.Final'
-            }
-        }
-    }
+    testImplementation.exclude group: 'com.vaadin.external.google', module: 'android-json'
 }
 
 dependencies {
-    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-webmvc"
     implementation "org.springframework.boot:spring-boot-starter-jetty"
     modules {
         module("org.springframework.boot:spring-boot-starter-tomcat") {
             replacedBy("org.springframework.boot:spring-boot-starter-jetty")
         }
     }
+    implementation "org.springframework.boot:spring-boot-starter-restclient"
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-starter-jooq"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
@@ -84,13 +68,16 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-security"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-cache"
-    implementation "org.springframework.boot:spring-boot-starter-aop"
     implementation "org.springframework.boot:spring-boot-starter-mail"
-    implementation "org.springframework.boot:spring-boot-starter-thymeleaf"
+    implementation "org.springframework.boot:spring-boot-starter-zipkin"
+    implementation "org.springframework.boot:spring-boot-security-oauth2-client"
+
     implementation "org.springframework.security:spring-security-oauth2-client"
     implementation "org.springframework.security:spring-security-oauth2-jose"
+
     implementation "org.springframework.session:spring-session-jdbc"
-    implementation "org.springframework.retry:spring-retry"
+
+    implementation "org.springframework.boot:spring-boot-thymeleaf"
 
     implementation "org.apache.httpcomponents.client5:httpclient5"
     implementation "com.github.ben-manes.caffeine:caffeine"
@@ -110,6 +97,7 @@ dependencies {
 
     implementation libs.jobrunr.spring
 
+    implementation "org.springframework.boot:spring-boot-flyway"
     implementation libs.flyway.core
     implementation libs.flyway.database.postgresql
 
@@ -120,12 +108,8 @@ dependencies {
 
     implementation libs.springdoc
 
-    implementation libs.jackson.core
-    implementation libs.jackson.annotations
-    implementation libs.jackson.databind
-    implementation libs.jackson.jaxb.annotations
-    implementation libs.jackson.dataformat.xml
     implementation libs.jackson.dataformat.yaml
+    implementation libs.jackson.dataformat.xml
     implementation libs.jackson.dataformat.toml
 
     implementation libs.woodstox.core
@@ -142,19 +126,22 @@ dependencies {
     runtimeOnly "org.postgresql:postgresql"
     jooqCodegen "org.postgresql:postgresql"
 
+    // to aid migration from 3.5 to 4.0
+    runtimeOnly "org.springframework.boot:spring-boot-properties-migrator"
+
     devRuntimeOnly "org.springframework.boot:spring-boot-devtools"
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
+    testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
     testImplementation "org.springframework.security:spring-security-test"
-    testImplementation libs.junit.jupiter.api
+
+    testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation libs.testcontainers.elasticsearch
     testImplementation libs.testcontainers.localstack
     testImplementation libs.testcontainers.junit.jupiter
-
-    testRuntimeOnly libs.junit.jupiter.engine
-    testRuntimeOnly libs.testcontainers.postgresql
+    testImplementation libs.testcontainers.postgresql
 
     gatling libs.gatling.core
     gatling libs.gatling.app
@@ -202,7 +189,7 @@ jooq {
 }
 
 rewrite {
-    activeRecipe("org.openrewrite.java.migrate.jakarta.JavaxAnnotationMigrationToJakartaAnnotation")
+    activeRecipe("org.openrewrite.java.jspecify.MigrateFromJakartaAnnotationApi")
     setExportDatatables(true)
 }
 

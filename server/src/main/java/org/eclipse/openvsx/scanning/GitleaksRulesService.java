@@ -13,22 +13,22 @@
 package org.eclipse.openvsx.scanning;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.toml.TomlMapper;
 import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
 import org.eclipse.openvsx.migration.HandlerJobRequest;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import redis.clients.jedis.RedisClusterClient;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.toml.TomlMapper;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,12 +45,12 @@ import java.util.stream.Collectors;
 
 /**
  * Manages gitleaks secret detection rules: generation, scheduled refresh, and Redis sync.
- *
+ * <p>
  * This service combines three responsibilities:
  * 1. Generates rules from gitleaks.toml at startup (if auto-fetch enabled)
  * 2. Refreshes rules on a schedule (if scheduled-refresh enabled)
  * 3. Syncs rules across pods via Redis (if Redis enabled)
- *
+ * <p>
  * Only loaded when gitleaks.auto-fetch is enabled.
  */
 @Service
@@ -71,6 +71,7 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     private final ObjectProvider<SecretDetectorFactory> detectorFactoryProvider;
     private final RedisClusterClient redisClusterClient;
     private final RulesUpdateChannelListener rulesUpdateChannelListener;
+    private final JsonMapper jsonMapper;
 
     // Path to generated rules file
     private String generatedRulesPath;
@@ -91,6 +92,8 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
             this.rulesUpdateChannelListener = null;
             logger.debug("GitleaksRulesService initialized (local only, no Redis)");
         }
+
+        jsonMapper = JsonMapper.shared();
     }
 
     public String getGeneratedRulesPath() {
@@ -349,8 +352,8 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
         }
     }
 
-    private GitleaksToml parseToml(String tomlContent) throws IOException {
-        return new TomlMapper().readValue(tomlContent, GitleaksToml.class);
+    private GitleaksToml parseToml(String tomlContent) {
+        return TomlMapper.shared().readValue(tomlContent, GitleaksToml.class);
     }
 
     private List<Rule> buildRules(List<RawRule> rawRules) {
@@ -461,7 +464,7 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     private String quote(String value) {
         if (value == null) return "\"\"";
         try {
-            return new ObjectMapper().writeValueAsString(value);
+            return jsonMapper.writeValueAsString(value);
         } catch (Exception e) {
             return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
         }

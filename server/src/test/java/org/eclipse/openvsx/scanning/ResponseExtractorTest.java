@@ -12,9 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Map;
 
@@ -29,7 +29,7 @@ class ResponseExtractorTest {
 
     @BeforeEach
     void setUp() {
-        extractor = new HttpResponseExtractor(new ObjectMapper());
+        extractor = new HttpResponseExtractor(new JsonMapper());
     }
 
     // === String extraction tests ===

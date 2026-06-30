@@ -9,7 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.openvsx.json.*;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -17,11 +16,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,7 +31,8 @@ import java.net.URISyntaxException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@AutoConfigureTestRestTemplate
+@ActiveProfiles({"test", "test_db", "test_search"})
 class IntegrationTest {
 
     protected final Logger logger = LoggerFactory.getLogger(IntegrationTest.class);
@@ -203,7 +205,7 @@ class IntegrationTest {
         var response = restTemplate.getForEntity(apiCall("/api/-/search?query=editorconfig"), SearchResultJson.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getExtensions().size()).isEqualTo(1);
-        assertThat(response.getBody().getExtensions().get(0).getDescription())
+        assertThat(response.getBody().getExtensions().getFirst().getDescription())
                 .isEqualTo("EditorConfig Support for Visual Studio Code");
     }
 

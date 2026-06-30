@@ -18,15 +18,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
+import org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchReactiveRepositoriesAutoConfiguration;
+import org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
-import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.resilience.annotation.EnableResilientMethods;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -41,12 +41,12 @@ import static org.springframework.data.web.config.EnableSpringDataWebSupport.Pag
         // exclude autoconfiguration for them to avoid unnecessary logging
         // messages due to existing jpa repositories
         // can be removed once such repositories are in use
-        ElasticsearchRepositoriesAutoConfiguration.class,
-        ReactiveElasticsearchRepositoriesAutoConfiguration.class,
-        RedisRepositoriesAutoConfiguration.class,
+        DataElasticsearchRepositoriesAutoConfiguration.class,
+        DataElasticsearchReactiveRepositoriesAutoConfiguration.class,
+        DataRedisRepositoriesAutoConfiguration.class,
 })
 @EnableScheduling
-@EnableRetry
+@EnableResilientMethods
 @EnableAsync
 @EnableConfigurationProperties(OAuth2AttributesConfig.class)
 // Need to enable serialization support for spring data's Page, see:

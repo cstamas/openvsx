@@ -94,8 +94,7 @@ import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -109,14 +108,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(AdminAPI.class)
-@AutoConfigureWebClient
 @MockitoBean(types = {
     ClientRegistrationRepository.class, UpstreamRegistryService.class, GoogleCloudStorageService.class,
     AzureBlobStorageService.class, AwsStorageService.class, VSCodeIdService.class, DownloadCountService.class,
@@ -1725,16 +1722,16 @@ class AdminAPITest {
         return namespace;
     }
 
-    private String namespaceJson(Consumer<NamespaceJson> content) throws JsonProcessingException {
+    private String namespaceJson(Consumer<NamespaceJson> content) throws JacksonException {
         var json = new NamespaceJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String namespaceMemberJson(Consumer<NamespaceMembershipListJson> content) throws JsonProcessingException {
+    private String namespaceMemberJson(Consumer<NamespaceMembershipListJson> content) throws JacksonException {
         var json = new NamespaceMembershipListJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     private List<ExtensionVersion> mockExtension(int numberOfVersions, int numberOfBundles, int numberOfDependants) {
@@ -1868,36 +1865,36 @@ class AdminAPITest {
         return major + ".0.0";
     }
 
-    private String adminStatisticsJson(Consumer<AdminStatisticsJson> content) throws JsonProcessingException {
+    private String adminStatisticsJson(Consumer<AdminStatisticsJson> content) throws JacksonException {
         var json = new AdminStatisticsJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String extensionJson(Consumer<ExtensionJson> content) throws JsonProcessingException {
+    private String extensionJson(Consumer<ExtensionJson> content) throws JacksonException {
         var json = new ExtensionJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String publishInfoJson(Consumer<UserPublishInfoJson> content) throws JsonProcessingException {
+    private String publishInfoJson(Consumer<UserPublishInfoJson> content) throws JacksonException {
         var json = new UserPublishInfoJson();
         content.accept(json);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String bulkPublishResponseJson(Map<String, ResultJson> results) throws JsonProcessingException {
-        return new ObjectMapper().writeValueAsString(new BulkPublisherRevokeResponseJson(results));
+    private String bulkPublishResponseJson(Map<String, ResultJson> results) throws JacksonException {
+        return JsonMapper.shared().writeValueAsString(new BulkPublisherRevokeResponseJson(results));
     }
 
-    private String successJson(String message) throws JsonProcessingException {
+    private String successJson(String message) throws JacksonException {
         var json = ResultJson.success(message);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
-    private String errorJson(String message) throws JsonProcessingException {
+    private String errorJson(String message) throws JacksonException {
         var json = ResultJson.error(message);
-        return new ObjectMapper().writeValueAsString(json);
+        return JsonMapper.shared().writeValueAsString(json);
     }
 
     @TestConfiguration
