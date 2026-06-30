@@ -252,3 +252,12 @@ services:
     profiles:
       - openvsx
       - commandline
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server --console-address ":9001" /data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    profiles:
+      - minio
