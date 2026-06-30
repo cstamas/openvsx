@@ -104,19 +104,18 @@ springdoc:
     supportedSubmitMethods:
       - get
 
-org:
-  jobrunr:
-    job-scheduler:
-      enabled: true
-    background-job-server:
-      enabled: true
-      worker-count: 2
-    dashboard:
-      enabled: false
-    database:
-      type: sql
-    miscellaneous:
-      allow-anonymous-data-usage: false
+jobrunr:
+  job-scheduler:
+    enabled: true
+  background-job-server:
+    enabled: true
+    worker-count: 2
+  dashboard:
+    enabled: false
+  database:
+    type: sql
+  miscellaneous:
+    allow-anonymous-data-usage: false
 
 bucket4j:
   enabled: false
@@ -138,7 +137,7 @@ ovsx:
   integrity:
     key-pair: create # create, renew, delete, 'undefined'
   registry:
-    version: 'v1.0.0-dev'
+    version: 'v1.1.0-dev'
   storage:
     local:
       directory: /tmp
