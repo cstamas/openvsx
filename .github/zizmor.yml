@@ -5,3 +5,7 @@ rules:
   template-injection:
     ignore:
       - sonar.yml
+  unpinned-uses:
+    config:
+      policies:
+        eclipse-csi/*: any
