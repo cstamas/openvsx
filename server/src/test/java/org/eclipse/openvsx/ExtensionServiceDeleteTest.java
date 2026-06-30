@@ -48,14 +48,16 @@ import static org.mockito.Mockito.doAnswer;
  * <p>
  * Without an extension-row lock, the delete-all operation may accidentally remove the other
  * publisher's newly committed version, which is an unauthorized side effect. With the lock,
- * the publish is forced to wait until the delete finishes, preventing any unintended data loss.
+ * the publishing is forced to wait until the delete finishes, preventing any unintended data loss.
  * <p>
  * The race condition is deliberately triggered by intercepting the call to
  * {@link RepositoryService#isDeleteAllVersions} using a spy, which pauses the delete operation
  * just long enough for the concurrent publish to slip in.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+    "ovsx.elasticsearch.enabled=false"
+})
+@ActiveProfiles("test_db")
 class ExtensionServiceDeleteTest {
 
     private static final String NAMESPACE = "race-testns";
