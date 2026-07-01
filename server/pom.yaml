@@ -1,0 +1,237 @@
+modelEncoding: UTF-8
+modelVersion: 4.0.0
+
+parent:
+  artifactId: spring-boot-starter-parent
+  groupId: org.springframework.boot
+  version: 4.0.7
+
+groupId: org.eclipse.openvsx
+artifactId: server
+version: 1.0.3-SNAPSHOT
+
+properties:
+  # encoding
+  project.build.sourceEncoding: UTF-8
+  project.reporting.outputEncoding: UTF-8
+  # reproducible
+  project.build.outputTimestamp: '2026-06-24T16:10:19Z'
+  # compilation
+  maven.compiler.release: 25
+  maven.compiler.parameters: true
+  maven.compiler.showDeprecation: true
+  maven.compiler.proc: none
+  # core plugins lockdown
+  maven-clean-plugin.version: 3.5.0
+  maven-enforcer-plugin.version: 3.6.3
+  maven-resources-plugin.version: 3.5.0
+  maven-compiler-plugin.version: 3.15.0
+  maven-source-plugin.version: 3.4.0
+  maven-javadoc-plugin.version: 3.12.0
+  maven-jar-plugin.version: 3.5.0
+  maven-surefire-plugin.version: 3.5.6
+  maven-failsafe-plugin.version: 3.5.6
+  maven-install-plugin.version: 3.1.4
+  maven-deploy-plugin.version: 3.1.4
+  # other plugins
+  maven-antrun-plugin.version: 3.2.0
+  maven-assembly-plugin.version: 3.8.0
+  maven-dependency-plugin.version: 3.11.0
+  maven-help-plugin.version: 3.5.1
+  maven-shade-plugin.version: 3.6.2
+
+dependencies:
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-webmvc
+    exclusions:
+      - artifactId: spring-boot-starter-tomcat
+        groupId: org.springframework.boot
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-jetty
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-restclient
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-validation
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-jooq
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-data-jpa
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-data-elasticsearch
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-data-redis
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-security
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-actuator
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-cache
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-mail
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-zipkin
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-oauth2-client
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-thymeleaf
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-flyway
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-devtools
+    optional: true
+  - groupId: org.springframework.security
+    artifactId: spring-security-oauth2-client
+  - groupId: org.springframework.security
+    artifactId: spring-security-oauth2-jose
+  - groupId: org.springframework.session
+    artifactId: spring-session-jdbc
+  - groupId: com.github.ben-manes.caffeine
+    artifactId: caffeine
+  - groupId: com.github.ben-manes.caffeine
+    artifactId: jcache
+  - groupId: tools.jackson.dataformat
+    artifactId: jackson-dataformat-xml
+  - groupId: tools.jackson.dataformat
+    artifactId: jackson-dataformat-yaml
+  - groupId: tools.jackson.dataformat
+    artifactId: jackson-dataformat-toml
+  - groupId: org.flywaydb
+    artifactId: flyway-core
+  - groupId: org.flywaydb
+    artifactId: flyway-database-postgresql
+  - groupId: org.springdoc
+    artifactId: springdoc-openapi-starter-webmvc-ui
+    version: 2.8.13
+  - groupId: com.bucket4j
+    artifactId: bucket4j-redis
+    version: 8.10.1
+  - groupId: com.giffing.bucket4j.spring.boot.starter
+    artifactId: bucket4j-spring-boot-starter
+    version: 0.12.10
+  - groupId: org.jobrunr
+    artifactId: jobrunr-spring-boot-4-starter
+    version: 8.6.1
+  - groupId: redis.clients
+    artifactId: jedis
+    version: 7.4.1
+  - groupId: com.google.re2j
+    artifactId: re2j
+    version: 1.7
+  - groupId: com.google.cloud
+    artifactId: google-cloud-storage
+    version: 2.62.1
+  - groupId: com.azure
+    artifactId: azure-storage-blob
+    version: 12.23.0
+  - groupId: software.amazon.awssdk
+    artifactId: s3
+    version: 2.29.29
+  - groupId: software.amazon.awssdk
+    artifactId: sts
+    version: 2.29.29
+  - groupId: org.apache.commons
+    artifactId: commons-lang3
+    version: 3.20.0
+  - groupId: commons-io
+    artifactId: commons-io
+    version: 2.22.0
+  - groupId: commons-codec
+    artifactId: commons-codec
+    version: 1.22.0
+  - groupId: org.apache.tika
+    artifactId: tika-core
+    version: 3.3.1
+  - groupId: org.bouncycastle
+    artifactId: bcpkix-jdk18on
+    version: 1.84
+  - groupId: com.github.seancfoley
+    artifactId: ipaddress
+    version: 5.5.1
+  - groupId: org.jooq
+    artifactId: jooq
+  - groupId: io.micrometer
+    artifactId: micrometer-core
+  - groupId: io.micrometer
+    artifactId: micrometer-commons
+  - groupId: io.micrometer
+    artifactId: micrometer-observation
+  - groupId: io.micrometer
+    artifactId: micrometer-registry-prometheus
+    scope: runtime
+  - groupId: org.postgresql
+    artifactId: postgresql
+    scope: runtime
+  - groupId: org.junit.jupiter
+    artifactId: junit-jupiter-api
+    scope: test
+  - groupId: org.mockito
+    artifactId: mockito-junit-jupiter
+    scope: test
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-test
+    scope: test
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-starter-webmvc-test
+    scope: test
+  - groupId: org.springframework.security
+    artifactId: spring-security-test
+    scope: test
+  - groupId: org.springframework.boot
+    artifactId: spring-boot-testcontainers
+    scope: test
+  - groupId: org.testcontainers
+    artifactId: testcontainers-junit-jupiter
+    scope: test
+  - groupId: org.testcontainers
+    artifactId: testcontainers-elasticsearch
+    scope: test
+  - groupId: org.testcontainers
+    artifactId: testcontainers-localstack
+    scope: test
+  - groupId: org.testcontainers
+    artifactId: testcontainers-postgresql
+    scope: test
+
+build:
+  plugins:
+    - groupId: org.apache.maven.plugins
+      artifactId: maven-enforcer-plugin
+      executions:
+        - configuration:
+            rules:
+              requireJavaVersion:
+                version: '[25,)'
+                message: Java 25 or higher is required to build this project.
+              requireMavenVersion:
+                version: '[3.9,)'
+                message: Maven 3.9 or higher is required to build this project.
+          goals:
+            - enforce
+          id: enforce-environment
+          inherited: true
+          phase: validate
+          priority: 0
+    - groupId: org.apache.maven.plugins
+      artifactId: maven-compiler-plugin
+      executions:
+        - configuration:
+            compileSourceRoots:
+              - '${project.basedir}/src/main/java'
+              - '${project.basedir}/src/main/jooq-gen'
+          goals:
+            - compile
+          id: default-compile
+          inherited: true
+          phase: compile
+          priority: 0
+    - groupId: org.apache.maven.plugins
+      artifactId: maven-surefire-plugin
+      configuration:
+        redirectTestOutputToFile: true
+        forkCount: 2C
+        argLine: '--enable-native-access=ALL-UNNAMED -Xmx4096m -Xshare:off'
+    - groupId: org.springframework.boot
+      artifactId: spring-boot-maven-plugin
+      configuration:
+        mainClass: org.eclipse.openvsx.RegistryApplication
+
