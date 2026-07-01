@@ -452,7 +452,7 @@
         <configuration>
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <forkCount>2C</forkCount>
-          <argLine>--enable-native-access=ALL-UNNAMED -Xmx4096m</argLine>
+          <argLine>--enable-native-access=ALL-UNNAMED -Xmx4096m -Xshare:off</argLine>
         </configuration>
       </plugin>
       <plugin>
