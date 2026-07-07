@@ -273,6 +273,7 @@ export interface TargetPlatformVersion {
 
 export interface RegistryVersion {
     version: string;
+    maxExtensionSize?: number;
 }
 
 export interface LoginProviders {
