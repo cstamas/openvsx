@@ -12,6 +12,7 @@ package org.eclipse.openvsx.mail;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SendMailJobRequest implements JobRequest {
@@ -35,7 +36,10 @@ public class SendMailJobRequest implements JobRequest {
         this.to = to;
         this.subject = subject;
         this.template = template;
-        this.variables = variables;
+        // Jackson's polymorphic type validator refuses to deserialize JDK-internal map
+        // implementations (e.g. java.util.ImmutableCollections$MapN from Map.of(...)),
+        // so store variables in a plain HashMap that it recognizes.
+        this.variables = variables != null ? new HashMap<>(variables) : null;
     }
 
     public String getFrom() {
