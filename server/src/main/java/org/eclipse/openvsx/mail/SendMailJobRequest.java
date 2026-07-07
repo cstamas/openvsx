@@ -12,15 +12,23 @@ package org.eclipse.openvsx.mail;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
-import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A {@code JobRequest} to send templated emails.
+ */
 public class SendMailJobRequest implements JobRequest {
 
     private String from;
     private String to;
     private String subject;
     private String template;
+
+    // FIXME: since using jackson 3, serialization of JobRequest arguments
+    //        is restricted by default, more information at
+    //        <a href="https://www.jobrunr.io/en/documentation/serialization/jackson3/#exploring-alternatives-to-additional-polymorphic-type-validation">...</a>
+    //        RegistryApplication injects a custom Jackson3JsonMapper that also allows subtypes from java.util and java.time
+    //        but we should revisit the variables
     private Map<String,Object> variables;
 
     public SendMailJobRequest() {}
@@ -36,10 +44,7 @@ public class SendMailJobRequest implements JobRequest {
         this.to = to;
         this.subject = subject;
         this.template = template;
-        // Jackson's polymorphic type validator refuses to deserialize JDK-internal map
-        // implementations (e.g. java.util.ImmutableCollections$MapN from Map.of(...)),
-        // so store variables in a plain HashMap that it recognizes.
-        this.variables = variables != null ? new HashMap<>(variables) : null;
+        this.variables = variables;
     }
 
     public String getFrom() {
@@ -79,7 +84,7 @@ public class SendMailJobRequest implements JobRequest {
     }
 
     @Override
-    public Class<? extends JobRequestHandler> getJobRequestHandler() {
+    public Class<? extends JobRequestHandler<?>> getJobRequestHandler() {
         return SendMailJobRequestHandler.class;
     }
 }
