@@ -56,6 +56,9 @@ public class ExtensionControlService {
     @Value("${ovsx.extension-control.enabled:true}")
     boolean enabled;
 
+    @Value("${ovsx.extension-control.delete-transitively:false}")
+    boolean deleteTransitively;
+
     @Value("${ovsx.extension-control.update-on-start:false}")
     boolean updateOnStart;
 
@@ -95,7 +98,7 @@ public class ExtensionControlService {
     public UserData createExtensionControlUser() {
         var userName = "ExtensionControlUser";
         var user = repositories.findUserByLoginName("system", userName);
-        if(user == null) {
+        if (user == null) {
             user = new UserData();
             user.setProvider("system");
             user.setLoginName(userName);
@@ -135,13 +138,13 @@ public class ExtensionControlService {
 
     @Cacheable(CACHE_MALICIOUS_EXTENSIONS)
     public List<String> getMaliciousExtensionIds() throws IOException {
-        if(!enabled) {
+        if (!enabled) {
             return Collections.emptyList();
         }
 
         var json = getExtensionControlJson();
         var malicious = json.get("malicious");
-        if(!malicious.isArray()) {
+        if (!malicious.isArray()) {
             logger.error("field 'malicious' is not an array");
             return Collections.emptyList();
         }
