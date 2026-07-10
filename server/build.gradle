@@ -152,7 +152,9 @@ dependencies {
 
 configurations.configureEach {
     resolutionStrategy {
-        force 'org.apache.commons:commons-compress:1.26.0+'
+        // due to security vulnerabilities in commons-compress < 1.26.0
+        // see: https://commons.apache.org/proper/commons-compress/security.html
+        force 'org.apache.commons:commons-compress:[1.26.0,2.0)'
     }
 }
 
