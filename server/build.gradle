@@ -15,15 +15,29 @@ plugins {
 
 def jooqSrcDir = 'src/main/jooq-gen'
 
-//ext['junit-jupiter.version'] = libs.versions.junit.get()
-
 // override spring boot managed versions
 // see https://docs.spring.io/spring-boot/gradle-plugin/managing-dependencies.html
 // example:
 // ext['netty.version'] = '4.1.132.Final'
 
-ext['opentelemetry.version'] = '1.63.0'
-ext['flyway.version'] = libs.versions.flyway
+// Note: these versions below "deviate" from Spring Boot's managed versions because we want to use newer versions
+// This means that on Spring Boot update, we need to re-check the versions here and update or remove them if needed.
+
+// Steps for checking
+// - ./gradlew listDependencies
+// - jbang toolbox@maveniverse versions build/dependencies/list.txt --artifactVersionSelectorSpec="minor()" | grep -v "up to date
+// OR
+// - mvn eu.maveniverse.maven.plugins:toolbox:gav-versions -Dgav=build/dependencies/list.txt -DartifactVersionSelectorSpec="minor()" | grep -v "up to date"
+
+ext['flyway.version'] = libs.versions.flyway.get()
+ext['jackson-2-bom.version'] = libs.versions.jackson2.get()
+ext['jackson-bom.version'] = libs.versions.jackson.get()
+ext['jetty.version'] = libs.versions.jetty.get()
+ext['jooq.version'] = libs.versions.jooq.get()
+ext['netty.version'] = libs.versions.netty.get()
+ext['opentelemetry.version'] = libs.versions.opentelemetry.get()
+ext['logback.version'] = libs.versions.logback.get()
+ext['log4j2.version'] = libs.versions.log4j2.get()
 
 java {
     sourceCompatibility = libs.versions.java.get()
