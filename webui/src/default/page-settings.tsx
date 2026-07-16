@@ -8,81 +8,139 @@
  * SPDX-License-Identifier: EPL-2.0
  ********************************************************************************/
 
-import { FunctionComponent, ReactNode, useContext } from 'react';
+import { FunctionComponent, ReactNode } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { styled, Theme } from '@mui/material/styles';
-import { Link, Typography, Box } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import { Link as RouteLink, Route, useParams } from 'react-router-dom';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import CallSplitIcon from '@mui/icons-material/CallSplit';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { Extension, NamespaceDetails } from '../extension-registry-types';
 import { PageSettings } from '../page-settings';
 import { ExtensionListRoutes } from '../pages/extension-list/extension-list-routes';
 import { DefaultMenuContent, MobileMenuContent } from './menu-content';
+import { OpenVsxMark } from '../components/openvsx-mark';
 import OpenVSXLogo from './openvsx-registry-logo';
 import About from './about';
 import { createAbsoluteURL } from '../utils';
-import { MainContext } from '../context';
+
+const WIKI_URL = 'https://github.com/eclipse-openvsx/openvsx/wiki';
+const REPO_URL = 'https://github.com/eclipse-openvsx/openvsx';
+const ISSUES_URL = `${REPO_URL}/issues`;
 
 export default function createPageSettings(prefersDarkMode: boolean, serverUrl: string): PageSettings {
     const toolbarContent: FunctionComponent = () => (
-        <RouteLink to={ExtensionListRoutes.MAIN} aria-label={`Home - Open VSX Registry`}>
-            <OpenVSXLogo width='auto' height='40px' marginTop='8px' prefersDarkMode={prefersDarkMode} />
+        <RouteLink
+            to={ExtensionListRoutes.MAIN}
+            aria-label={`Home - Open VSX Registry`}
+            // A bare anchor would leak the browser's link colors into the wordmark.
+            style={{ display: 'flex', color: 'inherit' }}>
+            <OpenVSXLogo width='auto' height='2.5rem' prefersDarkMode={prefersDarkMode} />
         </RouteLink>
     );
 
-    const link = ({ theme }: { theme: Theme }) => ({
-        color: theme.palette.text.primary,
-        textDecoration: 'none',
-        '&:hover': {
-            color: theme.palette.secondary.main,
-            textDecoration: 'none'
-        }
-    });
-
-    const StyledRouteLink = styled(RouteLink)(link);
-
-    const ServerVersion: FunctionComponent = () => {
-        const { version } = useContext(MainContext);
-        if (!version) {
-            return <div>Loading version...</div>;
-        }
-        return (
-            <Typography variant='body2' sx={{ fontSize: '0.8rem' }}>
-                Server Version: {version.version}
-            </Typography>
-        );
+    const footer: PageSettings['elements']['footer'] = {
+        brand: {
+            logo: <OpenVsxMark />,
+            name: 'Open VSX Registry',
+            description: 'An open-source, vendor-neutral registry for VS Code–compatible extensions.'
+        },
+        columns: [
+            {
+                heading: 'Resources',
+                links: [{ label: 'Documentation', href: WIKI_URL }]
+            },
+            {
+                heading: 'Community',
+                links: [
+                    { label: 'GitHub', href: REPO_URL, external: true },
+                    { label: 'About This Service', href: '/about' }
+                ]
+            }
+        ],
+        social: [{ title: 'GitHub', href: REPO_URL, icon: <GitHubIcon sx={{ fontSize: '1rem' }} /> }],
+        copyright: 'Copyright © Eclipse Foundation, AISBL. All Rights Reserved.'
     };
 
-    const footerContent: FunctionComponent<{ expanded: boolean }> = () => (
-        <Box
-            sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexDirection: { xs: 'column', sm: 'column', md: 'row', lg: 'row', xl: 'row' }
-            }}>
-            <Link
-                target='_blank'
-                href='https://github.com/eclipse/openvsx'
-                sx={(theme: Theme) => ({
-                    ...link({ theme }),
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontSize: '1.1rem',
-                    mb: { xs: 1, sm: 1, md: 0, lg: 0, xl: 0 }
-                })}>
-                <GitHubIcon />
-                &nbsp;eclipse/openvsx
-            </Link>
-            <ServerVersion />
-            <StyledRouteLink to='/about'>About This Service</StyledRouteLink>
-        </Box>
-    );
+    const home: PageSettings['elements']['home'] = {
+        popularSearches: ['python', 'git', 'docker', 'prettier', 'eslint', 'rust', 'java'],
+        involvement: {
+            heading: 'Get Involved',
+            cards: [
+                {
+                    icon: <CallSplitIcon />,
+                    title: 'Contribute',
+                    description: 'Open VSX is fully open source. Help build the registry the ecosystem depends on.',
+                    href: REPO_URL,
+                    label: 'View on GitHub →'
+                },
+                {
+                    icon: <BugReportIcon />,
+                    title: 'Report an issue',
+                    description: 'Found a bug or have a feature request? Open an issue and help improve the registry.',
+                    href: ISSUES_URL,
+                    label: 'Open an issue →'
+                },
+                {
+                    icon: <MenuBookIcon />,
+                    title: 'Read the docs',
+                    description: 'Learn how to publish, claim namespaces, and consume extensions via the API.',
+                    href: WIKI_URL,
+                    label: 'View documentation →'
+                }
+            ]
+        }
+    };
 
     const searchHeader: FunctionComponent = () => (
-        <Typography variant='h4' sx={{ mb: 2, fontWeight: 'fontWeightLight', letterSpacing: 4, textAlign: 'center' }}>
-            Extensions for VS Code Compatible Editors
-        </Typography>
+        <Box textAlign='center' sx={{ mb: 3, maxWidth: '43.75rem', mx: 'auto' }}>
+            <Box
+                sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    px: '0.8125rem',
+                    py: '0.375rem',
+                    borderRadius: '999px',
+                    bgcolor: 'accentSoft',
+                    color: 'secondary.light',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    mb: 3
+                }}>
+                <Box
+                    component='span'
+                    sx={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        bgcolor: 'secondary.main',
+                        display: 'inline-block',
+                        flexShrink: 0
+                    }}
+                />
+                Open-source registry for VS Code–compatible editors
+            </Box>
+            <Typography
+                component='h1'
+                sx={{
+                    fontSize: { xs: '2.2rem', sm: '3rem', md: '3.375rem' },
+                    lineHeight: 1.04,
+                    letterSpacing: '-0.035em',
+                    fontWeight: 800,
+                    mb: 2
+                }}>
+                Find the right extension,
+                <br />
+                for any editor.
+            </Typography>
+            <Typography
+                sx={{ fontSize: '1.125rem', color: 'text.secondary', maxWidth: '35rem', mx: 'auto', lineHeight: 1.5 }}>
+                Browse community-published extensions. <br />
+                Free, open, and vendor-neutral.
+            </Typography>
+        </Box>
     );
 
     const additionalRoutes: ReactNode = <Route path='/about' element={<About />} />;
@@ -128,12 +186,8 @@ export default function createPageSettings(prefersDarkMode: boolean, serverUrl: 
             toolbarContent,
             defaultMenuContent: DefaultMenuContent,
             mobileMenuContent: MobileMenuContent,
-            footer: {
-                content: footerContent,
-                props: {
-                    footerHeight: 69 // Maximal height reached for small screens
-                }
-            },
+            footer,
+            home,
             searchHeader,
             additionalRoutes,
             mainHeadTags,

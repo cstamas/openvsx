@@ -10,8 +10,99 @@
 
 import { ComponentType, ReactNode } from 'react';
 import { SxProps, Theme } from '@mui/material/styles';
-import { Extension, NamespaceDetails } from './extension-registry-types';
+import { Extension, NamespaceDetails, SortBy } from './extension-registry-types';
 import { Cookie } from './utils';
+
+export interface FooterLink {
+    label: ReactNode;
+    href: string;
+    /** Open in a new tab. */
+    external?: boolean;
+}
+
+export interface FooterColumn {
+    heading: ReactNode;
+    links: FooterLink[];
+}
+
+export interface FooterSocialLink {
+    /** Accessible label / tooltip for the icon button. */
+    title: string;
+    href: string;
+    icon: ReactNode;
+}
+
+/**
+ * Structured, data-driven footer rendered by the library chrome (brand, link
+ * columns and social icons). Every field is consumer-provided branding and may
+ * be a plain string or any React node.
+ */
+export interface StructuredFooterSettings {
+    brand?: {
+        logo?: ReactNode;
+        name: ReactNode;
+        description?: ReactNode;
+    };
+    columns?: FooterColumn[];
+    social?: FooterSocialLink[];
+    copyright?: ReactNode;
+    /** Extra node appended to the footer's bottom bar, next to the built-in controls. */
+    extra?: ReactNode;
+}
+
+/**
+ * Legacy footer: a fully custom component fixed to the bottom of the viewport,
+ * receiving an `expanded` flag that is true while hovered. Kept for backward
+ * compatibility with consumers written before {@link StructuredFooterSettings}.
+ */
+export interface CustomFooterSettings {
+    content: ComponentType<{ expanded: boolean }>;
+    props?: {
+        /** Collapsed footer height; the page content is bottom-padded by it to stay clear of the fixed footer. */
+        footerHeight?: number;
+    };
+}
+
+/**
+ * Footer configuration. Provide {@link StructuredFooterSettings} to feed the
+ * built-in footer chrome, a component to replace the footer entirely (rendered
+ * bare at the bottom of the page), or {@link CustomFooterSettings} (with
+ * `content`) for the legacy hover-expanding chrome.
+ */
+export type FooterSettings = ComponentType | CustomFooterSettings | StructuredFooterSettings;
+
+/** A curated row of extensions on the home page, fetched with the given ordering. */
+export interface HomeCuratedSection {
+    title: string;
+    subtitle: string;
+    sortBy: SortBy;
+}
+
+export interface HomeInvolvementCard {
+    icon: ReactNode;
+    title: string;
+    description: string;
+    href: string;
+    label: string;
+}
+
+/** Consumer-provided content for the built-in home page (branding and curated data). */
+export interface HomeSettings {
+    popularSearches?: string[];
+    curatedSections?: HomeCuratedSection[];
+    involvement?: {
+        heading?: string;
+        cards: HomeInvolvementCard[];
+    };
+}
+
+/**
+ * Home route configuration. Provide {@link HomeSettings} to feed the built-in
+ * home page, or a component to replace it entirely. The built-in sections are
+ * exported so a replacement can be composed from them; each boxes itself, so
+ * don't wrap them in another width-constraining container.
+ */
+export type HomePageSettings = HomeSettings | ComponentType;
 
 export interface PageSettings {
     pageTitle: string;
@@ -24,12 +115,8 @@ export interface PageSettings {
         toolbarContent?: ComponentType;
         defaultMenuContent?: ComponentType;
         mobileMenuContent?: ComponentType;
-        footer?: {
-            content: ComponentType<{ expanded: boolean }>;
-            props: {
-                footerHeight?: number;
-            };
-        };
+        footer?: FooterSettings;
+        home?: HomePageSettings;
         searchHeader?: ComponentType;
         reportAbuse?: ComponentType<{ extension: Extension; sx?: SxProps<Theme> }>;
         claimNamespace?: ComponentType<{ extension: Extension; sx?: SxProps<Theme> }>;

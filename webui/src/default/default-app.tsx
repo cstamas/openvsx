@@ -8,6 +8,13 @@
  * SPDX-License-Identifier: EPL-2.0
  ********************************************************************************/
 
+import '@fontsource-variable/geist/index.css';
+import '@fontsource-variable/geist-mono/index.css';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import '../main.css';
 import { createRoot } from 'react-dom/client';
 import { useMemo } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
@@ -39,8 +46,7 @@ const service = new ExtensionRegistryService(`${location.protocol}//${serverHost
 export const App = () => {
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
     const theme = useMemo(() => createDefaultTheme(prefersDarkMode ? 'dark' : 'light'), [prefersDarkMode]);
-
-    const pageSettings = createPageSettings(prefersDarkMode, service.serverUrl);
+    const pageSettings = useMemo(() => createPageSettings(prefersDarkMode, service.serverUrl), [prefersDarkMode]);
     return (
         <HelmetProvider>
             <ThemeProvider theme={theme}>

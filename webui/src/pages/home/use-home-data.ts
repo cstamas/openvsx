@@ -1,0 +1,95 @@
+/********************************************************************************
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * https://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ ********************************************************************************/
+
+import { useContext, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import { MainContext } from '../../context';
+import { SearchEntry, SearchResult, SortOrder, isError } from '../../extension-registry-types';
+import { ExtensionCategory } from '../../extension-registry-types';
+import { useCategories } from '../../components/categories';
+import { HomeCuratedSection } from '../../page-settings';
+import { controllerFromSignal } from '../../query-client';
+
+/** Number of extensions fetched for each curated row. */
+export const CURATED_SIZE = 6;
+
+/** Categories shown in the home page grid. */
+const HOME_CATEGORIES = new Set<ExtensionCategory>([
+    'AI',
+    'Programming Languages',
+    'Snippets',
+    'Linters',
+    'Themes',
+    'Debuggers',
+    'Formatters',
+    'Keymaps',
+    'SCM Providers',
+    'Extension Packs',
+    'Language Packs',
+    'Data Science',
+    'Machine Learning',
+    'Visualization',
+    'Notebooks'
+]);
+
+/** Curated rows shown when the consumer does not configure `home.curatedSections`. */
+export const DEFAULT_CURATED_SECTIONS: HomeCuratedSection[] = [
+    { title: 'Most downloaded', subtitle: 'The extensions developers rely on every day', sortBy: 'downloadCount' },
+    { title: 'Recently updated', subtitle: 'Fresh releases from publishers this week', sortBy: 'timestamp' }
+];
+
+export interface CuratedRow extends HomeCuratedSection {
+    extensions: SearchEntry[];
+    loading: boolean;
+}
+
+/** The browsable home category list: the registry's categories minus a few noisy ones. */
+export function useHomeCategories(): ExtensionCategory[] {
+    const allCategories = useCategories();
+    return useMemo(() => allCategories.filter(c => HOME_CATEGORIES.has(c)), [allCategories]);
+}
+
+/**
+ * Loads the curated extension rows, each fetched with its configured ordering.
+ * Rows start in a loading state and fill in as requests resolve; failed rows end
+ * up empty and are hidden by the consumer.
+ */
+export function useCuratedRows(curatedSections: HomeCuratedSection[]): CuratedRow[] {
+    const { service } = useContext(MainContext);
+
+    const results = useQueries({
+        queries: curatedSections.map(section => ({
+            queryKey: ['home-curated', section.sortBy],
+            queryFn: async ({ signal }: { signal: AbortSignal }): Promise<SearchEntry[]> => {
+                const result = await service.search(controllerFromSignal(signal), {
+                    query: '',
+                    category: '',
+                    offset: 0,
+                    size: CURATED_SIZE,
+                    sortBy: section.sortBy,
+                    sortOrder: 'desc' as SortOrder
+                });
+                if (isError(result)) {
+                    throw result;
+                }
+                return (result as SearchResult).extensions;
+            }
+        }))
+    });
+
+    return curatedSections.map((section, idx) => ({
+        ...section,
+        extensions: results[idx].data ?? [],
+        loading: results[idx].isLoading
+    }));
+}

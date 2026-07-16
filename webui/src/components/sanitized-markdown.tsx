@@ -18,6 +18,11 @@ import linkIcon from './link-icon';
 import { useLocation } from 'react-router-dom';
 
 const Markdown = styled('div')(({ theme }: { theme: Theme }) => ({
+    // The container owns the leading gap; the first block shouldn't add its own
+    // heading/paragraph margin on top of it.
+    '& > :first-of-type': {
+        marginTop: 0
+    },
     '& a': {
         textDecoration: 'none',
         color: theme.palette.secondary.main,
@@ -66,6 +71,8 @@ const Markdown = styled('div')(({ theme }: { theme: Theme }) => ({
     '& table': {
         borderCollapse: 'collapse',
         borderSpacing: 0,
+        display: 'block',
+        overflowX: 'auto',
         '& tr, & td, & th': {
             border: '1px solid #ddd'
         },

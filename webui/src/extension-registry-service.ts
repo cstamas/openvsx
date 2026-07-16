@@ -9,9 +9,10 @@
  ********************************************************************************/
 
 import {
+    CATEGORIES,
     Extension,
-    UserData,
     ExtensionCategory,
+    UserData,
     ExtensionReviewList,
     PersonalAccessToken,
     SearchResult,
@@ -157,7 +158,8 @@ export class ExtensionRegistryService {
             if (filter.sortOrder) query.push({ key: 'sortOrder', value: filter.sortOrder });
         }
         const endpoint = createAbsoluteURL([this.serverUrl, 'api', '-', 'search'], query);
-        return sendRequest({ abortController, endpoint });
+        // Non-retriable: retries are owned by the TanStack query that calls this.
+        return sendNonRetriableRequest({ abortController, endpoint });
     }
 
     async getExtensionDetail(
@@ -204,24 +206,9 @@ export class ExtensionRegistryService {
         });
     }
 
+    /** @deprecated Use the CATEGORIES constant from extension-registry-types instead. */
     getCategories(): ExtensionCategory[] {
-        return [
-            'Programming Languages',
-            'Snippets',
-            'Linters',
-            'Themes',
-            'Debuggers',
-            'Formatters',
-            'Keymaps',
-            'SCM Providers',
-            'Other',
-            'Extension Packs',
-            'Language Packs',
-            'Data Science',
-            'Machine Learning',
-            'Visualization',
-            'Notebooks'
-        ];
+        return [...CATEGORIES];
     }
 
     async getExtensionReviews(
@@ -1486,7 +1473,7 @@ export class AdminServiceImpl implements AdminService {
 
 export interface ExtensionFilter {
     query: string;
-    category: ExtensionCategory | '';
+    category: string;
     size: number;
     offset: number;
     sortBy: SortBy;

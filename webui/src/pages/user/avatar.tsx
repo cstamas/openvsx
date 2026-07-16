@@ -9,87 +9,134 @@
  ********************************************************************************/
 
 import { FunctionComponent, useContext, useRef, useState } from 'react';
-import { Avatar, Menu, Typography, MenuItem, Link, Divider, IconButton } from '@mui/material';
+import { Avatar, Box, IconButton, Link, Menu, MenuItem, Typography } from '@mui/material';
 import { Link as RouteLink } from 'react-router-dom';
+import SettingsIcon from '@mui/icons-material/Settings';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { UserSettingsRoutes } from './user-settings-routes';
 import { AdminDashboardRoutes } from '../admin-dashboard/admin-dashboard-routes';
 import { MainContext } from '../../context';
 import { LogoutForm } from './logout';
 
+// Radius, font and min-height come from the MuiMenuItem theme override.
+const menuItemSx = {
+    py: '0.5rem',
+    px: '0.625rem',
+    gap: '0.625rem',
+    color: 'text.primary',
+    display: 'flex',
+    alignItems: 'center'
+} as const;
+
+const iconSx = { fontSize: '1.0625rem', color: 'text.disabled', flexShrink: 0 };
+
 export const UserAvatar: FunctionComponent = () => {
-    const [open, setOpen] = useState<boolean>(false);
+    const [open, setOpen] = useState(false);
     const context = useContext(MainContext);
-    const avatarButton = useRef<any>();
+    const anchorRef = useRef<HTMLButtonElement>(null);
     const logoutFormRef = useRef<HTMLFormElement>(null);
 
-    const handleAvatarClick = () => {
-        setOpen(!open);
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-    };
-
     const user = context.user;
-    if (!user) {
-        return null;
-    }
+    if (!user) return null;
+
+    const initials = user.loginName.slice(0, 2).toUpperCase();
+
     return (
         <>
             <IconButton
+                ref={anchorRef}
                 title={`Logged in as ${user.loginName}`}
-                aria-label='User Info'
-                onClick={handleAvatarClick}
-                ref={(ref: any) => (avatarButton.current = ref)}>
+                aria-label='User menu'
+                onClick={() => setOpen(true)}
+                sx={{ p: '0.3125rem' }}>
                 <Avatar
                     src={user.avatarUrl}
                     alt={user.loginName}
-                    variant='rounded'
-                    sx={{ width: '30px', height: '30px' }}
-                />
+                    sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: 'accentSoft',
+                        color: 'secondary.light',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        borderRadius: '8px'
+                    }}>
+                    {initials}
+                </Avatar>
             </IconButton>
             <Menu
                 open={open}
-                anchorEl={avatarButton.current}
+                anchorEl={anchorRef.current}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                onClose={handleClose}>
+                onClose={() => setOpen(false)}>
+                {/* User header */}
+                <Box sx={{ px: '0.875rem', py: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Avatar
+                        src={user.avatarUrl}
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: 'accentSoft',
+                            color: 'secondary.light',
+                            fontSize: '0.9375rem',
+                            fontWeight: 700,
+                            borderRadius: '10px',
+                            flexShrink: 0
+                        }}>
+                        {initials}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                            sx={{
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.07em',
+                                color: 'text.disabled',
+                                lineHeight: 1.3
+                            }}>
+                            Logged in as
+                        </Typography>
+                        <Typography
+                            sx={{
+                                fontSize: '0.875rem',
+                                fontWeight: 700,
+                                lineHeight: 1.3,
+                                color: 'text.primary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}>
+                            <Link href={user.homepage} target='_blank' onClick={() => setOpen(false)}>
+                                {user.loginName}
+                            </Link>
+                        </Typography>
+                    </Box>
+                </Box>
                 <MenuItem
-                    component={Link}
-                    href={user.homepage}
-                    sx={{
-                        display: 'block',
-                        '&:hover': {
-                            textDecoration: 'underline'
-                        }
-                    }}>
-                    <Typography variant='body2' color='text.primary' sx={{ mr: 1 }}>
-                        Logged in as
-                    </Typography>
-                    <Typography variant='overline' color='text.primary'>
-                        {user.loginName}
-                    </Typography>
+                    component={RouteLink}
+                    to={UserSettingsRoutes.PROFILE}
+                    onClick={() => setOpen(false)}
+                    sx={{ ...menuItemSx, textDecoration: 'none' }}>
+                    <SettingsIcon sx={iconSx} />
+                    Settings
                 </MenuItem>
-                <Divider />
-                <MenuItem component={RouteLink} to={UserSettingsRoutes.PROFILE} onClick={handleClose}>
-                    <Typography variant='button' color='text.primary'>
-                        Settings
-                    </Typography>
-                </MenuItem>
-                {user.role && user.role === 'admin' ? (
-                    <MenuItem component={RouteLink} to={AdminDashboardRoutes.MAIN} onClick={handleClose}>
-                        <Typography variant='button' color='text.primary'>
-                            Admin Dashboard
-                        </Typography>
+                {user.role === 'admin' && (
+                    <MenuItem
+                        component={RouteLink}
+                        to={AdminDashboardRoutes.MAIN}
+                        onClick={() => setOpen(false)}
+                        sx={{ ...menuItemSx, textDecoration: 'none' }}>
+                        <AdminPanelSettingsIcon sx={iconSx} />
+                        Admin Dashboard
                     </MenuItem>
-                ) : (
-                    ''
                 )}
-                <MenuItem onClick={() => logoutFormRef.current?.submit()}>
+                <MenuItem onClick={() => logoutFormRef.current?.submit()} sx={menuItemSx}>
                     <LogoutForm ref={logoutFormRef}>
-                        <Typography variant='button' sx={{ color: 'primary.dark' }}>
-                            Log Out
-                        </Typography>
+                        <LogoutIcon sx={iconSx} />
+                        Log out
                     </LogoutForm>
                 </MenuItem>
             </Menu>

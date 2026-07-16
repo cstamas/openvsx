@@ -1,3 +1,17 @@
+/* Box-shadow tokens: referenced by theme.tsx component overrides and component sx props.
+   Must be CSS vars (not theme values) because the theme itself uses them in string overrides. */
+:root {
+    --shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 4px 14px rgba(20, 20, 40, 0.05);
+    --shadow-lg: 0 12px 44px rgba(20, 20, 40, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 18px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 16px 54px rgba(0, 0, 0, 0.6);
+    }
+}
+
 html,
 body {
     height: 100%;
@@ -16,12 +30,57 @@ img {
     overflow: hidden;
 }
 
-@keyframes fadein {
+@keyframes fadeIn {
     0% {
         opacity: 0;
     }
     100% {
         opacity: 1;
+    }
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(6px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* View transition for search bar morph. The moving group carries the morph;
+   the snapshots swap quickly and without transforms of their own — a full-length
+   crossfade doubles the field's text, and extra transforms offset the two pills. */
+::view-transition-group(vt-search) {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+::view-transition-old(vt-search) {
+    animation: 80ms ease-out both vt-fade-out;
+}
+::view-transition-new(vt-search) {
+    animation: 120ms ease-out 60ms both vt-fade-in;
+}
+
+/* Staggered fade-through between pages: the outgoing page is mostly gone
+   before the incoming one appears, so their contents never double up. */
+::view-transition-old(root) {
+    animation: 90ms ease-out both vt-fade-out;
+}
+::view-transition-new(root) {
+    animation: 140ms ease-out 50ms both vt-fade-in;
+}
+
+@keyframes vt-fade-out {
+    to {
+        opacity: 0;
+    }
+}
+@keyframes vt-fade-in {
+    from {
+        opacity: 0;
     }
 }
 
