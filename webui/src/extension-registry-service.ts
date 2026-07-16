@@ -53,10 +53,15 @@ import {
     CustomerMembershipList,
     RateLimitToken,
     Settings,
-    UserSearchResult
+    UserSearchResult,
+    TrustedPublisher,
+    TrustedPublisherList,
+    TrustedPublisherProvider,
+    TrustedPublisherProviderList,
+    TrustedPublisherRequest
 } from './extension-registry-types';
 import { createAbsoluteURL, addQuery } from './utils';
-import { sendRequest, ErrorResponse, sendNonRetriableRequest } from './server-request';
+import { sendRequest, ErrorResponse, sendNonRetriableRequest, sendStrictRequest } from './server-request';
 
 export class ExtensionRegistryService {
     readonly admin: AdminService;
@@ -462,6 +467,88 @@ export class ExtensionRegistryService {
             method: 'POST',
             credentials: true,
             endpoint: addQuery(endpoint, query)
+        });
+    }
+
+    async getTrustedPublisherProviders(
+        abortController: AbortController,
+        namespace: string
+    ): Promise<Readonly<TrustedPublisherProvider>[]> {
+        const result = await sendStrictRequest<TrustedPublisherProviderList>({
+            abortController,
+            credentials: true,
+            endpoint: createAbsoluteURL([
+                this.serverUrl,
+                'user',
+                'namespace',
+                namespace,
+                'trusted-publishing',
+                'providers'
+            ])
+        });
+        return result.trustedPublisherProviders ?? [];
+    }
+
+    async getTrustedPublishers(
+        abortController: AbortController,
+        namespace: string
+    ): Promise<Readonly<TrustedPublisher>[]> {
+        const result = await sendStrictRequest<TrustedPublisherList>({
+            abortController,
+            credentials: true,
+            endpoint: createAbsoluteURL([this.serverUrl, 'user', 'namespace', namespace, 'trusted-publishing'])
+        });
+        return result.trustedPublishers ?? [];
+    }
+
+    async registerTrustedPublisher(
+        namespace: string,
+        request: TrustedPublisherRequest
+    ): Promise<Readonly<TrustedPublisher>> {
+        const csrfResponse = await this.getCsrfToken();
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json;charset=UTF-8'
+        };
+        if (!isError(csrfResponse)) {
+            const csrfToken = csrfResponse as CsrfTokenJson;
+            headers[csrfToken.header] = csrfToken.value;
+        }
+        return sendStrictRequest({
+            method: 'POST',
+            credentials: true,
+            payload: request,
+            headers,
+            endpoint: createAbsoluteURL([
+                this.serverUrl,
+                'user',
+                'namespace',
+                namespace,
+                'trusted-publishing',
+                'create'
+            ])
+        });
+    }
+
+    async deleteTrustedPublisher(namespace: string, id: number): Promise<Readonly<SuccessResult>> {
+        const csrfResponse = await this.getCsrfToken();
+        const headers: Record<string, string> = {};
+        if (!isError(csrfResponse)) {
+            const csrfToken = csrfResponse as CsrfTokenJson;
+            headers[csrfToken.header] = csrfToken.value;
+        }
+        return sendStrictRequest({
+            method: 'POST',
+            credentials: true,
+            headers,
+            endpoint: createAbsoluteURL([
+                this.serverUrl,
+                'user',
+                'namespace',
+                namespace,
+                'trusted-publishing',
+                'delete',
+                `${id}`
+            ])
         });
     }
 

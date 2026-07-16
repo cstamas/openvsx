@@ -212,7 +212,17 @@ export default function createDefaultTheme(themeType: 'light' | 'dark'): Theme {
             },
             MuiButton: {
                 styleOverrides: {
-                    root: { textTransform: 'none' }
+                    root: { textTransform: 'none' },
+                    outlinedError: ({ theme }) => ({
+                        backgroundColor: theme.palette.surface2,
+                        borderColor: theme.palette.divider,
+                        color: theme.palette.error.main,
+                        '&:hover': {
+                            backgroundColor: theme.palette.error.main,
+                            borderColor: theme.palette.error.main,
+                            color: theme.palette.common.white
+                        }
+                    })
                 }
             },
             // MUI X derives the grid's borders from `divider` via lighten/darken, which

@@ -263,6 +263,38 @@ export interface NamespaceDetails {
     extensions?: SearchEntry[];
 }
 
+export interface TrustedPublisherProvider {
+    id: string;
+    name: string;
+    url: UrlString;
+    // field key -> form label; a label containing "optional" marks a non-required field
+    registrationKeys: { [key: string]: string };
+}
+
+export interface TrustedPublisherProviderList {
+    trustedPublisherProviders: TrustedPublisherProvider[];
+}
+
+export interface TrustedPublisherRequest {
+    provider: string;
+    namespace: string;
+    extension: string;
+    registration: { [key: string]: string };
+}
+
+export interface TrustedPublisher {
+    id: number;
+    provider: string;
+    namespace: string;
+    extension: string;
+    registration: { [key: string]: string };
+    createdTimestamp?: TimestampString;
+}
+
+export interface TrustedPublisherList {
+    trustedPublishers: TrustedPublisher[];
+}
+
 export interface PublisherInfo {
     user: UserData;
     extensions: Extension[];
