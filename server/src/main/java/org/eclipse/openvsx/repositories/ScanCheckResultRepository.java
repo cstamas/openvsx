@@ -12,12 +12,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.ScanCheckResult;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.ScanCheckResult;
 
 /**
  * Repository for ScanCheckResult entities.

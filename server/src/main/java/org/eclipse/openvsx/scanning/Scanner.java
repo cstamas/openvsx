@@ -12,13 +12,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Base interface for all scanner implementations.
@@ -57,10 +57,7 @@ public interface Scanner {
      * Status returned by {@link #pollStatus(Submission)}.
      */
     enum PollStatus {
-        SUBMITTED,
-        PROCESSING,
-        COMPLETED,
-        FAILED
+        SUBMITTED, PROCESSING, COMPLETED, FAILED
     }
 
     /**
@@ -127,11 +124,22 @@ public interface Scanner {
             this(name, description, severity, null, null);
         }
 
-        public Threat(@NonNull String name, @Nullable String description, @NonNull String severity, @Nullable String filePath) {
+        public Threat(
+                @NonNull String name,
+                @Nullable String description,
+                @NonNull String severity,
+                @Nullable String filePath
+        ) {
             this(name, description, severity, filePath, null);
         }
 
-        public Threat(@NonNull String name, @Nullable String description, @NonNull String severity, @Nullable String filePath, @Nullable String fileHash) {
+        public Threat(
+                @NonNull String name,
+                @Nullable String description,
+                @NonNull String severity,
+                @Nullable String filePath,
+                @Nullable String fileHash
+        ) {
             this.name = name;
             this.description = description;
             this.severity = severity;
@@ -139,11 +147,26 @@ public interface Scanner {
             this.fileHash = fileHash;
         }
 
-        @NonNull public String getName() { return name; }
-        @Nullable public String getDescription() { return description; }
-        @NonNull public String getSeverity() { return severity; }
-        @Nullable public String getFilePath() { return filePath; }
-        @Nullable public String getFileHash() { return fileHash; }
+        @NonNull
+        public String getName() {
+            return name;
+        }
+        @Nullable
+        public String getDescription() {
+            return description;
+        }
+        @NonNull
+        public String getSeverity() {
+            return severity;
+        }
+        @Nullable
+        public String getFilePath() {
+            return filePath;
+        }
+        @Nullable
+        public String getFileHash() {
+            return fileHash;
+        }
     }
 
     /**
@@ -199,7 +222,9 @@ public interface Scanner {
      * -1 means no limit (default). Positive values enable the concurrency dispatcher
      * which promotes QUEUED jobs in FIFO order.
      */
-    default int getMaxConcurrency() { return -1; }
+    default int getMaxConcurrency() {
+        return -1;
+    }
 
     /**
      * Build a user-facing URL pointing at the scanner's own dashboard for a
@@ -220,7 +245,9 @@ public interface Scanner {
      * before being failed. Prevents unbounded queue growth.
      * Only relevant when maxConcurrency > 0.
      */
-    default int getMaxQueueWaitMinutes() { return 120; }
+    default int getMaxQueueWaitMinutes() {
+        return 120;
+    }
 
     /**
      * Get the polling configuration for this async scanner.
@@ -242,8 +269,7 @@ public interface Scanner {
     @NonNull
     default PollStatus pollStatus(@NonNull Submission submission) throws ScannerException {
         throw new UnsupportedOperationException(
-            "Scanner " + getScannerType() + " does not support polling"
-        );
+                "Scanner " + getScannerType() + " does not support polling");
     }
 
     /**
@@ -252,7 +278,6 @@ public interface Scanner {
     @NonNull
     default Result fetchResults(@NonNull Submission submission) throws ScannerException {
         throw new UnsupportedOperationException(
-            "Scanner " + getScannerType() + " does not support result retrieval"
-        );
+                "Scanner " + getScannerType() + " does not support result retrieval");
     }
 }

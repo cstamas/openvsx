@@ -9,10 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.MigrationItem;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.MigrationItem;
 
 public interface MigrationItemRepository extends Repository<MigrationItem, Long> {
 

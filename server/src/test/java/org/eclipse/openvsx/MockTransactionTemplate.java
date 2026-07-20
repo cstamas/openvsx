@@ -9,11 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.io.Serial;
+
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.io.Serial;
 
 public class MockTransactionTemplate extends TransactionTemplate {
 

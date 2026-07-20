@@ -9,14 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.admin;
 
-import static org.eclipse.openvsx.entities.FileResource.CHANGELOG;
-import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
-import static org.eclipse.openvsx.entities.FileResource.ICON;
-import static org.eclipse.openvsx.entities.FileResource.LICENSE;
-import static org.eclipse.openvsx.entities.FileResource.MANIFEST;
-import static org.eclipse.openvsx.entities.FileResource.README;
-import static org.eclipse.openvsx.entities.FileResource.VSIXMANIFEST;
-
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -24,7 +16,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
+import org.jobrunr.scheduling.JobRequestScheduler;
+import org.jobrunr.scheduling.cron.Cron;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.ExtensionService;
 import org.eclipse.openvsx.ExtensionValidator;
 import org.eclipse.openvsx.UserService;
@@ -42,25 +45,22 @@ import org.eclipse.openvsx.json.ChangeNamespaceJson;
 import org.eclipse.openvsx.json.ExtensionJson;
 import org.eclipse.openvsx.json.NamespaceJson;
 import org.eclipse.openvsx.json.ResultJson;
-import org.eclipse.openvsx.json.UserRelationshipsJson;
 import org.eclipse.openvsx.json.UserPublishInfoJson;
+import org.eclipse.openvsx.json.UserRelationshipsJson;
 import org.eclipse.openvsx.mail.MailService;
 import org.eclipse.openvsx.migration.HandlerJobRequest;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.*;
-import org.jobrunr.scheduling.JobRequestScheduler;
-import org.jobrunr.scheduling.cron.Cron;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
+import static org.eclipse.openvsx.entities.FileResource.CHANGELOG;
+import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
+import static org.eclipse.openvsx.entities.FileResource.ICON;
+import static org.eclipse.openvsx.entities.FileResource.LICENSE;
+import static org.eclipse.openvsx.entities.FileResource.MANIFEST;
+import static org.eclipse.openvsx.entities.FileResource.README;
+import static org.eclipse.openvsx.entities.FileResource.VSIXMANIFEST;
 
 @Component
 public class AdminService {
@@ -121,17 +121,18 @@ public class AdminService {
      * No further checks are made if the extension is referenced by bundles or as a dependency.
      */
     @Transactional(rollbackOn = ErrorResultException.class)
-    public void deleteExtensionAndDependencies(UserData admin, String namespaceName, String extensionName) throws ErrorResultException {
+    public void deleteExtensionAndDependencies(UserData admin, String namespaceName, String extensionName)
+            throws ErrorResultException {
         var extension = extensions.lockExtension(namespaceName, extensionName);
         deleteExtensionAndDependencies(admin, extension, 0);
     }
 
-    private void deleteExtensionAndDependencies(UserData admin, Extension extension, int depth) throws ErrorResultException {
+    private void deleteExtensionAndDependencies(UserData admin, Extension extension, int depth)
+            throws ErrorResultException {
         if (depth > 5) {
             throw new ErrorResultException(
                     "Failed to delete extension and its dependencies. Exceeded maximum recursion depth.",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         var bundledRefs = repositories.findBundledExtensionsReference(extension);
@@ -169,7 +170,8 @@ public class AdminService {
      * This method is intended for non-user interaction as it will wait till the lock can be acquired.
      */
     @Transactional(rollbackOn = ErrorResultException.class)
-    public void deleteExtension(UserData admin, String namespaceName, String extensionName) throws ErrorResultException {
+    public void deleteExtension(UserData admin, String namespaceName, String extensionName)
+            throws ErrorResultException {
         var extension = extensions.lockExtension(namespaceName, extensionName);
         extensions.deleteExtension(admin, extension, false);
     }
@@ -184,10 +186,10 @@ public class AdminService {
      */
     @Transactional(rollbackOn = ErrorResultException.class)
     public ResultJson deleteExtensionNoWait(
-        UserData user,
-        String namespaceName,
-        String extensionName,
-        TargetPlatformVersion... targetVersions
+            UserData user,
+            String namespaceName,
+            String extensionName,
+            TargetPlatformVersion... targetVersions
     ) throws ErrorResultException {
         return extensions.deleteExtension(user, false, namespaceName, extensionName, targetVersions);
     }
@@ -249,7 +251,8 @@ public class AdminService {
 
         var reviews = repositories.findActiveReviews(extension, user);
         if (reviews.isEmpty()) {
-            var message = "No active review for extension " + NamingUtil.toExtensionId(extension) + " and user " + loginName + " found";
+            var message = "No active review for extension " + NamingUtil.toExtensionId(extension) + " and user "
+                    + loginName + " found";
             throw new ErrorResultException(message, HttpStatus.NOT_FOUND);
         }
 
@@ -272,8 +275,13 @@ public class AdminService {
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    public ResultJson editNamespaceMember(String namespaceName, String userName, String provider, String role,
-            UserData admin) throws ErrorResultException {
+    public ResultJson editNamespaceMember(
+            String namespaceName,
+            String userName,
+            String provider,
+            String role,
+            UserData admin
+    ) throws ErrorResultException {
         var namespace = repositories.findNamespace(namespaceName);
         if (namespace == null) {
             throw new ErrorResultException("Namespace not found: " + namespaceName);
@@ -368,22 +376,23 @@ public class AdminService {
         eclipse.adminEnrichUserJson(userPublishInfo.getUser(), user);
         userPublishInfo.setActiveAccessTokenNum((int) repositories.countActiveAccessTokens(user));
         var extVersions = repositories.findLatestVersions(user);
-        var types = new String[]{DOWNLOAD, MANIFEST, ICON, README, LICENSE, CHANGELOG, VSIXMANIFEST};
+        var types = new String[] { DOWNLOAD, MANIFEST, ICON, README, LICENSE, CHANGELOG, VSIXMANIFEST };
         var fileUrls = storageUtil.getFileUrls(extVersions, UrlUtil.getBaseUrl(), types);
-        userPublishInfo.setExtensions(extVersions.stream()
-                .map(latest -> {
-                    var json = latest.toExtensionJson();
-                    json.setPreview(latest.isPreview());
-                    json.setActive(latest.getExtension().isActive());
-                    json.setFiles(fileUrls.get(latest.getId()));
+        userPublishInfo.setExtensions(
+                extVersions.stream()
+                        .map(latest -> {
+                            var json = latest.toExtensionJson();
+                            json.setPreview(latest.isPreview());
+                            json.setActive(latest.getExtension().isActive());
+                            json.setFiles(fileUrls.get(latest.getId()));
 
-                    return json;
-                })
-                .sorted(Comparator.<ExtensionJson, String>comparing(ExtensionJson::getNamespace)
-                                .thenComparing(ExtensionJson::getName)
-                                .thenComparing(ExtensionJson::getVersion)
-                )
-                .toList());
+                            return json;
+                        })
+                        .sorted(
+                                Comparator.<ExtensionJson, String>comparing(ExtensionJson::getNamespace)
+                                        .thenComparing(ExtensionJson::getName)
+                                        .thenComparing(ExtensionJson::getVersion))
+                        .toList());
 
         return userPublishInfo;
     }
@@ -396,9 +405,10 @@ public class AdminService {
                     var userJson = user.toUserJson();
                     userJson.setRole(user.getRoleAsString());
                     json.setUser(userJson);
-                    json.setNamespaces(repositories.findMemberships(user).stream()
-                            .map(membership -> membership.getNamespace().toNamespaceDetailsJson())
-                            .toList());
+                    json.setNamespaces(
+                            repositories.findMemberships(user).stream()
+                                    .map(membership -> membership.getNamespace().toNamespaceDetailsJson())
+                                    .toList());
                     return json;
                 });
     }
@@ -412,7 +422,8 @@ public class AdminService {
 
         var updatedRole = "none".equalsIgnoreCase(role) ? null : parseRole(role);
         if (Objects.equals(user.getRole(), updatedRole)) {
-            throw new ErrorResultException("User " + provider + "/" + loginName + " already has the role " + user.getRole() + ".");
+            throw new ErrorResultException(
+                    "User " + provider + "/" + loginName + " already has the role " + user.getRole() + ".");
         }
 
         user.setRole(updatedRole);
@@ -476,9 +487,9 @@ public class AdminService {
         }
 
         var message = "Deactivated " + deactivatedTokenCount + " tokens, "
-            + "deactivated " + deactivatedExtensionCount + " extensions, "
-            + "removed " + numberOfNamespaceMemberships + " namespace memberships of user "
-            + provider + "/" + loginName + ".";
+                + "deactivated " + deactivatedExtensionCount + " extensions, "
+                + "removed " + numberOfNamespaceMemberships + " namespace memberships of user "
+                + provider + "/" + loginName + ".";
 
         if (reason != null) {
             message += " Reason: " + reason;
@@ -496,7 +507,8 @@ public class AdminService {
         }
 
         var deactivatedTokenCount = repositories.deactivateAccessTokens(user);
-        var result = ResultJson.success("Deactivated " + deactivatedTokenCount + " tokens of user " + provider + "/" + loginName + ".");
+        var result = ResultJson.success(
+                "Deactivated " + deactivatedTokenCount + " tokens of user " + provider + "/" + loginName + ".");
         logs.logAction(admin, result);
         mail.scheduleRevokedAccessTokensMail(user);
         return result;

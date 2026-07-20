@@ -9,7 +9,6 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
-import org.eclipse.openvsx.util.NamingUtil;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -17,10 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import org.eclipse.openvsx.util.NamingUtil;
+
 @Component
 public class RemoveFileResourceTypeResourceJobRequestHandler implements JobRequestHandler<MigrationJobRequest<?>> {
 
-    protected final Logger logger = new JobRunrDashboardLogger(LoggerFactory.getLogger(RemoveFileResourceTypeResourceJobRequestHandler.class));
+    protected final Logger logger = new JobRunrDashboardLogger(
+            LoggerFactory.getLogger(RemoveFileResourceTypeResourceJobRequestHandler.class));
 
     private final MigrationService migrations;
 
@@ -32,7 +34,7 @@ public class RemoveFileResourceTypeResourceJobRequestHandler implements JobReque
     @Job(name = "Remove FileResource of type 'resource'", retries = 3)
     public void run(MigrationJobRequest jobRequest) throws Exception {
         var resource = migrations.getResource(jobRequest);
-        if(resource == null) {
+        if (resource == null) {
             return;
         }
 

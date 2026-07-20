@@ -9,8 +9,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.web;
 
+import java.net.URI;
+import java.util.Optional;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.mirror.MirrorExtensionHandlerInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -18,8 +20,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.net.URI;
-import java.util.Optional;
+import org.eclipse.openvsx.mirror.MirrorExtensionHandlerInterceptor;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -74,14 +75,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        if(mirrorInterceptor != null) {
+        if (mirrorInterceptor != null) {
             registry.addInterceptor(mirrorInterceptor)
                     .addPathPatterns(
                             "/vscode/asset/**",
                             "/vscode/item",
                             "/vscode/gallery/publishers/**",
-                            "/vscode/unpkg/**"
-                    );
+                            "/vscode/unpkg/**");
         }
     }
 }

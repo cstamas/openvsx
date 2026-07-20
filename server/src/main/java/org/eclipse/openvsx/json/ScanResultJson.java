@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.util.List;
 
 @Schema(
     name = "ScanResult",
@@ -85,9 +85,11 @@ public class ScanResultJson extends ResultJson {
     @Schema(description = "All checks/scans that were executed (pass, fail, or skip)")
     private List<CheckResultJson> checkResults;
 
-    @Schema(description = "Scanner jobs for this scan with their current lifecycle state " +
-        "(QUEUED, PROCESSING, SUBMITTED, COMPLETE, FAILED, REMOVED). Lets the UI surface " +
-        "ongoing or queued scanners without inferring their state from checkResults.")
+    @Schema(
+        description = "Scanner jobs for this scan with their current lifecycle state " +
+                "(QUEUED, PROCESSING, SUBMITTED, COMPLETE, FAILED, REMOVED). Lets the UI surface " +
+                "ongoing or queued scanners without inferring their state from checkResults."
+    )
     private List<ScannerJobJson> scannerJobs;
 
     @Schema(description = "Error message if the scan failed with an error")

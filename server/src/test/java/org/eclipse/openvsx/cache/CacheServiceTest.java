@@ -9,20 +9,14 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.LocalRegistryService;
-import org.eclipse.openvsx.UserService;
-import org.eclipse.openvsx.admin.AdminService;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.json.ExtensionJson;
-import org.eclipse.openvsx.json.ReviewJson;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.security.IdPrincipal;
-import org.eclipse.openvsx.util.TargetPlatformVersion;
-import org.eclipse.openvsx.util.TempFile;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +31,18 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.LocalRegistryService;
+import org.eclipse.openvsx.UserService;
+import org.eclipse.openvsx.admin.AdminService;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.json.ExtensionJson;
+import org.eclipse.openvsx.json.ReviewJson;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.security.IdPrincipal;
+import org.eclipse.openvsx.util.TargetPlatformVersion;
+import org.eclipse.openvsx.util.TempFile;
+import org.eclipse.openvsx.util.TimeUtil;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_AVERAGE_REVIEW_RATING;
 import static org.eclipse.openvsx.cache.CacheService.CACHE_EXTENSION_JSON;
@@ -49,10 +50,13 @@ import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
 import static org.eclipse.openvsx.entities.FileResource.STORAGE_LOCAL;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {
         "ovsx.elasticsearch.enabled=false"
-})
-@ActiveProfiles({"test", "test_db"})
+    }
+)
+@ActiveProfiles({ "test", "test_db" })
 class CacheServiceTest {
 
     @Autowired
@@ -97,10 +101,17 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
-            var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            var json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             var cachedJson = getCache(CACHE_EXTENSION_JSON).get(cacheKey, ExtensionJson.class);
             assertEquals(json, cachedJson);
         }
@@ -114,10 +125,17 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
-            registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
             var updatedUser = new UserData();
             updatedUser.setProvider("github");
@@ -130,7 +148,11 @@ class CacheServiceTest {
             users.upsertUser(updatedUser);
             assertNull(getCache(CACHE_EXTENSION_JSON).get(cacheKey, ExtensionJson.class));
 
-            var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            var json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             assertEquals("user", json.getPublishedBy().getLoginName());
             assertEquals("User2", json.getPublishedBy().getFullName());
             assertEquals("https://user2.github.io", json.getPublishedBy().getHomepage());
@@ -150,10 +172,17 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
-            var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            var json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             assertEquals(Long.valueOf(0), json.getReviewCount());
             assertNull(json.getAverageRating());
 
@@ -172,7 +201,11 @@ class CacheServiceTest {
 
             entityManager.flush();
 
-            json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             assertEquals(Long.valueOf(1), json.getReviewCount());
             assertEquals(Double.valueOf(3), json.getAverageRating());
 
@@ -189,8 +222,11 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
             var poster = new UserData();
             poster.setLoginName("user1");
@@ -206,7 +242,11 @@ class CacheServiceTest {
 
             entityManager.flush();
 
-            var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            var json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             assertEquals(Long.valueOf(1), json.getReviewCount());
             assertEquals(Double.valueOf(3), json.getAverageRating());
 
@@ -215,7 +255,11 @@ class CacheServiceTest {
 
             entityManager.flush();
 
-            json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            json = registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
             assertEquals(Long.valueOf(0), json.getReviewCount());
             assertNull(json.getAverageRating());
 
@@ -233,10 +277,17 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
-            registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
             admins.deleteExtensionNoWait(admin, namespace.getName(), extension.getName());
             assertNull(getCache(CACHE_EXTENSION_JSON).get(cacheKey, ExtensionJson.class));
@@ -252,14 +303,21 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
             var newVersion = "0.2.0";
             var oldVersion = extVersion.getVersion();
             try (var newTempFile = insertNewVersion(extension, extVersion.getPublishedWith(), newVersion)) {
 
-                var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), newVersion);
+                var json = registry.getExtension(
+                        namespace.getName(),
+                        extension.getName(),
+                        extVersion.getTargetPlatform(),
+                        newVersion);
                 assertTrue(json.getAllVersions().containsKey(newVersion));
                 assertTrue(json.getAllVersions().containsKey(oldVersion));
 
@@ -267,13 +325,16 @@ class CacheServiceTest {
                         admin,
                         namespace.getName(),
                         extension.getName(),
-                        TargetPlatformVersion.of(extVersion.getTargetPlatform(), newVersion)
-                );
+                        TargetPlatformVersion.of(extVersion.getTargetPlatform(), newVersion));
                 assertNull(getCache(CACHE_EXTENSION_JSON).get(cacheKey, ExtensionJson.class));
 
                 entityManager.flush();
 
-                json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+                json = registry.getExtension(
+                        namespace.getName(),
+                        extension.getName(),
+                        extVersion.getTargetPlatform(),
+                        extVersion.getVersion());
                 assertFalse(json.getAllVersions().containsKey(newVersion));
                 assertTrue(json.getAllVersions().containsKey(oldVersion));
 
@@ -291,10 +352,17 @@ class CacheServiceTest {
             var extVersion = tempFile.getResource().getExtension();
             var extension = extVersion.getExtension();
             var namespace = extension.getNamespace();
-            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(namespace.getName(), extension.getName(),
-                    extVersion.getTargetPlatform(), extVersion.getVersion());
+            var cacheKey = new ExtensionJsonCacheKeyGenerator().generate(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
-            registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion());
+            registry.getExtension(
+                    namespace.getName(),
+                    extension.getName(),
+                    extVersion.getTargetPlatform(),
+                    extVersion.getVersion());
 
             var newVersion = "0.2.0";
             var oldVersion = extVersion.getVersion();
@@ -305,7 +373,11 @@ class CacheServiceTest {
 
                 entityManager.flush();
 
-                var json = registry.getExtension(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), oldVersion);
+                var json = registry.getExtension(
+                        namespace.getName(),
+                        extension.getName(),
+                        extVersion.getTargetPlatform(),
+                        oldVersion);
                 assertTrue(json.getAllVersions().containsKey(oldVersion));
                 assertTrue(json.getAllVersions().containsKey(newVersion));
                 assertTrue(json.getAllVersions().containsKey("latest"));
@@ -369,7 +441,8 @@ class CacheServiceTest {
         return admin;
     }
 
-    private TempFile insertNewVersion(Extension extension, PersonalAccessToken token, String newVersion) throws IOException {
+    private TempFile insertNewVersion(Extension extension, PersonalAccessToken token, String newVersion)
+            throws IOException {
         var extVersion = new ExtensionVersion();
         extVersion.setPreview(false);
         extVersion.setActive(true);

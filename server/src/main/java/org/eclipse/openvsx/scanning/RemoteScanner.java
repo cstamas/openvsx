@@ -12,16 +12,16 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * HTTP-based scanner driven entirely by YAML configuration.
@@ -43,12 +43,12 @@ public class RemoteScanner implements Scanner {
     private final ScannerFileProvider scanFileService;
 
     public RemoteScanner(
-        @NonNull String scannerName,
-        RemoteScannerProperties.@NonNull ScannerConfig config,
-        @NonNull HttpTemplateEngine templateEngine,
-        @NonNull HttpClientExecutor httpExecutor,
-        @NonNull HttpResponseExtractor responseExtractor,
-        @NonNull ScannerFileProvider scanFileService
+            @NonNull String scannerName,
+            RemoteScannerProperties.@NonNull ScannerConfig config,
+            @NonNull HttpTemplateEngine templateEngine,
+            @NonNull HttpClientExecutor httpExecutor,
+            @NonNull HttpResponseExtractor responseExtractor,
+            @NonNull ScannerFileProvider scanFileService
     ) {
         this.scannerName = scannerName;
         this.config = config;
@@ -80,10 +80,14 @@ public class RemoteScanner implements Scanner {
     }
 
     @Override
-    public int getMaxConcurrency() { return config.getMaxConcurrency(); }
+    public int getMaxConcurrency() {
+        return config.getMaxConcurrency();
+    }
 
     @Override
-    public int getMaxQueueWaitMinutes() { return config.getMaxQueueWaitMinutes(); }
+    public int getMaxQueueWaitMinutes() {
+        return config.getMaxQueueWaitMinutes();
+    }
 
     @Override
     public boolean enforcesThreats() {
@@ -118,8 +122,10 @@ public class RemoteScanner implements Scanner {
      */
     @Override
     public Scanner.@NonNull Invocation startScan(@NonNull Command command) throws ScannerException {
-        logger.debug("Starting {} scan for extension version {}",
-            scannerName, command.extensionVersionId());
+        logger.debug(
+                "Starting {} scan for extension version {}",
+                scannerName,
+                command.extensionVersionId());
 
         RemoteScannerProperties.HttpOperation configOp = config.getStart();
         if (configOp == null) {
@@ -128,7 +134,9 @@ public class RemoteScanner implements Scanner {
 
         try (var extensionFile = scanFileService.getExtensionFile(command.extensionVersionId())) {
             File file = extensionFile.getPath().toFile();
-            String fileName = extensionFile.getResource() != null ? extensionFile.getResource().getName() : file.getName();
+            String fileName = extensionFile.getResource() != null
+                    ? extensionFile.getResource().getName()
+                    : file.getName();
 
             // Copy operation to avoid mutating shared config (thread safety)
             RemoteScannerProperties.HttpOperation startOp = configOp.copy();
@@ -206,8 +214,11 @@ public class RemoteScanner implements Scanner {
             String status = extractStatus(response, pollOp);
             PollStatus mappedStatus = mapStatus(status, pollOp);
 
-            logger.debug("Job {} status: {} -> {}",
-                submission.externalJobId(), status, mappedStatus);
+            logger.debug(
+                    "Job {} status: {} -> {}",
+                    submission.externalJobId(),
+                    status,
+                    mappedStatus);
 
             return mappedStatus;
 
@@ -250,9 +261,10 @@ public class RemoteScanner implements Scanner {
             // Parse result
             Scanner.Result result = parseResult(response, resultOp);
 
-            logger.debug("Scan {} completed: {}",
-                submission.externalJobId(),
-                result.isClean() ? "clean" : result.getThreats().size() + " threats found");
+            logger.debug(
+                    "Scan {} completed: {}",
+                    submission.externalJobId(),
+                    result.isClean() ? "clean" : result.getThreats().size() + " threats found");
 
             return result;
 
@@ -265,8 +277,8 @@ public class RemoteScanner implements Scanner {
      * Process an operation by substituting placeholders in URL and headers.
      */
     private void processOperation(
-        RemoteScannerProperties.HttpOperation operation,
-        Map<String, String> placeholders
+            RemoteScannerProperties.HttpOperation operation,
+            Map<String, String> placeholders
     ) {
         // Process URL
         String processedUrl = templateEngine.process(operation.getUrl(), placeholders);
@@ -274,16 +286,14 @@ public class RemoteScanner implements Scanner {
 
         // Process headers
         Map<String, String> processedHeaders = templateEngine.processMap(
-            operation.getHeaders(),
-            placeholders
-        );
+                operation.getHeaders(),
+                placeholders);
         operation.setHeaders(processedHeaders);
 
         // Process query params
         Map<String, String> processedParams = templateEngine.processMap(
-            operation.getQueryParams(),
-            placeholders
-        );
+                operation.getQueryParams(),
+                placeholders);
         operation.setQueryParams(processedParams);
     }
 
@@ -291,8 +301,8 @@ public class RemoteScanner implements Scanner {
      * Extract job ID from start operation response.
      */
     private String extractJobId(
-        String response,
-        RemoteScannerProperties.HttpOperation operation
+            String response,
+            RemoteScannerProperties.HttpOperation operation
     ) throws ScannerException {
         RemoteScannerProperties.ResponseConfig responseConfig = operation.getResponse();
         if (responseConfig == null || responseConfig.getJobIdPath() == null) {
@@ -300,10 +310,9 @@ public class RemoteScanner implements Scanner {
         }
 
         String jobId = responseExtractor.extractString(
-            response,
-            responseConfig.getFormat(),
-            responseConfig.getJobIdPath()
-        );
+                response,
+                responseConfig.getFormat(),
+                responseConfig.getJobIdPath());
 
         if (jobId == null) {
             throw new ScannerException("Failed to extract job ID from response");
@@ -316,8 +325,8 @@ public class RemoteScanner implements Scanner {
      * Extract status from poll operation response.
      */
     private String extractStatus(
-        String response,
-        RemoteScannerProperties.HttpOperation operation
+            String response,
+            RemoteScannerProperties.HttpOperation operation
     ) throws ScannerException {
         RemoteScannerProperties.ResponseConfig responseConfig = operation.getResponse();
         if (responseConfig == null || responseConfig.getStatusPath() == null) {
@@ -325,10 +334,9 @@ public class RemoteScanner implements Scanner {
         }
 
         String status = responseExtractor.extractString(
-            response,
-            responseConfig.getFormat(),
-            responseConfig.getStatusPath()
-        );
+                response,
+                responseConfig.getFormat(),
+                responseConfig.getStatusPath());
 
         if (status == null) {
             throw new ScannerException("Failed to extract status from response");
@@ -341,8 +349,8 @@ public class RemoteScanner implements Scanner {
      * Map scanner-specific status to PollStatus.
      */
     private PollStatus mapStatus(
-        String status,
-        RemoteScannerProperties.HttpOperation operation
+            String status,
+            RemoteScannerProperties.HttpOperation operation
     ) throws ScannerException {
         RemoteScannerProperties.ResponseConfig responseConfig = operation.getResponse();
         Map<String, String> statusMapping = responseConfig.getStatusMapping();
@@ -370,8 +378,8 @@ public class RemoteScanner implements Scanner {
      * Parse scan result from response.
      */
     private Scanner.Result parseResult(
-        String response,
-        RemoteScannerProperties.HttpOperation operation
+            String response,
+            RemoteScannerProperties.HttpOperation operation
     ) throws ScannerException {
         RemoteScannerProperties.ResponseConfig responseConfig = operation.getResponse();
         if (responseConfig == null) {
@@ -381,10 +389,9 @@ public class RemoteScanner implements Scanner {
         // Check for errors first
         if (responseConfig.getErrorPath() != null) {
             String error = responseExtractor.extractString(
-                response,
-                responseConfig.getFormat(),
-                responseConfig.getErrorPath()
-            );
+                    response,
+                    responseConfig.getFormat(),
+                    responseConfig.getErrorPath());
             if (error != null) {
                 throw new ScannerException("Scanner reported error: " + error);
             }
@@ -393,10 +400,9 @@ public class RemoteScanner implements Scanner {
         String summary = null;
         if (responseConfig.getSummaryPath() != null) {
             summary = responseExtractor.extractString(
-                response,
-                responseConfig.getFormat(),
-                responseConfig.getSummaryPath()
-            );
+                    response,
+                    responseConfig.getFormat(),
+                    responseConfig.getSummaryPath());
         }
 
         // Extract threats
@@ -407,10 +413,9 @@ public class RemoteScanner implements Scanner {
         }
 
         List<Map<String, Object>> threatObjects = responseExtractor.extractList(
-            response,
-            responseConfig.getFormat(),
-            threatsPath
-        );
+                response,
+                responseConfig.getFormat(),
+                threatsPath);
 
         // Map threats
         List<Scanner.Threat> threats = mapThreats(threatObjects, responseConfig);
@@ -426,8 +431,8 @@ public class RemoteScanner implements Scanner {
      * Map threat objects to ScanResult.Threat instances.
      */
     private List<Scanner.Threat> mapThreats(
-        List<Map<String, Object>> threatObjects,
-        RemoteScannerProperties.ResponseConfig responseConfig
+            List<Map<String, Object>> threatObjects,
+            RemoteScannerProperties.ResponseConfig responseConfig
     ) throws ScannerException {
         RemoteScannerProperties.ThreatMapping threatMapping = responseConfig.getThreatMapping();
         if (threatMapping == null) {
@@ -440,11 +445,10 @@ public class RemoteScanner implements Scanner {
             // Check condition filter
             if (threatMapping.getCondition() != null) {
                 boolean matches = responseExtractor.evaluateCondition(
-                    threatObj,
-                    threatMapping.getCondition()
-                );
+                        threatObj,
+                        threatMapping.getCondition());
                 if (!matches) {
-                    continue;  // Skip this threat
+                    continue; // Skip this threat
                 }
             }
 
@@ -482,15 +486,14 @@ public class RemoteScanner implements Scanner {
      */
     @NonNull
     private String extractThreatSeverity(
-        Map<String, Object> threatObj,
-        RemoteScannerProperties.ThreatMapping threatMapping
+            Map<String, Object> threatObj,
+            RemoteScannerProperties.ThreatMapping threatMapping
     ) {
         // Try expression first
         if (threatMapping.getSeverityExpression() != null) {
             String result = responseExtractor.evaluateExpression(
-                threatObj,
-                threatMapping.getSeverityExpression()
-            );
+                    threatObj,
+                    threatMapping.getSeverityExpression());
             if (result != null) {
                 return result;
             }

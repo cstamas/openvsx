@@ -11,15 +11,19 @@ package org.eclipse.openvsx.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
     name = "Result",
     description = "Generic result indicator",
     subTypes = {
-        ExtensionJson.class, NamespaceJson.class, NamespaceMembershipListJson.class, QueryResultJson.class,
-        ReviewListJson.class, SearchResultJson.class, UserJson.class
+        ExtensionJson.class,
+        NamespaceJson.class,
+        NamespaceMembershipListJson.class,
+        QueryResultJson.class,
+        ReviewListJson.class,
+        SearchResultJson.class,
+        UserJson.class
     }
 )
 @JsonInclude(Include.NON_NULL)

@@ -9,9 +9,25 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
+import org.springframework.http.*;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
@@ -23,21 +39,6 @@ import org.eclipse.openvsx.storage.log.DownloadCountService;
 import org.eclipse.openvsx.util.HttpHeadersUtil;
 import org.eclipse.openvsx.util.TempFile;
 import org.eclipse.openvsx.util.UrlUtil;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.util.Pair;
-import org.springframework.http.*;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
-
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.eclipse.openvsx.entities.FileResource.*;
 import static org.eclipse.openvsx.util.UrlUtil.createApiFileUrl;
@@ -112,27 +113,35 @@ public class StorageUtilService implements IStorageService {
 
     @Override
     public boolean isEnabled() {
-        return googleStorage.isEnabled() || azureStorage.isEnabled() || localStorage.isEnabled() || awsStorage.isEnabled();
+        return googleStorage.isEnabled() || azureStorage.isEnabled() || localStorage.isEnabled()
+                || awsStorage.isEnabled();
     }
 
     public String getActiveStorageType() {
         var storageTypes = new ArrayList<String>(3);
-        if (googleStorage.isEnabled())
+        if (googleStorage.isEnabled()) {
             storageTypes.add(STORAGE_GOOGLE);
-        if (azureStorage.isEnabled())
+        }
+        if (azureStorage.isEnabled()) {
             storageTypes.add(STORAGE_AZURE);
-        if (awsStorage.isEnabled())
+        }
+        if (awsStorage.isEnabled()) {
             storageTypes.add(STORAGE_AWS);
+        }
         if (!StringUtils.isEmpty(primaryService)) {
-            if (!storageTypes.contains(primaryService))
+            if (!storageTypes.contains(primaryService)) {
                 throw new IllegalStateException("The selected primary storage service is not available.");
+            }
             return primaryService;
         }
-        if (storageTypes.isEmpty())
+        if (storageTypes.isEmpty()) {
             return getLocalStorageIfEnabled();
-        if (storageTypes.size() == 1)
+        }
+        if (storageTypes.size() == 1) {
             return storageTypes.getFirst();
-        throw new IllegalStateException("Multiple external storage services are available. Please select a primary service.");
+        }
+        throw new IllegalStateException(
+                "Multiple external storage services are available. Please select a primary service.");
     }
 
     /**
@@ -156,7 +165,7 @@ public class StorageUtilService implements IStorageService {
     private String getStorageTypeForResource(FileResource resource) {
         var storageType = getActiveStorageType();
 
-        if(!storageType.equals(STORAGE_LOCAL) && !shouldStoreExternally(resource)) {
+        if (!storageType.equals(STORAGE_LOCAL) && !shouldStoreExternally(resource)) {
             storageType = getLocalStorageIfEnabled();
         }
 
@@ -172,7 +181,7 @@ public class StorageUtilService implements IStorageService {
     private String getStorageTypeForLogo() {
         var storageType = getActiveStorageType();
 
-        if(!storageType.equals(STORAGE_LOCAL) && !shouldStoreLogoExternally()) {
+        if (!storageType.equals(STORAGE_LOCAL) && !shouldStoreLogoExternally()) {
             storageType = getLocalStorageIfEnabled();
         }
 
@@ -268,15 +277,23 @@ public class StorageUtilService implements IStorageService {
     /**
      * Returns URLs for the given file types as a map of ExtensionVersion.id by a map of type by file URL, to be used in JSON response data.
      */
-    public Map<Long, Map<String, String>> getFileUrls(Collection<ExtensionVersion> extVersions, String serverUrl, String... types) {
+    public Map<Long, Map<String, String>> getFileUrls(
+            Collection<ExtensionVersion> extVersions,
+            String serverUrl,
+            String... types
+    ) {
         var type2Url = extVersions.stream()
                 .map(ev -> Map.<Long, Map<String, String>>entry(ev.getId(), new LinkedHashMap<>(types.length)))
-                .collect(Collectors.<Map.Entry<Long, Map<String, String>>, Long, Map<String, String>>toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(
+                        Collectors.<Map.Entry<Long, Map<String, String>>, Long, Map<String, String>>toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue));
 
         var resources = repositories.findFilesByType(extVersions, Arrays.asList(types));
         for (var resource : resources) {
             var extVersion = resource.getExtension();
-            type2Url.get(extVersion.getId()).put(resource.getType(), createApiFileUrl(serverUrl, extVersion, resource.getName()));
+            type2Url.get(extVersion.getId())
+                    .put(resource.getType(), createApiFileUrl(serverUrl, extVersion, resource.getName()));
         }
 
         return type2Url;
@@ -286,7 +303,7 @@ public class StorageUtilService implements IStorageService {
     public void increaseDownloadCount(FileResource resource) {
         downloadMetrics.recordDownload(resource);
 
-        if(downloadCountService.isEnabled(resource)) {
+        if (downloadCountService.isEnabled(resource)) {
             // don't count downloads twice
             return;
         }
@@ -350,9 +367,9 @@ public class StorageUtilService implements IStorageService {
     }
 
     @Override
-    public void copyFiles(List<Pair<FileResource,FileResource>> pairs) {
+    public void copyFiles(List<Pair<FileResource, FileResource>> pairs) {
         var groupedByStorageType = pairs.stream().collect(Collectors.groupingBy(p -> p.getFirst().getStorageType()));
-        for(var entry : groupedByStorageType.entrySet()) {
+        for (var entry : groupedByStorageType.entrySet()) {
             var storageType = entry.getKey();
             var group = entry.getValue();
             getStorageService(storageType).copyFiles(group);

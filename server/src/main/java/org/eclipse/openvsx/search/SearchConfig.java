@@ -9,6 +9,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
+import java.io.File;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.slf4j.Logger;
@@ -18,14 +26,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfiguration;
-
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 
 @Configuration
 @Profile("!test")
@@ -81,13 +81,13 @@ public class SearchConfig extends ElasticsearchConfiguration {
             if (!StringUtils.isEmpty(trustStorePassword)) {
                 try {
                     sslContextBuilder.loadTrustMaterial(new File(trustStore), trustStorePassword.toCharArray());
-                } catch(NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
+                } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
                     logger.error("Unable to load password protected trust material {}", trustStore, e);
                 }
             } else {
                 try {
                     sslContextBuilder.loadTrustMaterial(new File(trustStore));
-                } catch(NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
+                } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
                     logger.error("Unable to load trust material {}", trustStore, e);
                 }
             }

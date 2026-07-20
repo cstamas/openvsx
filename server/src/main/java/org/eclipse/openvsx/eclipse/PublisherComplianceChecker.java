@@ -9,13 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.eclipse;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.PersonalAccessToken;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.NamingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,10 +23,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.PersonalAccessToken;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.NamingUtil;
 
 @Component
 public class PublisherComplianceChecker {
@@ -59,8 +60,9 @@ public class PublisherComplianceChecker {
 
     @EventListener
     public void checkPublishers(ApplicationStartedEvent event) {
-        if (!checkCompliance || !eclipseService.isActive())
+        if (!checkCompliance || !eclipseService.isActive()) {
             return;
+        }
 
         var publisherTokens = repositories.findAllAccessTokens().stream()
                 .collect(Collectors.groupingBy(PersonalAccessToken::getUser));

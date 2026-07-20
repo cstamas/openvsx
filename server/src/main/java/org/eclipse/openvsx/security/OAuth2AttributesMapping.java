@@ -9,8 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.security;
 
-import org.eclipse.openvsx.entities.UserData;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+
+import org.eclipse.openvsx.entities.UserData;
 
 public record OAuth2AttributesMapping(
         String avatarUrl,

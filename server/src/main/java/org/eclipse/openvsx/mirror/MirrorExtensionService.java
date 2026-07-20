@@ -9,6 +9,22 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.zip.ZipFile;
+
+import org.jobrunr.jobs.context.JobContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
 import org.eclipse.openvsx.ExtensionService;
 import org.eclipse.openvsx.UpstreamRegistryService;
 import org.eclipse.openvsx.accesstoken.AccessTokenService;
@@ -18,21 +34,6 @@ import org.eclipse.openvsx.json.UserJson;
 import org.eclipse.openvsx.publish.ExtensionVersionIntegrityService;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.*;
-import org.jobrunr.jobs.context.JobContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpMethod;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.zip.ZipFile;
 
 import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD_SIG;
 import static org.eclipse.openvsx.entities.FileResource.PUBLIC_KEY;
@@ -74,12 +75,19 @@ public class MirrorExtensionService {
     /**
      * It applies delta from previous execution.
      */
-    public void mirrorExtension(String namespaceName, String extensionName, UserData mirrorUser, LocalDate lastModified, JobContext jobContext) {
+    public void mirrorExtension(
+            String namespaceName,
+            String extensionName,
+            UserData mirrorUser,
+            LocalDate lastModified,
+            JobContext jobContext
+    ) {
         var latest = upstream.getExtension(namespaceName, extensionName, null);
         if (shouldMirrorExtensionVersions(namespaceName, extensionName, lastModified, latest)) {
             mirrorExtensionVersions(namespaceName, extensionName, mirrorUser, jobContext);
         } else {
-            jobContext.logger().info("all versions are up to date " + NamingUtil.toExtensionId(namespaceName, extensionName));
+            jobContext.logger()
+                    .info("all versions are up to date " + NamingUtil.toExtensionId(namespaceName, extensionName));
         }
 
         Supplier<Object> extensionIdSupplier = () -> NamingUtil.toExtensionId(namespaceName, extensionName);
@@ -101,7 +109,12 @@ public class MirrorExtensionService {
         data.mirrorNamespaceMetadata(namespaceName);
     }
 
-    private boolean shouldMirrorExtensionVersions(String namespaceName, String extensionName, LocalDate lastModified, ExtensionJson latest) {
+    private boolean shouldMirrorExtensionVersions(
+            String namespaceName,
+            String extensionName,
+            LocalDate lastModified,
+            ExtensionJson latest
+    ) {
         if (lastModified == null) {
             return true;
         }
@@ -112,14 +125,20 @@ public class MirrorExtensionService {
         }
 
         var lastUpdated = extension.getLastUpdatedDate();
-        return lastUpdated.toLocalDate().isBefore(lastModified) || lastUpdated.isBefore(TimeUtil.fromUTCString(latest.getTimestamp()));
+        return lastUpdated.toLocalDate().isBefore(lastModified)
+                || lastUpdated.isBefore(TimeUtil.fromUTCString(latest.getTimestamp()));
     }
 
-    private void mirrorExtensionVersions(String namespaceName, String extensionName, UserData mirrorUser, JobContext jobContext) {
+    private void mirrorExtensionVersions(
+            String namespaceName,
+            String extensionName,
+            UserData mirrorUser,
+            JobContext jobContext
+    ) {
         data.ensureNamespace(namespaceName);
 
         var toAdd = new ArrayList<ExtensionJson>();
-        for(var targetPlatform : TargetPlatform.TARGET_PLATFORM_NAMES) {
+        for (var targetPlatform : TargetPlatform.TARGET_PLATFORM_NAMES) {
             Set<String> versions;
             try {
                 var json = upstream.getExtension(namespaceName, extensionName, targetPlatform);
@@ -137,22 +156,27 @@ public class MirrorExtensionService {
                     .forEach(extVersion -> data.deleteExtensionVersion(extVersion, mirrorUser));
 
             toAdd.addAll(
-                versions.stream()
-                    .filter(version -> targetVersions.stream().noneMatch(extVersion -> extVersion.getVersion().equals(version)))
-                    .map(version -> upstream.getExtension(namespaceName, extensionName, targetPlatform, version))
-                    .toList()
-            );
+                    versions.stream()
+                            .filter(
+                                    version -> targetVersions.stream()
+                                            .noneMatch(extVersion -> extVersion.getVersion().equals(version)))
+                            .map(
+                                    version -> upstream
+                                            .getExtension(namespaceName, extensionName, targetPlatform, version))
+                            .toList());
         }
         toAdd.sort(Comparator.comparing(extensionJson -> TimeUtil.fromUTCString(extensionJson.getTimestamp())));
 
-        for(var i = 0; i < toAdd.size(); i++) {
+        for (var i = 0; i < toAdd.size(); i++) {
             var json = toAdd.get(i);
-            jobContext.logger().info("mirroring " + NamingUtil.toLogFormat(json) + " (" + (i+1) + "/" +  toAdd.size() + ")");
+            jobContext.logger()
+                    .info("mirroring " + NamingUtil.toLogFormat(json) + " (" + (i + 1) + "/" + toAdd.size() + ")");
             try {
                 mirrorExtensionVersion(json);
                 data.getMirroredVersions().increment();
             } catch (Exception e) {
-                jobContext.logger().error("failure to mirror " + NamingUtil.toLogFormat(json) + ". Reason: " + e.getMessage());
+                jobContext.logger()
+                        .error("failure to mirror " + NamingUtil.toLogFormat(json) + ". Reason: " + e.getMessage());
                 data.getFailedVersions().increment();
             }
         }
@@ -168,25 +192,26 @@ public class MirrorExtensionService {
         userJson.setHomepage(json.getPublishedBy().getHomepage());
         var namespaceName = json.getNamespace();
 
-        var vsixResourceHeaders = backgroundNonRedirectingRestTemplate.headForHeaders("{resolveVsixLocation}", Map.of("resolveVsixLocation", download));
+        var vsixResourceHeaders = backgroundNonRedirectingRestTemplate
+                .headForHeaders("{resolveVsixLocation}", Map.of("resolveVsixLocation", download));
         var vsixLocation = vsixResourceHeaders.getLocation();
         if (vsixLocation == null) {
             throw new AssertionError("Expected location header from redirected vsix url");
         }
 
         var segments = vsixLocation.getPath().split("/");
-        var filename = segments[segments.length-1];
+        var filename = segments[segments.length - 1];
         if (!filename.endsWith(".vsix")) {
             throw new AssertionError("Invalid vsix filename from redirected vsix url");
         }
 
         String signatureName = null;
         try (var extensionFile = downloadToFile(download, "extension_", ".vsix")) {
-            if(json.getFiles().containsKey(DOWNLOAD_SIG)) {
-                try(
-                    var signatureZip = downloadToFile(json.getFiles().get(DOWNLOAD_SIG), "extension_", ".sigzip");
-                    var signatureFile = extractSignature(signatureZip);
-                    var publicKeyFile = downloadToFile(json.getFiles().get(PUBLIC_KEY), "public_", ".pem");
+            if (json.getFiles().containsKey(DOWNLOAD_SIG)) {
+                try (
+                        var signatureZip = downloadToFile(json.getFiles().get(DOWNLOAD_SIG), "extension_", ".sigzip");
+                        var signatureFile = extractSignature(signatureZip);
+                        var publicKeyFile = downloadToFile(json.getFiles().get(PUBLIC_KEY), "public_", ".pem");
                 ) {
                     var verified = integrityService.verifyExtensionVersion(extensionFile, signatureFile, publicKeyFile);
                     if (!verified) {
@@ -219,7 +244,7 @@ public class MirrorExtensionService {
     private TempFile downloadToFile(String url, String prefix, String suffix) {
         return backgroundRestTemplate.execute("{url}", HttpMethod.GET, null, response -> {
             var file = new TempFile(prefix, suffix);
-            try(var out = Files.newOutputStream(file.getPath())) {
+            try (var out = Files.newOutputStream(file.getPath())) {
                 response.getBody().transferTo(out);
             }
 
@@ -228,10 +253,10 @@ public class MirrorExtensionService {
     }
 
     private TempFile extractSignature(TempFile signatureZip) throws IOException {
-        var signature = new TempFile("extension_",".signature.sig");
+        var signature = new TempFile("extension_", ".signature.sig");
         try (var zipFile = new ZipFile(signatureZip.getPath().toFile())) {
             var sigEntry = zipFile.getEntry(".signature.sig");
-            if(sigEntry == null) {
+            if (sigEntry == null) {
                 throw new FileNotFoundException("No extension signature found");
             }
             try (

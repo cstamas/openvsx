@@ -12,13 +12,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.Map;
+
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * Registers remote scanners from application configuration at startup.
@@ -38,11 +38,11 @@ public class RemoteScannerRegistrar {
     private final ScannerFileProvider scanFileService;
 
     public RemoteScannerRegistrar(
-        RemoteScannerProperties properties,
-        ScannerRegistry registry,
-        HttpTemplateEngine templateEngine,
-        HttpResponseExtractor responseExtractor,
-        ScannerFileProvider scanFileService
+            RemoteScannerProperties properties,
+            ScannerRegistry registry,
+            HttpTemplateEngine templateEngine,
+            HttpResponseExtractor responseExtractor,
+            ScannerFileProvider scanFileService
     ) {
         this.properties = properties;
         this.registry = registry;
@@ -56,8 +56,7 @@ public class RemoteScannerRegistrar {
      */
     @PostConstruct
     public void registerScanners() {
-        Map<String, RemoteScannerProperties.ScannerConfig> configuredScanners =
-            properties.getScanners();
+        Map<String, RemoteScannerProperties.ScannerConfig> configuredScanners = properties.getScanners();
 
         if (configuredScanners == null || configuredScanners.isEmpty()) {
             logger.info("No remote scanners configured");
@@ -99,29 +98,27 @@ public class RemoteScannerRegistrar {
     private void registerScanner(String scannerName, RemoteScannerProperties.ScannerConfig config) {
         try {
             HttpClientExecutor httpExecutor = HttpClientExecutor.create(
-                config.getHttp(),
-                config.getAuth(),
-                scannerName
-            );
+                    config.getHttp(),
+                    config.getAuth(),
+                    scannerName);
 
             RemoteScanner scanner = new RemoteScanner(
-                scannerName,
-                config,
-                templateEngine,
-                httpExecutor,
-                responseExtractor,
-                scanFileService
-            );
+                    scannerName,
+                    config,
+                    templateEngine,
+                    httpExecutor,
+                    responseExtractor,
+                    scanFileService);
 
             registry.registerScanner(scanner);
 
-            logger.info("Registered remote scanner: {} (type: {}, async: {}, required: {}, enforced: {})",
-                scannerName,
-                config.getType(),
-                config.isAsync(),
-                config.isRequired(),
-                config.isEnforced()
-            );
+            logger.info(
+                    "Registered remote scanner: {} (type: {}, async: {}, required: {}, enforced: {})",
+                    scannerName,
+                    config.getType(),
+                    config.isAsync(),
+                    config.isRequired(),
+                    config.isEnforced());
 
         } catch (Exception e) {
             logger.error("Failed to register scanner {}: {}", scannerName, e.getMessage(), e);

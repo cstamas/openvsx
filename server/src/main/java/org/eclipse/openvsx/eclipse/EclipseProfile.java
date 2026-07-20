@@ -9,6 +9,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.eclipse;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
@@ -17,9 +20,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.ValueDeserializer;
 import tools.jackson.databind.annotation.JsonDeserialize;
-
-import java.util.List;
-import java.util.Optional;
 
 public class EclipseProfile {
 
@@ -131,7 +131,7 @@ public class EclipseProfile {
     }
 
     public Optional<PublisherAgreement> getOpenVsxPublisherAgreement() {
-        if (publisherAgreements != null &&  publisherAgreements.getOpenVsx() != null) {
+        if (publisherAgreements != null && publisherAgreements.getOpenVsx() != null) {
             return Optional.of(publisherAgreements.getOpenVsx());
         } else {
             return Optional.empty();
@@ -153,15 +153,17 @@ public class EclipseProfile {
 
         public static class Deserializer extends ValueDeserializer<PublisherAgreements> {
 
-            private static final TypeReference<List<PublisherAgreement>> TYPE_LIST_AGREEMENT = new TypeReference<>() {};
+            private static final TypeReference<List<PublisherAgreement>> TYPE_LIST_AGREEMENT = new TypeReference<>() {
+            };
 
-			@Override
-			public PublisherAgreements deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
-				if (p.currentToken() == JsonToken.START_ARRAY) {
+            @Override
+            public PublisherAgreements deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
+                if (p.currentToken() == JsonToken.START_ARRAY) {
                     var list = ctxt.readValue(p, TYPE_LIST_AGREEMENT);
                     var result = new PublisherAgreements();
-                    if (!list.isEmpty())
+                    if (!list.isEmpty()) {
                         result.openVsx = list.getFirst();
+                    }
                     return result;
                 }
                 return ctxt.readValue(p, PublisherAgreements.class);

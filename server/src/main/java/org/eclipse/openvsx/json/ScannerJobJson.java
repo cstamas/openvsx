@@ -48,8 +48,10 @@ public class ScannerJobJson {
     @Nullable
     private String errorMessage;
 
-    @Schema(description = "Deep link to the external scanner's own dashboard for this job. " +
-        "Only populated for async scanners that configure external-url-template.")
+    @Schema(
+        description = "Deep link to the external scanner's own dashboard for this job. " +
+                "Only populated for async scanners that configure external-url-template."
+    )
     @Nullable
     private String externalUrl;
 

@@ -12,13 +12,14 @@
  *****************************************************************************/
 package org.eclipse.openvsx.accesstoken;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 @Component
 public class ScheduleTokenExpirationJobs {
@@ -47,14 +48,15 @@ public class ScheduleTokenExpirationJobs {
             scheduler.scheduleRecurrently(
                     "access-token-expiration",
                     config.getExpirationSchedule(),
-                    new HandlerJobRequest<>(ExpirePersonalAccessTokensHandler.class)
-            );
+                    new HandlerJobRequest<>(ExpirePersonalAccessTokensHandler.class));
         } else {
             scheduler.deleteRecurringJob("access-token-expiration");
         }
 
         if (expirationEnabled && notificationEnabled && config.hasNotificationSchedule()) {
-            logger.info("Scheduling access token notification job with schedule '{}'", config.getNotificationSchedule());
+            logger.info(
+                    "Scheduling access token notification job with schedule '{}'",
+                    config.getNotificationSchedule());
             scheduler.scheduleRecurrently(
                     "access-token-notification",
                     config.getNotificationSchedule(),

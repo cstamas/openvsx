@@ -24,7 +24,8 @@ public class CsrfTokenJson extends ResultJson {
         return info;
     }
 
-    public CsrfTokenJson() {}
+    public CsrfTokenJson() {
+    }
 
     public CsrfTokenJson(String value, String header) {
         this.value = value;

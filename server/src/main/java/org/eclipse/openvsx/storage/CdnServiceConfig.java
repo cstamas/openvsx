@@ -9,12 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Supports configuring a CDN front URL for different storage providers.
@@ -37,10 +37,12 @@ import java.util.Map;
 @ConfigurationProperties("ovsx.storage.cdn")
 public class CdnServiceConfig {
     private static final Map<String, String> STORAGE_TYPE_TO_SERVICE = Map.of(
-            "aws", "aws",
-            "azure-blob", "azure",
-            "google-cloud", "gcp"
-    );
+            "aws",
+            "aws",
+            "azure-blob",
+            "azure",
+            "google-cloud",
+            "gcp");
 
     private boolean enabled;
     private Map<String, String> services = new HashMap<>();

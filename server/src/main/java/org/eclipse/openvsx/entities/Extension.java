@@ -9,11 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.search.ExtensionSearch;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.jspecify.annotations.NonNull;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -21,6 +16,12 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+import org.jspecify.annotations.NonNull;
+
+import org.eclipse.openvsx.search.ExtensionSearch;
+import org.eclipse.openvsx.util.NamingUtil;
 
 @Entity
 @Table(name = "extension")
@@ -85,36 +86,36 @@ public class Extension implements Serializable {
     }
 
     public long getId() {
-		return id;
-	}
-
-	public void setId(long id) {
-		this.id = id;
-	}
-
-	public String getPublicId() {
-		return publicId;
-	}
-
-	public void setPublicId(String publicId) {
-		this.publicId = publicId;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public Namespace getNamespace() {
-		return namespace;
+        return id;
     }
 
-	public void setNamespace(Namespace namespace) {
-		this.namespace = namespace;
-	}
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Namespace getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(Namespace namespace) {
+        this.namespace = namespace;
+    }
 
     public boolean isActive() {
         return active;
@@ -124,12 +125,12 @@ public class Extension implements Serializable {
         this.active = active;
     }
 
-	public Double getAverageRating() {
-		return averageRating;
-	}
+    public Double getAverageRating() {
+        return averageRating;
+    }
 
-	public void setAverageRating(Double averageRating) {
-		this.averageRating = averageRating;
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 
     public Long getReviewCount() {
@@ -165,7 +166,7 @@ public class Extension implements Serializable {
     }
 
     public List<ExtensionVersion> getVersions() {
-        if(versions == null) {
+        if (versions == null) {
             versions = new ArrayList<>();
         }
 
@@ -198,8 +199,12 @@ public class Extension implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Extension extension = (Extension) o;
         return id == extension.id
                 && active == extension.active
@@ -220,8 +225,19 @@ public class Extension implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, publicId, name, namespace, versions, active, averageRating, reviewCount, downloadCount,
-                publishedDate, lastUpdatedDate, deprecated, replacement, downloadable
-        );
+                id,
+                publicId,
+                name,
+                namespace,
+                versions,
+                active,
+                averageRating,
+                reviewCount,
+                downloadCount,
+                publishedDate,
+                lastUpdatedDate,
+                deprecated,
+                replacement,
+                downloadable);
     }
 }

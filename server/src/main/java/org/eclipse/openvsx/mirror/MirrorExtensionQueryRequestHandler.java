@@ -9,15 +9,16 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
-import org.eclipse.openvsx.adapter.*;
-import org.eclipse.openvsx.util.NotFoundException;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.adapter.*;
+import org.eclipse.openvsx.util.NotFoundException;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "true")
@@ -49,9 +50,10 @@ public class MirrorExtensionQueryRequestHandler implements IExtensionQueryReques
                 if (!dataMirror.needsMatch()) {
                     return result;
                 }
-                return local.toQueryResult(result.results().get(0).extensions().stream().filter(e ->
-                        dataMirror.match(e.publisher().publisherName(), e.extensionName())
-                ).collect(Collectors.toList()));
+                return local.toQueryResult(
+                        result.results().get(0).extensions().stream()
+                                .filter(e -> dataMirror.match(e.publisher().publisherName(), e.extensionName()))
+                                .collect(Collectors.toList()));
             } catch (NotFoundException | ResponseStatusException exc) {
                 // expected issues with upstream, try local
             } catch (Exception e) {

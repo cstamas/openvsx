@@ -14,7 +14,8 @@ import org.eclipse.openvsx.entities.Extension;
 public class BuiltInExtensionUtil {
     private static final String BUILT_IN_EXTENSION_NAMESPACE = "vscode";
 
-    private BuiltInExtensionUtil() {}
+    private BuiltInExtensionUtil() {
+    }
 
     public static String getBuiltInNamespace() {
         return BUILT_IN_EXTENSION_NAMESPACE;

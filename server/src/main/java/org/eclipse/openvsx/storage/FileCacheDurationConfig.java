@@ -11,6 +11,7 @@
 package org.eclipse.openvsx.storage;
 
 import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

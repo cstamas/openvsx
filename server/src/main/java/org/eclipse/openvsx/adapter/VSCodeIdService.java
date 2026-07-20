@@ -9,13 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.adapter;
 
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.UrlConfigService;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TimeUtil;
-import org.eclipse.openvsx.util.UrlUtil;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.jobrunr.scheduling.cron.Cron;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,9 +25,12 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.ZoneId;
-import java.util.List;
-import java.util.UUID;
+import org.eclipse.openvsx.UrlConfigService;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TimeUtil;
+import org.eclipse.openvsx.util.UrlUtil;
 
 @Service
 public class VSCodeIdService {
@@ -65,10 +66,16 @@ public class VSCodeIdService {
             return;
         }
         if (updateOnStart) {
-            scheduler.schedule(TimeUtil.getCurrentUTC().plusSeconds(delay), new HandlerJobRequest<>(VSCodeIdDailyUpdateJobRequestHandler.class));
+            scheduler.schedule(
+                    TimeUtil.getCurrentUTC().plusSeconds(delay),
+                    new HandlerJobRequest<>(VSCodeIdDailyUpdateJobRequestHandler.class));
         }
 
-        scheduler.scheduleRecurrently("VSCodeIdDailyUpdate", Cron.daily(3), ZoneId.of("UTC"), new HandlerJobRequest<>(VSCodeIdDailyUpdateJobRequestHandler.class));
+        scheduler.scheduleRecurrently(
+                "VSCodeIdDailyUpdate",
+                Cron.daily(3),
+                ZoneId.of("UTC"),
+                new HandlerJobRequest<>(VSCodeIdDailyUpdateJobRequestHandler.class));
     }
 
     public String getRandomPublicId() {
@@ -100,7 +107,8 @@ public class VSCodeIdService {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(HttpHeaders.ACCEPT, "application/json;api-version=" + API_VERSION);
-        var result = vsCodeIdRestTemplate.postForObject(requestUrl, new HttpEntity<>(requestData, headers), ExtensionQueryResult.class);
+        var result = vsCodeIdRestTemplate
+                .postForObject(requestUrl, new HttpEntity<>(requestData, headers), ExtensionQueryResult.class);
         if (result != null && result.results() != null && !result.results().isEmpty()) {
             var item = result.results().getFirst();
             if (item.extensions() != null && !item.extensions().isEmpty()) {
@@ -115,13 +123,10 @@ public class VSCodeIdService {
         var criteria = List.of(
                 new ExtensionQueryParam.Criterion(
                         ExtensionQueryParam.Criterion.FILTER_TARGET,
-                        "Microsoft.VisualStudio.Code"
-                ),
+                        "Microsoft.VisualStudio.Code"),
                 new ExtensionQueryParam.Criterion(
                         ExtensionQueryParam.Criterion.FILTER_EXTENSION_NAME,
-                        NamingUtil.toExtensionId(extension)
-                )
-        );
+                        NamingUtil.toExtensionId(extension)));
 
         return new ExtensionQueryParam(List.of(new ExtensionQueryParam.Filter(criteria, 1, 1, 0, 0)), 0);
     }

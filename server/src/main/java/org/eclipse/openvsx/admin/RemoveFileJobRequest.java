@@ -9,18 +9,20 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
+import org.jobrunr.jobs.lambdas.JobRequest;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.entities.Namespace;
-import org.jobrunr.jobs.lambdas.JobRequest;
-import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 public class RemoveFileJobRequest implements JobRequest {
 
     private FileResource resource;
 
-    public RemoveFileJobRequest() {}
+    public RemoveFileJobRequest() {
+    }
 
     public RemoveFileJobRequest(FileResource resource) {
         setResource(resource);

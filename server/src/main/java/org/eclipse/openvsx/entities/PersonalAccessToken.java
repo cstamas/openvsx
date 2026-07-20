@@ -9,14 +9,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.json.AccessTokenJson;
-import org.eclipse.openvsx.util.TimeUtil;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.AccessTokenJson;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Entity
 @Table(name = "personal_access_token")
@@ -76,8 +77,8 @@ public class PersonalAccessToken implements Serializable {
     }
 
     public void setId(long id) {
-		this.id = id;
-	}
+        this.id = id;
+    }
 
     public UserData getUser() {
         return user;
@@ -145,8 +146,12 @@ public class PersonalAccessToken implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         PersonalAccessToken that = (PersonalAccessToken) o;
         return id == that.id
                 && active == that.active
@@ -161,6 +166,15 @@ public class PersonalAccessToken implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, user, value, active, createdTimestamp, accessedTimestamp, expiresTimestamp, notified, description);
+        return Objects.hash(
+                id,
+                user,
+                value,
+                active,
+                createdTimestamp,
+                accessedTimestamp,
+                expiresTimestamp,
+                notified,
+                description);
     }
 }

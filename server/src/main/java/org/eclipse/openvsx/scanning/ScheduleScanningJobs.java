@@ -12,7 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
+import java.time.Duration;
+import java.time.ZoneOffset;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +22,7 @@ import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.time.ZoneOffset;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 @Component
 public class ScheduleScanningJobs {
@@ -52,12 +53,11 @@ public class ScheduleScanningJobs {
 
     @EventListener
     public void scheduleJobs(ApplicationStartedEvent event) {
-        var enabledScanners =
-                remoteScannerProperties
-                        .getScanners()
-                        .values()
-                        .stream()
-                        .filter(RemoteScannerProperties.ScannerConfig::isEnabled).toList();
+        var enabledScanners = remoteScannerProperties
+                .getScanners()
+                .values()
+                .stream()
+                .filter(RemoteScannerProperties.ScannerConfig::isEnabled).toList();
 
         // schedule the scan recovery watchdog when there are remote scanners enabled
         if (scanConfig.isEnabled() && !enabledScanners.isEmpty()) {
@@ -67,8 +67,7 @@ public class ScheduleScanningJobs {
             scheduler.scheduleRecurrently(
                     SCHEDULE_SCAN_WATCHDOG_JOB,
                     interval,
-                    new HandlerJobRequest<>(ExtensionScanJobRecoveryService.class)
-            );
+                    new HandlerJobRequest<>(ExtensionScanJobRecoveryService.class));
         } else {
             scheduler.deleteRecurringJob(SCHEDULE_SCAN_WATCHDOG_JOB);
         }
@@ -81,8 +80,7 @@ public class ScheduleScanningJobs {
             scheduler.scheduleRecurrently(
                     SCHEDULE_SCAN_COMPLETION_JOB,
                     interval,
-                    new HandlerJobRequest<>(ExtensionScanCompletionService.class)
-            );
+                    new HandlerJobRequest<>(ExtensionScanCompletionService.class));
         } else {
             scheduler.deleteRecurringJob(SCHEDULE_SCAN_COMPLETION_JOB);
         }
@@ -97,14 +95,14 @@ public class ScheduleScanningJobs {
             scheduler.scheduleRecurrently(
                     SCHEDULE_SCAN_CONCURRENCY_DISPATCHER_JOB,
                     interval,
-                    new HandlerJobRequest<>(ScannerConcurrencyDispatcher.class)
-            );
+                    new HandlerJobRequest<>(ScannerConcurrencyDispatcher.class));
         } else {
             scheduler.deleteRecurringJob(SCHEDULE_SCAN_CONCURRENCY_DISPATCHER_JOB);
         }
 
         // schedule the GitLeaks rules refresh job if enabled
-        if (scanConfig.isEnabled() && secretDetectorConfig.isEnabled() && secretDetectorConfig.isGitleaksScheduledRefresh()) {
+        if (scanConfig.isEnabled() && secretDetectorConfig.isEnabled()
+                && secretDetectorConfig.isGitleaksScheduledRefresh()) {
             var schedule = secretDetectorConfig.getGitleaksRefreshCron();
             logger.info("Scheduling GitLeaks rules refresh job with schedule '{}'", schedule);
 
@@ -112,8 +110,7 @@ public class ScheduleScanningJobs {
                     SCHEDULE_GITLEAKS_RULES_REFRESH_JOB,
                     schedule,
                     ZoneOffset.UTC,
-                    new HandlerJobRequest<>(GitleaksRulesService.class)
-            );
+                    new HandlerJobRequest<>(GitleaksRulesService.class));
         } else {
             scheduler.deleteRecurringJob(SCHEDULE_GITLEAKS_RULES_REFRESH_JOB);
         }

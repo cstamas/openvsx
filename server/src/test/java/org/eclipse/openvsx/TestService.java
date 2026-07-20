@@ -13,12 +13,12 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
-import org.eclipse.openvsx.entities.PersonalAccessToken;
-import org.eclipse.openvsx.entities.UserData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.PersonalAccessToken;
+import org.eclipse.openvsx.entities.UserData;
 
 @Component
 @Profile("test")

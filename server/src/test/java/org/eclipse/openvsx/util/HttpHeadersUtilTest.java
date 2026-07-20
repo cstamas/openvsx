@@ -12,10 +12,10 @@
  *****************************************************************************/
 package org.eclipse.openvsx.util;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.InputStream;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,8 +34,7 @@ public class HttpHeadersUtilTest {
 
         var contentSecurityPolicy = headers.get("Content-Security-Policy");
         assertThat(contentSecurityPolicy).isEqualTo(
-                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox")
-        );
+                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox"));
     }
 
     @Test
@@ -51,8 +50,7 @@ public class HttpHeadersUtilTest {
 
         var contentSecurityPolicy = headers.get("Content-Security-Policy");
         assertThat(contentSecurityPolicy).isEqualTo(
-                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox")
-        );
+                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox"));
     }
 
     @Test
@@ -68,8 +66,7 @@ public class HttpHeadersUtilTest {
 
         var contentSecurityPolicy = headers.get("Content-Security-Policy");
         assertThat(contentSecurityPolicy).isEqualTo(
-                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox")
-        );
+                List.of("default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox"));
 
         var contentDisposition = headers.getContentDisposition();
         assertThat(contentDisposition.isAttachment()).isTrue();

@@ -34,15 +34,16 @@ public class ScannerInvocationRequest implements JobRequest {
     /**
      * Default constructor required by JobRunr for deserialization.
      */
-    public ScannerInvocationRequest() {}
+    public ScannerInvocationRequest() {
+    }
 
     /**
      * Create a scanner invocation request.
      */
     public ScannerInvocationRequest(
-        @NonNull String scannerType,
-        long extensionVersionId,
-        @NonNull String scanId
+            @NonNull String scannerType,
+            long extensionVersionId,
+            @NonNull String scanId
     ) {
         this.scannerType = scannerType;
         this.extensionVersionId = extensionVersionId;
@@ -81,9 +82,9 @@ public class ScannerInvocationRequest implements JobRequest {
     @Override
     public String toString() {
         return "ScannerInvocationJobRequest{" +
-            "scannerType='" + scannerType + '\'' +
-            ", scanId='" + scanId + '\'' +
-            ", extensionVersionId=" + extensionVersionId +
-            '}';
+                "scannerType='" + scannerType + '\'' +
+                ", scanId='" + scanId + '\'' +
+                ", extensionVersionId=" + extensionVersionId +
+                '}';
     }
 }

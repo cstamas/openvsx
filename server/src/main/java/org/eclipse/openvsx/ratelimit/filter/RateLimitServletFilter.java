@@ -12,22 +12,23 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.filter;
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.eclipse.openvsx.ratelimit.RateLimitService;
-import org.eclipse.openvsx.ratelimit.UsageStatsService;
-import org.eclipse.openvsx.ratelimit.IdentityService;
-import org.eclipse.openvsx.ratelimit.config.RateLimitFilterProperties;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import org.eclipse.openvsx.ratelimit.IdentityService;
+import org.eclipse.openvsx.ratelimit.RateLimitService;
+import org.eclipse.openvsx.ratelimit.UsageStatsService;
+import org.eclipse.openvsx.ratelimit.config.RateLimitFilterProperties;
 
 public class RateLimitServletFilter extends OncePerRequestFilter implements Ordered {
 
@@ -43,10 +44,10 @@ public class RateLimitServletFilter extends OncePerRequestFilter implements Orde
     private final RateLimitService rateLimitService;
 
     public RateLimitServletFilter(
-        RateLimitFilterProperties filterProperties,
-        UsageStatsService usageStatsService,
-        IdentityService identityService,
-        RateLimitService rateLimitService
+            RateLimitFilterProperties filterProperties,
+            UsageStatsService usageStatsService,
+            IdentityService identityService,
+            RateLimitService rateLimitService
     ) {
         this.filterProperties = filterProperties;
         this.usageStatsService = usageStatsService;
@@ -106,11 +107,14 @@ public class RateLimitServletFilter extends OncePerRequestFilter implements Orde
         }
     }
 
-    private void handleHttpResponseOnRateLimiting(HttpServletResponse response, ConsumptionProbe probe) throws IOException {
+    private void handleHttpResponseOnRateLimiting(HttpServletResponse response, ConsumptionProbe probe)
+            throws IOException {
         response.setStatus(filterProperties.getHttpStatusCode().value());
 
         response.setHeader(HEADER_RATE_LIMIT_REMAINING, "0");
-        response.setHeader(HEADER_RATE_LIMIT_RESET, "" + TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForReset()));
+        response.setHeader(
+                HEADER_RATE_LIMIT_RESET,
+                "" + TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForReset()));
         var refillInSeconds = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill());
         response.setHeader("Retry-After", Long.toString(refillInSeconds));
 

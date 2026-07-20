@@ -12,14 +12,15 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.json.RateLimitTokenJson;
-import org.eclipse.openvsx.util.TimeUtil;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.RateLimitTokenJson;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Entity
 @Table(name = "rate_limit_token")
@@ -66,8 +67,8 @@ public class RateLimitToken implements Serializable {
     }
 
     public void setId(long id) {
-		this.id = id;
-	}
+        this.id = id;
+    }
 
     public Customer getCustomer() {
         return customer;
@@ -111,8 +112,12 @@ public class RateLimitToken implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         RateLimitToken that = (RateLimitToken) o;
         return id == that.id
                 && active == that.active

@@ -17,7 +17,8 @@ public class HandlerJobRequest<T extends JobRequestHandler<?>> implements JobReq
     private Class<T> handler;
 
     // needed for serialization by jobrunr
-    public HandlerJobRequest() {}
+    public HandlerJobRequest() {
+    }
 
     public HandlerJobRequest(Class<T> handler) {
         this.handler = handler;

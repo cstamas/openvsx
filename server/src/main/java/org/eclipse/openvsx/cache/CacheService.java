@@ -9,19 +9,20 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.micrometer.observation.annotation.Observed;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.TargetPlatform;
-import org.eclipse.openvsx.util.VersionAlias;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.interceptor.SimpleKey;
 import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.TargetPlatform;
+import org.eclipse.openvsx.util.VersionAlias;
 
 @Component
 public class CacheService {
@@ -132,7 +133,8 @@ public class CacheService {
         targetPlatforms.add("null");
         for (var version : versions) {
             for (var targetPlatform : targetPlatforms) {
-                cache.evictIfPresent(extensionJsonCacheKey.generate(namespaceName, extensionName, targetPlatform, version));
+                cache.evictIfPresent(
+                        extensionJsonCacheKey.generate(namespaceName, extensionName, targetPlatform, version));
             }
         }
     }
@@ -153,7 +155,12 @@ public class CacheService {
             versions.add(VersionAlias.PREVIEW);
         }
         for (var version : versions) {
-            cache.evictIfPresent(extensionJsonCacheKey.generate(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), version));
+            cache.evictIfPresent(
+                    extensionJsonCacheKey.generate(
+                            namespace.getName(),
+                            extension.getName(),
+                            extVersion.getTargetPlatform(),
+                            version));
         }
     }
 
@@ -179,7 +186,9 @@ public class CacheService {
         // This uses the redis KEYS command that might take a while but considering the typical size of the EXTENSION_JSON
         // cache its acceptable.
         if (cache instanceof RedisCacheWriter redisCache) {
-            redisCache.clear(CACHE_LATEST_EXTENSION_VERSION, latestExtensionVersionCacheKey.generateWildcard(extension).getBytes());
+            redisCache.clear(
+                    CACHE_LATEST_EXTENSION_VERSION,
+                    latestExtensionVersionCacheKey.generateWildcard(extension).getBytes());
             return;
         }
 
@@ -189,7 +198,8 @@ public class CacheService {
             for (var preRelease : List.of(true, false)) {
                 for (var onlyActive : List.of(true, false)) {
                     for (var type : ExtensionVersion.Type.values()) {
-                        var key = latestExtensionVersionCacheKey.generate(extension, targetPlatform, preRelease, onlyActive, type);
+                        var key = latestExtensionVersionCacheKey
+                                .generate(extension, targetPlatform, preRelease, onlyActive, type);
                         cache.evictIfPresent(key);
                     }
                 }
@@ -238,7 +248,13 @@ public class CacheService {
     }
 
     @Observed
-    public void evictWebResourceFile(String namespaceName, String extensionName, String targetPlatform, String version, String path) {
+    public void evictWebResourceFile(
+            String namespaceName,
+            String extensionName,
+            String targetPlatform,
+            String version,
+            String path
+    ) {
         var cache = fileCacheManager.getCache(CACHE_WEB_RESOURCE_FILES);
         if (cache == null) {
             return;

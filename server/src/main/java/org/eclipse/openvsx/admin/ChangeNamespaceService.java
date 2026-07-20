@@ -9,19 +9,20 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.springframework.data.util.Streamable;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.search.SearchUtilService;
-import org.springframework.data.util.Streamable;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class ChangeNamespaceService {
@@ -52,12 +53,12 @@ public class ChangeNamespaceService {
             boolean removeOldNamespace
     ) {
         var extensions = repositories.findExtensions(oldNamespace);
-        for(var extension : extensions) {
+        for (var extension : extensions) {
             cache.evictExtensionJsons(extension);
             cache.evictLatestExtensionVersion(extension);
         }
 
-        if(createNewNamespace) {
+        if (createNewNamespace) {
             entityManager.persist(newNamespace);
         } else {
             newNamespace = entityManager.merge(newNamespace);
@@ -67,7 +68,7 @@ public class ChangeNamespaceService {
         changeMembershipNamespace(oldNamespace, newNamespace, removeOldNamespace);
         updatedResources.forEach(entityManager::merge);
 
-        if(removeOldNamespace) {
+        if (removeOldNamespace) {
             oldNamespace = entityManager.merge(oldNamespace);
             entityManager.remove(oldNamespace);
         }
@@ -78,7 +79,7 @@ public class ChangeNamespaceService {
     }
 
     private void changeExtensionNamespace(Streamable<Extension> extensions, Namespace newNamespace) {
-        for(var extension : extensions) {
+        for (var extension : extensions) {
             extension = entityManager.merge(extension);
             extension.setNamespace(newNamespace);
         }
@@ -90,8 +91,8 @@ public class ChangeNamespaceService {
         var newMemberships = repositories.findMemberships(newNamespace).stream()
                 .collect(Collectors.toMap(m -> m.getUser().getId(), m -> m));
 
-        for(var entry : oldMemberships.entrySet()) {
-            if(!newMemberships.containsKey(entry.getKey())) {
+        for (var entry : oldMemberships.entrySet()) {
+            if (!newMemberships.containsKey(entry.getKey())) {
                 entry.getValue().setNamespace(newNamespace);
             } else if (removeOldNamespace) {
                 entityManager.remove(entry.getValue());

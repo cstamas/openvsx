@@ -9,29 +9,30 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage;
 
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.util.FileUtil;
-import org.eclipse.openvsx.util.HttpHeadersUtil;
-import org.eclipse.openvsx.util.TempFile;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.util.Pair;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerErrorException;
-
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerErrorException;
+
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.util.FileUtil;
+import org.eclipse.openvsx.util.HttpHeadersUtil;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_EXTENSION_FILES;
 import static org.eclipse.openvsx.cache.CacheService.GENERATOR_FILES;
@@ -184,7 +185,7 @@ public class GoogleCloudStorageService implements IStorageService {
     }
 
     @Override
-    public void copyFiles(List<Pair<FileResource,FileResource>> pairs) {
+    public void copyFiles(List<Pair<FileResource, FileResource>> pairs) {
         pairs.forEach(pair -> copy(getObjectKey(pair.getFirst()), getObjectKey(pair.getSecond())));
     }
 
@@ -203,7 +204,12 @@ public class GoogleCloudStorageService implements IStorageService {
     }
 
     @Override
-    @Cacheable(value = CACHE_EXTENSION_FILES, keyGenerator = GENERATOR_FILES, cacheManager = "fileCacheManager", sync = true)
+    @Cacheable(
+        value = CACHE_EXTENSION_FILES,
+        keyGenerator = GENERATOR_FILES,
+        cacheManager = "fileCacheManager",
+        sync = true
+    )
     public Path getCachedFile(FileResource resource) {
         if (StringUtils.isEmpty(bucketId)) {
             throw new IllegalStateException(missingBucketIdMessage(resource.getName()));

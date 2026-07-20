@@ -12,11 +12,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.util.TimeUtil;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Represents a scan job in the database.
@@ -41,12 +42,12 @@ public class ScannerJob {
      * REMOVED is set by cleanup service when scanner was removed from configuration.
      */
     public enum JobStatus {
-        QUEUED,      // Job created, waiting to invoke scanner
-        PROCESSING,  // Scanner.startScan() is being executed
-        SUBMITTED,   // Successfully submitted to external scanner service (async only)
-        COMPLETE,    // Job finished successfully
-        FAILED,      // Job failed with error
-        REMOVED;     // Scanner was removed from configuration (set by cleanup service)
+        QUEUED, // Job created, waiting to invoke scanner
+        PROCESSING, // Scanner.startScan() is being executed
+        SUBMITTED, // Successfully submitted to external scanner service (async only)
+        COMPLETE, // Job finished successfully
+        FAILED, // Job failed with error
+        REMOVED; // Scanner was removed from configuration (set by cleanup service)
 
         /**
          * Check if this status is terminal (job has finished processing).
@@ -270,8 +271,12 @@ public class ScannerJob {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ScannerJob scanJob = (ScannerJob) o;
         return id == scanJob.id
                 && extensionVersionId == scanJob.extensionVersionId
@@ -288,8 +293,17 @@ public class ScannerJob {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, scanId, scannerType, extensionVersionId,
-                externalJobId, status, pollLeaseUntil, pollAttempts,
-                createdAt, updatedAt, errorMessage);
+        return Objects.hash(
+                id,
+                scanId,
+                scannerType,
+                extensionVersionId,
+                externalJobId,
+                status,
+                pollLeaseUntil,
+                pollAttempts,
+                createdAt,
+                updatedAt,
+                errorMessage);
     }
 }

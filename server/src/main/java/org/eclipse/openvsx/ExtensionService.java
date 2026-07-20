@@ -9,12 +9,28 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import com.google.common.io.ByteStreams;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.transaction.Transactional.TxType;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.jobrunr.scheduling.JobRequestScheduler;
+import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
 import org.eclipse.openvsx.admin.RemoveFileJobRequest;
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.*;
@@ -26,21 +42,6 @@ import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
 import org.eclipse.openvsx.scanning.ExtensionScanService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.util.*;
-import org.jobrunr.scheduling.JobRequestScheduler;
-import org.jspecify.annotations.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ExtensionService {
@@ -87,7 +88,13 @@ public class ExtensionService {
     }
 
     @Transactional
-    public ExtensionVersion mirrorVersion(TempFile extensionFile, String signatureName, PersonalAccessToken token, String binaryName, String timestamp) {
+    public ExtensionVersion mirrorVersion(
+            TempFile extensionFile,
+            String signatureName,
+            PersonalAccessToken token,
+            String binaryName,
+            String timestamp
+    ) {
         doPublish(extensionFile, binaryName, token, TimeUtil.fromUTCString(timestamp), false);
         publishHandler.mirror(extensionFile, signatureName);
         return extensionFile.getResource().getExtension();
@@ -114,7 +121,8 @@ public class ExtensionService {
         }
     }
 
-    private ExtensionVersion publishVersionWithScan(InputStream content, PersonalAccessToken token) throws ErrorResultException {
+    private ExtensionVersion publishVersionWithScan(InputStream content, PersonalAccessToken token)
+            throws ErrorResultException {
         var extensionFile = createExtensionFile(content);
         ExtensionScan scan = null;
 
@@ -141,7 +149,7 @@ public class ExtensionService {
             // it's deleted within the publishAsync method.
             IOUtils.closeQuietly(extensionFile);
             throw e;
-        }  catch (Exception e) {
+        } catch (Exception e) {
             if (scan != null && !scan.isCompleted()) {
                 scanService.markScanAsErrored(scan, "Unexpected error: " + e.getMessage());
             }
@@ -149,7 +157,13 @@ public class ExtensionService {
         }
     }
 
-    private void doPublish(TempFile extensionFile, String binaryName, PersonalAccessToken token, LocalDateTime timestamp, boolean checkDependencies) {
+    private void doPublish(
+            TempFile extensionFile,
+            String binaryName,
+            PersonalAccessToken token,
+            LocalDateTime timestamp,
+            boolean checkDependencies
+    ) {
         try (var processor = new ExtensionProcessor(extensionFile)) {
             var extVersion = publishHandler.createExtensionVersion(processor, token, timestamp, checkDependencies);
 
@@ -163,7 +177,7 @@ public class ExtensionService {
         try (var input = ByteStreams.limit(new BufferedInputStream(content), maxContentSize + 1)) {
             long size;
             var extensionFile = new TempFile("extension_", ".vsix");
-            try(var out = Files.newOutputStream(extensionFile.getPath())) {
+            try (var out = Files.newOutputStream(extensionFile.getPath())) {
                 size = input.transferTo(out);
             }
 
@@ -171,8 +185,8 @@ public class ExtensionService {
                 IOUtils.closeQuietly(extensionFile);
                 var maxSize = FileUtils.byteCountToDisplaySize(maxContentSize);
                 throw new ErrorResultException(
-                    "The extension package exceeds the size limit of " + maxSize + ".", HttpStatus.CONTENT_TOO_LARGE
-                );
+                        "The extension package exceeds the size limit of " + maxSize + ".",
+                        HttpStatus.CONTENT_TOO_LARGE);
             }
 
             return extensionFile;
@@ -219,8 +233,7 @@ public class ExtensionService {
                 logger.warn(
                         "User {} tried to reactivate extension '{}' that has failed scans or was blocked by an admin.",
                         user.getLoginName(),
-                        NamingUtil.toFileFormat(version)
-                );
+                        NamingUtil.toFileFormat(version));
             }
         }
         for (var extension : affectedExtensions) {
@@ -261,10 +274,10 @@ public class ExtensionService {
      */
     @Transactional(rollbackOn = ErrorResultException.class)
     public ResultJson deleteUserExtension(
-        UserData user,
-        String namespaceName,
-        String extensionName,
-        TargetPlatformVersion... targetVersions
+            UserData user,
+            String namespaceName,
+            String extensionName,
+            TargetPlatformVersion... targetVersions
     ) throws ErrorResultException {
         return deleteExtension(user, true, namespaceName, extensionName, targetVersions);
     }
@@ -287,24 +300,40 @@ public class ExtensionService {
             TargetPlatformVersion... targetVersions
     ) throws ErrorResultException {
         var extension = lockExtensionNoWait(namespaceName, extensionName);
-        if (repositories.isDeleteAllVersions(restrictedToUser ? user : null, namespaceName, extensionName, targetVersions)) {
+        if (repositories
+                .isDeleteAllVersions(restrictedToUser ? user : null, namespaceName, extensionName, targetVersions)) {
             return deleteExtension(user, extension, true);
         }
 
-        return deleteExtensionVersions(user, Arrays.stream(targetVersions)
-                .map(target -> {
-                    var extVersion = restrictedToUser ?
-                        repositories.findVersionPublishedWithUser(user, target.version(), target.targetPlatform(), extensionName, namespaceName) :
-                        repositories.findVersion(target.version(), target.targetPlatform(), extensionName, namespaceName);
+        return deleteExtensionVersions(
+                user,
+                Arrays.stream(targetVersions)
+                        .map(target -> {
+                            var extVersion = restrictedToUser
+                                    ? repositories.findVersionPublishedWithUser(
+                                            user,
+                                            target.version(),
+                                            target.targetPlatform(),
+                                            extensionName,
+                                            namespaceName)
+                                    : repositories.findVersion(
+                                            target.version(),
+                                            target.targetPlatform(),
+                                            extensionName,
+                                            namespaceName);
 
-                    if (extVersion == null) {
-                        throw new ErrorResultException(
-                            "Extension not found: " + NamingUtil.toLogFormat(namespaceName, extensionName, target.targetPlatform(), target.version()),
-                            HttpStatus.NOT_FOUND);
-                    }
-                    return extVersion;
-                })
-                .toList());
+                            if (extVersion == null) {
+                                throw new ErrorResultException(
+                                        "Extension not found: " + NamingUtil.toLogFormat(
+                                                namespaceName,
+                                                extensionName,
+                                                target.targetPlatform(),
+                                                target.version()),
+                                        HttpStatus.NOT_FOUND);
+                            }
+                            return extVersion;
+                        })
+                        .toList());
     }
 
     /**
@@ -364,8 +393,11 @@ public class ExtensionService {
      */
     private ResultJson combineResults(List<ResultJson> results) {
         var result = new ResultJson();
-        result.setError(results.stream().map(ResultJson::getError).filter(Objects::nonNull).collect(Collectors.joining("\n")));
-        result.setSuccess(results.stream().map(ResultJson::getSuccess).filter(Objects::nonNull).collect(Collectors.joining("\n")));
+        result.setError(
+                results.stream().map(ResultJson::getError).filter(Objects::nonNull).collect(Collectors.joining("\n")));
+        result.setSuccess(
+                results.stream().map(ResultJson::getSuccess).filter(Objects::nonNull)
+                        .collect(Collectors.joining("\n")));
         return result;
     }
 
@@ -380,22 +412,25 @@ public class ExtensionService {
      * @param checkDependencies whether to check if this extension is still references by bundles or as a dependency
      */
     @Transactional(rollbackOn = ErrorResultException.class)
-    public ResultJson deleteExtension(UserData user, Extension extension, boolean checkDependencies) throws ErrorResultException {
+    public ResultJson deleteExtension(UserData user, Extension extension, boolean checkDependencies)
+            throws ErrorResultException {
         if (checkDependencies) {
             var bundledRefs = repositories.findBundledExtensionsReference(extension);
             if (!bundledRefs.isEmpty()) {
-                throw new ErrorResultException("Extension " + NamingUtil.toExtensionId(extension)
-                        + " is bundled by the following extension packs: "
-                        + bundledRefs.stream()
-                        .map(NamingUtil::toFileFormat)
-                        .collect(Collectors.joining(", ")));
+                throw new ErrorResultException(
+                        "Extension " + NamingUtil.toExtensionId(extension)
+                                + " is bundled by the following extension packs: "
+                                + bundledRefs.stream()
+                                        .map(NamingUtil::toFileFormat)
+                                        .collect(Collectors.joining(", ")));
             }
             var dependRefs = repositories.findDependenciesReference(extension);
             if (!dependRefs.isEmpty()) {
-                throw new ErrorResultException("The following extensions have a dependency on " + NamingUtil.toExtensionId(extension) + ": "
-                        + dependRefs.stream()
-                        .map(NamingUtil::toFileFormat)
-                        .collect(Collectors.joining(", ")));
+                throw new ErrorResultException(
+                        "The following extensions have a dependency on " + NamingUtil.toExtensionId(extension) + ": "
+                                + dependRefs.stream()
+                                        .map(NamingUtil::toFileFormat)
+                                        .collect(Collectors.joining(", ")));
             }
         }
 

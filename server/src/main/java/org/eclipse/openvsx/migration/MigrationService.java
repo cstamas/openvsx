@@ -9,15 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.UUID;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.MigrationItem;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TempFile;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
@@ -25,24 +23,34 @@ import org.slf4j.LoggerFactory;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.UUID;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.MigrationItem;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.storage.StorageUtilService;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TempFile;
 
 @Component
 public class MigrationService {
 
     private static final Map<String, Class<? extends JobRequestHandler<MigrationJobRequest<?>>>> JOB_HANDLERS = Map.of(
-            "SetPreReleaseMigration", SetPreReleaseJobRequestHandler.class,
-            "RenameDownloadsMigration", RenameDownloadsJobRequestHandler.class,
-            "ExtractVsixManifestMigration", ExtractVsixManifestsJobRequestHandler.class,
-            "FixTargetPlatformMigration", FixTargetPlatformsJobRequestHandler.class,
-            "GenerateSha256ChecksumMigration", GenerateSha256ChecksumJobRequestHandler.class,
-            "CheckPotentiallyMaliciousExtensionVersions", PotentiallyMaliciousJobRequestHandler.class,
-            "RemoveFileResourceTypeResourceMigration", RemoveFileResourceTypeResourceJobRequestHandler.class,
-            "FixMissingFilesMigration", FixMissingFilesJobRequestHandler.class
-    );
+            "SetPreReleaseMigration",
+            SetPreReleaseJobRequestHandler.class,
+            "RenameDownloadsMigration",
+            RenameDownloadsJobRequestHandler.class,
+            "ExtractVsixManifestMigration",
+            ExtractVsixManifestsJobRequestHandler.class,
+            "FixTargetPlatformMigration",
+            FixTargetPlatformsJobRequestHandler.class,
+            "GenerateSha256ChecksumMigration",
+            GenerateSha256ChecksumJobRequestHandler.class,
+            "CheckPotentiallyMaliciousExtensionVersions",
+            PotentiallyMaliciousJobRequestHandler.class,
+            "RemoveFileResourceTypeResourceMigration",
+            RemoveFileResourceTypeResourceJobRequestHandler.class,
+            "FixMissingFilesMigration",
+            FixMissingFilesJobRequestHandler.class);
 
     protected final Logger logger = LoggerFactory.getLogger(MigrationService.class);
 
@@ -119,7 +127,7 @@ public class MigrationService {
 
     public FileResource getDownload(ExtensionVersion extVersion) {
         var download = repositories.findFileByType(extVersion, FileResource.DOWNLOAD);
-        if(download == null) {
+        if (download == null) {
             logger.atWarn()
                     .setMessage("Could not find download for: {}")
                     .addArgument(() -> NamingUtil.toLogFormat(extVersion))

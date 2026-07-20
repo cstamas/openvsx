@@ -12,11 +12,11 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.RateLimitToken;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.util.Streamable;
 
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.RateLimitToken;
 
 public interface RateLimitTokenRepository extends Repository<RateLimitToken, Long> {
 

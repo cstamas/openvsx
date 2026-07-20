@@ -12,15 +12,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Extracts data from HTTP responses using JSONPath-style paths.
@@ -87,14 +87,16 @@ public class HttpResponseExtractor {
         for (JsonNode node : nodes) {
             if (node.isObject()) {
                 Map<String, Object> map = jsonMapper.convertValue(
-                        node, new TypeReference<Map<String, Object>>() {
+                        node,
+                        new TypeReference<Map<String, Object>>() {
                         });
                 result.add(map);
             } else if (node.isArray()) {
                 for (JsonNode child : node) {
                     if (child.isObject()) {
                         Map<String, Object> map = jsonMapper.convertValue(
-                                child, new TypeReference<Map<String, Object>>() {
+                                child,
+                                new TypeReference<Map<String, Object>>() {
                                 });
                         result.add(map);
                     } else {
@@ -194,7 +196,7 @@ public class HttpResponseExtractor {
      */
     public boolean evaluateCondition(Map<String, Object> object, String condition) {
         if (condition == null || condition.trim().isEmpty()) {
-            return true;  // No condition = always true
+            return true; // No condition = always true
         }
 
         String trimmed = condition.trim().toLowerCase();
@@ -298,7 +300,7 @@ public class HttpResponseExtractor {
             // Evaluate condition (simple field check)
             Object fieldValue = extractValueFromMap(object, "$." + condition);
             boolean conditionMet = fieldValue != null &&
-                (fieldValue.equals(true) || fieldValue.equals("true"));
+                    (fieldValue.equals(true) || fieldValue.equals("true"));
 
             return conditionMet ? trueValue : falseValue;
         }

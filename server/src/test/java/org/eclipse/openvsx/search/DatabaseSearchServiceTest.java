@@ -10,11 +10,10 @@
 
 package org.eclipse.openvsx.search;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.TargetPlatform;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -25,8 +24,10 @@ import org.springframework.data.util.Streamable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.TargetPlatform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,7 +50,7 @@ class DatabaseSearchServiceTest {
         var ext3 = mockExtension("openshift", 4.0, 100, 0, "redhat", List.of("Snippets", "Other"));
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3)));
 
-        var searchOptions = searchOptions(null, "Programming Languages",50, 0, null, null);
+        var searchOptions = searchOptions(null, "Programming Languages", 50, 0, null, null);
         var result = search.search(searchOptions);
         // should find two extensions
         assertThat(result.getTotalHits()).isEqualTo(2);
@@ -103,7 +104,8 @@ class DatabaseSearchServiceTest {
         var ext5 = mockExtension("ext5", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
         var ext6 = mockExtension("ext6", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
         var ext7 = mockExtension("ext7", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
-        Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
+        Mockito.when(repositories.findAllActiveExtensions())
+                .thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
 
         var pageSizeItems = 5;
         var searchOptions = searchOptions(null, null, pageSizeItems, 0, null, null);
@@ -131,7 +133,8 @@ class DatabaseSearchServiceTest {
         var ext5 = mockExtension("ext5", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
         var ext6 = mockExtension("ext6", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
         var ext7 = mockExtension("ext7", 3.0, 100, 0, "redhat", List.of("Snippets", "Programming Languages"));
-        Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
+        Mockito.when(repositories.findAllActiveExtensions())
+                .thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
 
         var pageSizeItems = 2;
         var searchOptions = searchOptions(null, null, pageSizeItems, 4, null, null);
@@ -341,13 +344,13 @@ class DatabaseSearchServiceTest {
             String sortOrder,
             String sortBy
     ) {
-        if(requestedSize == null) {
+        if (requestedSize == null) {
             requestedSize = 18;
         }
-        if(requestedOffset == null) {
+        if (requestedOffset == null) {
             requestedOffset = 0;
         }
-        if(sortBy == null) {
+        if (sortBy == null) {
             sortBy = SortBy.RELEVANCE;
         }
 
@@ -360,8 +363,7 @@ class DatabaseSearchServiceTest {
                 sortOrder,
                 sortBy,
                 false,
-                null
-        );
+                null);
     }
 
     long getIdFromExtensionHits(List<ExtensionSearch> hits, int index) {
@@ -372,8 +374,14 @@ class DatabaseSearchServiceTest {
         return extensionName.hashCode();
     }
 
-    private Extension mockExtension(String name, double averageRating, long ratingCount, int downloadCount,
-            String namespaceName, List<String> categories) {
+    private Extension mockExtension(
+            String name,
+            double averageRating,
+            long ratingCount,
+            int downloadCount,
+            String namespaceName,
+            List<String> categories
+    ) {
         var extension = new Extension();
         extension.setName(name);
         extension.setId(name.hashCode());

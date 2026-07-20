@@ -9,19 +9,20 @@
  ********************************************************************************/
 package org.eclipse.openvsx.migration;
 
+import java.util.LinkedHashSet;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.entities.NamespaceMembership;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.repositories.RepositoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashSet;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.entities.NamespaceMembership;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 @Component
 public class OrphanNamespaceMigration {
@@ -57,12 +58,15 @@ public class OrphanNamespaceMigration {
             }
         });
 
-        if (count[0] > 0)
+        if (count[0] > 0) {
             logger.info("Deleted {} namespaces that were orphaned and empty.", count[0]);
-        if (count[1] > 0)
+        }
+        if (count[1] > 0) {
             logger.info("Assigned explicit members to {} orphaned namespaces.", count[1]);
-        if (count[2] > 0)
+        }
+        if (count[2] > 0) {
             logger.info("Found {} orphaned namespaces that could not be fixed.", count[2]);
+        }
     }
 
     private void makePublishersNamespaceContributors(Namespace namespace, LinkedHashSet<UserData> publishers) {

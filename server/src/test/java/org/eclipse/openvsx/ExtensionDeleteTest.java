@@ -9,14 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.admin.AdminService;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.SearchUtilService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.TargetPlatform;
-import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,11 +28,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.eclipse.openvsx.admin.AdminService;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.SearchUtilService;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.TargetPlatform;
+import org.eclipse.openvsx.util.TargetPlatformVersion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,9 +57,11 @@ import static org.mockito.Mockito.doAnswer;
  * {@link ExtensionService#deleteUserExtension(UserData, String, String, TargetPlatformVersion...)}
  * is protected by a {@code SELECT … FOR UPDATE NOWAIT} lock and therefore passes.
  */
-@SpringBootTest(properties = {
-    "ovsx.elasticsearch.enabled=false"
-})
+@SpringBootTest(
+    properties = {
+        "ovsx.elasticsearch.enabled=false"
+    }
+)
 @ActiveProfiles("test_db")
 class ExtensionDeleteTest {
 
@@ -155,8 +158,9 @@ class ExtensionDeleteTest {
 
         var otherVersionExists = versionExists("2.0.0");
         assertThat(publisherSucceeded.get() && !otherVersionExists)
-                .as("a version successfully published by another user must never be silently "
-                        + "deleted by a concurrent delete-all on the same extension")
+                .as(
+                        "a version successfully published by another user must never be silently "
+                                + "deleted by a concurrent delete-all on the same extension")
                 .isFalse();
         assertThat(otherVersionExists && !extensionExists())
                 .as("a committed version must never be left orphaned by a removed extension")
@@ -269,24 +273,28 @@ class ExtensionDeleteTest {
     }
 
     private boolean versionExists(String version) {
-        return Boolean.TRUE.equals(new TransactionTemplate(txManager).execute(status -> !em.createQuery(
-                        "select ev.id from ExtensionVersion ev "
-                                + "where ev.version = :version "
-                                + "and ev.extension.namespace.name = :namespace")
-                .setParameter("version", version)
-                .setParameter("namespace", NAMESPACE)
-                .getResultList()
-                .isEmpty()));
+        return Boolean.TRUE.equals(
+                new TransactionTemplate(txManager).execute(
+                        status -> !em.createQuery(
+                                "select ev.id from ExtensionVersion ev "
+                                        + "where ev.version = :version "
+                                        + "and ev.extension.namespace.name = :namespace")
+                                .setParameter("version", version)
+                                .setParameter("namespace", NAMESPACE)
+                                .getResultList()
+                                .isEmpty()));
     }
 
     private boolean extensionExists() {
-        return Boolean.TRUE.equals(new TransactionTemplate(txManager).execute(status -> !em.createQuery(
-                        "select e.id from Extension e "
-                                + "where e.name = :name and e.namespace.name = :namespace")
-                .setParameter("name", EXTENSION)
-                .setParameter("namespace", NAMESPACE)
-                .getResultList()
-                .isEmpty()));
+        return Boolean.TRUE.equals(
+                new TransactionTemplate(txManager).execute(
+                        status -> !em.createQuery(
+                                "select e.id from Extension e "
+                                        + "where e.name = :name and e.namespace.name = :namespace")
+                                .setParameter("name", EXTENSION)
+                                .setParameter("namespace", NAMESPACE)
+                                .getResultList()
+                                .isEmpty()));
     }
 
     @AfterEach

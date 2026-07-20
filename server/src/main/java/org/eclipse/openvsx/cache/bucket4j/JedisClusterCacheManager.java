@@ -44,14 +44,17 @@ public class JedisClusterCacheManager<K, V> implements CacheManager<K, V> {
         this.updateChannel = cacheName.concat(":update");
     }
 
-
     @Override
     public V getValue(K key) {
         try {
             String serializedValue = redisClusterClient.hget(cacheName, jsonMapper.writeValueAsString(key));
             return serializedValue != null ? jsonMapper.readValue(serializedValue, this.valueType) : null;
         } catch (JacksonException e) {
-            LOGGER.warn("Exception occurred while retrieving key '{}' from cache '{}'. Message: {}", key, cacheName, e.getMessage());
+            LOGGER.warn(
+                    "Exception occurred while retrieving key '{}' from cache '{}'. Message: {}",
+                    key,
+                    cacheName,
+                    e.getMessage());
             return null;
         }
     }
@@ -66,12 +69,16 @@ public class JedisClusterCacheManager<K, V> implements CacheManager<K, V> {
             redisClusterClient.hset(this.cacheName, serializedKey, serializedValue);
 
             // publish an update event if the key already existed
-            if(oldValue != null){
-                CacheUpdateEvent<K,V> updateEvent = new CacheUpdateEvent<>(key, oldValue, value);
+            if (oldValue != null) {
+                CacheUpdateEvent<K, V> updateEvent = new CacheUpdateEvent<>(key, oldValue, value);
                 redisClusterClient.publish(this.updateChannel, jsonMapper.writeValueAsString(updateEvent));
             }
         } catch (JacksonException e) {
-            LOGGER.warn("Exception occurred while setting key '{}' in cache '{}'. Message: {}", key, cacheName, e.getMessage());
+            LOGGER.warn(
+                    "Exception occurred while setting key '{}' in cache '{}'. Message: {}",
+                    key,
+                    cacheName,
+                    e.getMessage());
             throw new RuntimeException(e);
         }
     }

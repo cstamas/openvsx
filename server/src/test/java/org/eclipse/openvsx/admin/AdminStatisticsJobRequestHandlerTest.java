@@ -9,8 +9,8 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.entities.AdminStatistics;
-import org.eclipse.openvsx.repositories.RepositoryService;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -20,7 +20,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.Map;
+import org.eclipse.openvsx.entities.AdminStatistics;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 @ExtendWith(SpringExtension.class)
 class AdminStatisticsJobRequestHandlerTest {
@@ -77,37 +78,51 @@ class AdminStatisticsJobRequestHandlerTest {
         var averageReviewsPerExtension = 2.5;
         var namespaceOwners = 268L;
         var extensionsByRating = Map.of(
-                1, 34,
-                2, 100,
-                3, 700,
-                4, 150,
-                5, 250
-        );
+                1,
+                34,
+                2,
+                100,
+                3,
+                700,
+                4,
+                150,
+                5,
+                250);
         var publishersByExtensionsPublished = Map.of(
-                1, 500,
-                3, 70,
-                10, 9
-        );
+                1,
+                500,
+                3,
+                70,
+                10,
+                9);
         var topMostActivePublishingUsers = Map.of(
-                "foo", 400,
-                "bar", 150,
-                "baz", 29
-        );
+                "foo",
+                400,
+                "bar",
+                150,
+                "baz",
+                29);
         var topNamespaceExtensions = Map.of(
-                "lorum", 800,
-                "ipsum", 400,
-                "dolar", 34
-        );
+                "lorum",
+                800,
+                "ipsum",
+                400,
+                "dolar",
+                34);
         var topNamespaceExtensionVersions = Map.of(
-                "lorum", 8000,
-                "ipsum", 2000,
-                "dolar", 68
-        );
+                "lorum",
+                8000,
+                "ipsum",
+                2000,
+                "dolar",
+                68);
         var topMostDownloadedExtensions = Map.of(
-                "lorum.alpha", 1200L,
-                "ipsum.beta", 450L,
-                "dolar.omega", 300L
-        );
+                "lorum.alpha",
+                1200L,
+                "ipsum.beta",
+                450L,
+                "dolar.omega",
+                300L);
 
         var expectedStatistics = new AdminStatistics();
         expectedStatistics.setYear(year);
@@ -128,10 +143,12 @@ class AdminStatisticsJobRequestHandlerTest {
         Mockito.when(repositories.countActiveExtensions()).thenReturn(extensions);
         Mockito.when(repositories.downloadsTotal()).thenReturn(downloadsTotal);
         Mockito.when(repositories.countActiveExtensionPublishers()).thenReturn(publishers);
-        Mockito.when(repositories.averageNumberOfActiveReviewsPerActiveExtension()).thenReturn(averageReviewsPerExtension);
+        Mockito.when(repositories.averageNumberOfActiveReviewsPerActiveExtension())
+                .thenReturn(averageReviewsPerExtension);
         Mockito.when(repositories.countPublishersThatClaimedNamespaceOwnership()).thenReturn(namespaceOwners);
         Mockito.when(repositories.countActiveExtensionsGroupedByExtensionReviewRating()).thenReturn(extensionsByRating);
-        Mockito.when(repositories.countActiveExtensionPublishersGroupedByExtensionsPublished()).thenReturn(publishersByExtensionsPublished);
+        Mockito.when(repositories.countActiveExtensionPublishersGroupedByExtensionsPublished())
+                .thenReturn(publishersByExtensionsPublished);
         var limit = 10;
         Mockito.when(repositories.topMostActivePublishingUsers(limit)).thenReturn(topMostActivePublishingUsers);
         Mockito.when(repositories.topNamespaceExtensions(limit)).thenReturn(topNamespaceExtensions);

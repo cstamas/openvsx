@@ -9,17 +9,18 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.ExtensionProcessor;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TempFile;
-import org.slf4j.Logger;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class SetPreReleaseJobService {
@@ -43,7 +44,7 @@ public class SetPreReleaseJobService {
 
     @Transactional
     public void updatePreviewAndPreRelease(ExtensionVersion extVersion, TempFile extensionFile) {
-        try(var extProcessor = new ExtensionProcessor(extensionFile)) {
+        try (var extProcessor = new ExtensionProcessor(extensionFile)) {
             extVersion.setPreRelease(extProcessor.isPreRelease());
             extVersion.setPreview(extProcessor.isPreview());
         }

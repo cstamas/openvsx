@@ -9,14 +9,16 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+
 import jakarta.annotation.PreDestroy;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.util.FileUtil;
-import org.eclipse.openvsx.util.HttpHeadersUtil;
-import org.eclipse.openvsx.util.TempFile;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -41,13 +43,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.util.FileUtil;
+import org.eclipse.openvsx.util.HttpHeadersUtil;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_EXTENSION_FILES;
 import static org.eclipse.openvsx.cache.CacheService.GENERATOR_FILES;
@@ -82,7 +83,10 @@ public class AwsStorageService implements IStorageService {
     private volatile S3Client s3Client;
     private volatile S3Presigner s3Presigner;
 
-    public AwsStorageService(FileCacheDurationConfig fileCacheDurationConfig, FilesCacheKeyGenerator filesCacheKeyGenerator) {
+    public AwsStorageService(
+            FileCacheDurationConfig fileCacheDurationConfig,
+            FilesCacheKeyGenerator filesCacheKeyGenerator
+    ) {
         this.fileCacheDurationConfig = fileCacheDurationConfig;
         this.filesCacheKeyGenerator = filesCacheKeyGenerator;
     }
@@ -92,13 +96,15 @@ public class AwsStorageService implements IStorageService {
         if (s3Presigner != null) {
             try {
                 s3Presigner.close();
-            } catch (RuntimeException _) {}
+            } catch (RuntimeException _) {
+            }
         }
 
         if (s3Client != null) {
             try {
                 s3Client.close();
-            } catch (RuntimeException _) {}
+            } catch (RuntimeException _) {
+            }
         }
     }
 
@@ -137,9 +143,8 @@ public class AwsStorageService implements IStorageService {
                     if (pathStyleAccess) {
                         builder = builder.serviceConfiguration(
                                 S3Configuration.builder()
-                                    .pathStyleAccessEnabled(true)
-                                    .build()
-                        );
+                                        .pathStyleAccessEnabled(true)
+                                        .build());
                     }
                     var serviceEndpoint = getServiceEndpoint();
                     if (serviceEndpoint != null) {
@@ -174,8 +179,8 @@ public class AwsStorageService implements IStorageService {
         // Use static credentials if provided, otherwise DefaultCredentialsProvider handles everything
         if (hasStaticCredentials()) {
             var credentials = hasSessionToken()
-                ? AwsSessionCredentials.create(accessKeyId, secretAccessKey, sessionToken)
-                : AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+                    ? AwsSessionCredentials.create(accessKeyId, secretAccessKey, sessionToken)
+                    : AwsBasicCredentials.create(accessKeyId, secretAccessKey);
             return StaticCredentialsProvider.create(credentials);
         }
         return DefaultCredentialsProvider.create();
@@ -327,7 +332,12 @@ public class AwsStorageService implements IStorageService {
     }
 
     @Override
-    @Cacheable(value = CACHE_EXTENSION_FILES, keyGenerator = GENERATOR_FILES, cacheManager = "fileCacheManager", sync = true)
+    @Cacheable(
+        value = CACHE_EXTENSION_FILES,
+        keyGenerator = GENERATOR_FILES,
+        cacheManager = "fileCacheManager",
+        sync = true
+    )
     public Path getCachedFile(FileResource resource) {
         var objectKey = getObjectKey(resource);
         var request = GetObjectRequest.builder()
@@ -339,7 +349,7 @@ public class AwsStorageService implements IStorageService {
         FileUtil.writeSync(path, p -> {
             try (var stream = getS3Client().getObject(request)) {
                 Files.copy(stream, p);
-            } catch(IOException e) {
+            } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         });

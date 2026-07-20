@@ -12,9 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -156,8 +156,7 @@ class SecretRuleTest {
                 .keywords("key1", "key2")
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                rule.getKeywords().add("key3"));
+        assertThrows(UnsupportedOperationException.class, () -> rule.getKeywords().add("key3"));
     }
 
     @Test
@@ -168,7 +167,6 @@ class SecretRuleTest {
                 .allowlistRegexes(List.of("allow"))
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                rule.getAllowlistPatterns().clear());
+        assertThrows(UnsupportedOperationException.class, () -> rule.getAllowlistPatterns().clear());
     }
 }

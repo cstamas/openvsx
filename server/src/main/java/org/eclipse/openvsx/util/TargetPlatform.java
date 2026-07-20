@@ -26,22 +26,29 @@ public class TargetPlatform {
     public static final String NAME_DARWIN_ARM64 = "darwin-arm64";
     public static final String NAME_WEB = "web";
 
-    public static final String NAMES_PATH_PARAM_REGEX =
-            NAME_WIN32_X64 + "|" + NAME_WIN32_IA32 + "|" + NAME_WIN32_ARM64 + "|" +
-                    NAME_LINUX_X64 + "|" + NAME_LINUX_ARM64 + "|" + NAME_LINUX_ARMHF + "|" +
-                    NAME_ALPINE_X64 + "|" + NAME_ALPINE_ARM64 + "|" +
-                    NAME_DARWIN_X64 + "|" + NAME_DARWIN_ARM64 + "|" +
-                    NAME_WEB + "|" + NAME_UNIVERSAL;
+    public static final String NAMES_PATH_PARAM_REGEX = NAME_WIN32_X64 + "|" + NAME_WIN32_IA32 + "|" + NAME_WIN32_ARM64
+            + "|" +
+            NAME_LINUX_X64 + "|" + NAME_LINUX_ARM64 + "|" + NAME_LINUX_ARMHF + "|" +
+            NAME_ALPINE_X64 + "|" + NAME_ALPINE_ARM64 + "|" +
+            NAME_DARWIN_X64 + "|" + NAME_DARWIN_ARM64 + "|" +
+            NAME_WEB + "|" + NAME_UNIVERSAL;
 
     public static final List<String> TARGET_PLATFORM_NAMES = List.of(
-        NAME_WIN32_X64, NAME_WIN32_IA32, NAME_WIN32_ARM64,
-        NAME_LINUX_X64, NAME_LINUX_ARM64, NAME_LINUX_ARMHF,
-        NAME_ALPINE_X64, NAME_ALPINE_ARM64,
-        NAME_DARWIN_X64, NAME_DARWIN_ARM64,
-        NAME_WEB, NAME_UNIVERSAL
-    );
+            NAME_WIN32_X64,
+            NAME_WIN32_IA32,
+            NAME_WIN32_ARM64,
+            NAME_LINUX_X64,
+            NAME_LINUX_ARM64,
+            NAME_LINUX_ARMHF,
+            NAME_ALPINE_X64,
+            NAME_ALPINE_ARM64,
+            NAME_DARWIN_X64,
+            NAME_DARWIN_ARM64,
+            NAME_WEB,
+            NAME_UNIVERSAL);
 
-    private TargetPlatform(){}
+    private TargetPlatform() {
+    }
 
     public static boolean isValid(String targetPlatform) {
         return targetPlatform != null && TARGET_PLATFORM_NAMES.contains(targetPlatform);

@@ -9,17 +9,18 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.TargetPlatform;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.persistence.EntityManager;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
@@ -27,19 +28,19 @@ import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.IndexQuery;
 import org.springframework.data.util.Streamable;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import jakarta.persistence.EntityManager;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.TargetPlatform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(SpringExtension.class)
-@MockitoBean(types = {JobRequestScheduler.class})
+@MockitoBean(types = { JobRequestScheduler.class })
 class ElasticSearchServiceTest {
 
     @MockitoBean
@@ -57,8 +58,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceAverageRating() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n1", "u1",3.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
-        var ext2 = mockExtension( "bar", "n2", "u2", 4.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 3.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext2 = mockExtension("bar", "n2", "u2", 4.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -69,8 +70,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceReviewCount() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n1", "u1",4.0, 2, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
-        var ext2 = mockExtension("bar", "n2", "u2",4.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 4.0, 2, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext2 = mockExtension("bar", "n2", "u2", 4.0, 100, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -81,8 +82,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceDownloadCount() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n1", "u1",0.0, 0, 1, LocalDateTime.parse("2020-01-01T00:00"), false, false);
-        var ext2 = mockExtension("bar", "n2", "u2",0.0, 0, 10, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 0.0, 0, 1, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext2 = mockExtension("bar", "n2", "u2", 0.0, 0, 10, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -93,8 +94,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceTimestamp() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n2", "u2",0.0, 0, 0, LocalDateTime.parse("2020-02-01T00:00"), false, false);
-        var ext2 = mockExtension("bar", "n1", "u1",0.0, 0, 0, LocalDateTime.parse("2020-10-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n2", "u2", 0.0, 0, 0, LocalDateTime.parse("2020-02-01T00:00"), false, false);
+        var ext2 = mockExtension("bar", "n1", "u1", 0.0, 0, 0, LocalDateTime.parse("2020-10-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -105,8 +106,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceUnverified1() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n1", "u1",4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, true);
-        var ext2 = mockExtension("bar", "n2", "u2",4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, true);
+        var ext2 = mockExtension("bar", "n2", "u2", 4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -117,8 +118,8 @@ class ElasticSearchServiceTest {
     @Test
     void testRelevanceUnverified2() {
         var index = mockIndex(true);
-        var ext1 = mockExtension("foo", "n1", "u1",4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), true, false);
-        var ext2 = mockExtension("bar", "n2", "u2",4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), true, false);
+        var ext2 = mockExtension("bar", "n2", "u2", 4.0, 10, 10, LocalDateTime.parse("2020-10-01T00:00"), false, false);
         search.updateSearchEntry(ext1);
         search.updateSearchEntry(ext2);
 
@@ -195,45 +196,56 @@ class ElasticSearchServiceTest {
 
         var index = new MockIndex();
         Mockito.when(searchOperations.index(any(IndexQuery.class), any(IndexCoordinates.class)))
-            .then(invocation -> {
-                var query = invocation.getArgument(0, IndexQuery.class);
-                index.entries.add((ExtensionSearch) query.getObject());
-                return "test";
-            });
+                .then(invocation -> {
+                    var query = invocation.getArgument(0, IndexQuery.class);
+                    index.entries.add((ExtensionSearch) query.getObject());
+                    return "test";
+                });
         Mockito.doAnswer(invocation -> {
-                var queries = (List<IndexQuery>) invocation.getArgument(0);
-                queries.forEach(query -> index.entries.add((ExtensionSearch) query.getObject()));
-                return null;
-            }).when(searchOperations).bulkIndex(any(List.class), any(IndexCoordinates.class));
+            var queries = (List<IndexQuery>) invocation.getArgument(0);
+            queries.forEach(query -> index.entries.add((ExtensionSearch) query.getObject()));
+            return null;
+        }).when(searchOperations).bulkIndex(any(List.class), any(IndexCoordinates.class));
 
         var indexOps = Mockito.mock(IndexOperations.class);
         Mockito.when(searchOperations.indexOps(ExtensionSearch.class))
-            .thenReturn(indexOps);
+                .thenReturn(indexOps);
         Mockito.when(indexOps.getIndexCoordinates())
-            .thenReturn(IndexCoordinates.of("extensions"));
+                .thenReturn(IndexCoordinates.of("extensions"));
 
         Mockito.when(indexOps.getSettings(true))
                 .thenReturn(new Settings(Map.of("index.max_result_window", "10000")));
 
         Mockito.when(indexOps.exists())
-            .thenReturn(exists);
+                .thenReturn(exists);
         Mockito.when(indexOps.delete())
-            .then(invocation -> {
-                if (!exists && !index.created)
-                    throw new IllegalStateException("Index does not exist.");
-                return index.deleted = true;
-            });
+                .then(invocation -> {
+                    if (!exists && !index.created) {
+                        throw new IllegalStateException("Index does not exist.");
+                    }
+                    return index.deleted = true;
+                });
         Mockito.when(indexOps.create())
-            .then(invocation -> {
-                if (exists && !index.deleted)
-                    throw new IllegalStateException("Index already exists.");
-                return index.created = true;
-            });
+                .then(invocation -> {
+                    if (exists && !index.deleted) {
+                        throw new IllegalStateException("Index already exists.");
+                    }
+                    return index.created = true;
+                });
         return index;
     }
 
-    private Extension mockExtension(String name, String namespaceName, String userName, double averageRating, long ratingCount, int downloadCount,
-            LocalDateTime timestamp, boolean isUnverified, boolean isUnrelated) {
+    private Extension mockExtension(
+            String name,
+            String namespaceName,
+            String userName,
+            double averageRating,
+            long ratingCount,
+            int downloadCount,
+            LocalDateTime timestamp,
+            boolean isUnverified,
+            boolean isUnrelated
+    ) {
         var extension = new Extension();
         extension.setName(name);
         extension.setId(name.hashCode());
@@ -256,7 +268,7 @@ class ElasticSearchServiceTest {
         var token = new PersonalAccessToken();
         token.setUser(user);
         extVer.setPublishedWith(token);
-        Mockito.when(repositories.findLatestVersion(extension,  null, false, true))
+        Mockito.when(repositories.findLatestVersion(extension, null, false, true))
                 .thenReturn(extVer);
         Mockito.when(repositories.isVerified(namespace, user))
                 .thenReturn(!isUnverified && !isUnrelated);
@@ -264,7 +276,7 @@ class ElasticSearchServiceTest {
     }
 
     private void mockExtensions() {
-        var ext1 = mockExtension("foo", "n1", "u1",3.0, 1, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
+        var ext1 = mockExtension("foo", "n1", "u1", 3.0, 1, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         var ext2 = mockExtension("bar", "n2", "u2", 3.0, 1, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         var ext3 = mockExtension("baz", "n3", "u3", 3.0, 1, 0, LocalDateTime.parse("2020-01-01T00:00"), false, false);
         Mockito.when(repositories.findAllActiveExtensions())

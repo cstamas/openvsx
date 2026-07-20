@@ -9,19 +9,19 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.json;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 @Schema(
     name = "VersionReferences",
     description = "List of version references matching an extension"
 )
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class VersionReferencesJson extends ResultJson{
+public class VersionReferencesJson extends ResultJson {
 
     public static VersionReferencesJson error(String message) {
         var result = new VersionReferencesJson();
@@ -39,7 +39,9 @@ public class VersionReferencesJson extends ResultJson{
     @Min(0)
     private int totalSize;
 
-    @Schema(description = "Essential metadata of all available versions, limited to the size specified in the version references request")
+    @Schema(
+        description = "Essential metadata of all available versions, limited to the size specified in the version references request"
+    )
     @NotNull
     private List<VersionReferenceJson> versions;
 

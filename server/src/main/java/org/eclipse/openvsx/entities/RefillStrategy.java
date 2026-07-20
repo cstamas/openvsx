@@ -13,6 +13,5 @@
 package org.eclipse.openvsx.entities;
 
 public enum RefillStrategy {
-    GREEDY,
-    INTERVAL
+    GREEDY, INTERVAL
 }

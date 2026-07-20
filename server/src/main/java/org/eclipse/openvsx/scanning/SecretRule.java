@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.List;
+
 import com.google.re2j.Pattern;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-
-import java.util.List;
 
 /**
  * Single secret rule definition plus builder.

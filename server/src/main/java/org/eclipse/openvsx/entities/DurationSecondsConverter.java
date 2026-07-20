@@ -12,10 +12,10 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
+import java.time.Duration;
+
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-
-import java.time.Duration;
 
 @Converter
 public class DurationSecondsConverter implements AttributeConverter<Duration, Integer> {

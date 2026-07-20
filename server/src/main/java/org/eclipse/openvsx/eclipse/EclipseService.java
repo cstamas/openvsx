@@ -9,16 +9,19 @@
  ********************************************************************************/
 package org.eclipse.openvsx.eclipse;
 
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.entities.AuthToken;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.json.UserJson;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.HttpHeadersUtil;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,15 +35,13 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.entities.AuthToken;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.json.UserJson;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.HttpHeadersUtil;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Service
 public class EclipseService {
@@ -54,9 +55,12 @@ public class EclipseService {
             .append(DateTimeFormatter.ISO_LOCAL_TIME)
             .toFormatter();
 
-    private static final TypeReference<List<String>> TYPE_LIST_STRING = new TypeReference<>() {};
-    private static final TypeReference<List<EclipseProfile>> TYPE_LIST_PROFILE = new TypeReference<>() {};
-    private static final TypeReference<List<PublisherAgreementResponse>> TYPE_LIST_AGREEMENT = new TypeReference<>() {};
+    private static final TypeReference<List<String>> TYPE_LIST_STRING = new TypeReference<>() {
+    };
+    private static final TypeReference<List<EclipseProfile>> TYPE_LIST_PROFILE = new TypeReference<>() {
+    };
+    private static final TypeReference<List<PublisherAgreementResponse>> TYPE_LIST_AGREEMENT = new TypeReference<>() {
+    };
 
     protected final Logger logger = LoggerFactory.getLogger(EclipseService.class);
 
@@ -107,7 +111,8 @@ public class EclipseService {
         }
         var personId = user.getEclipsePersonId();
         if (personId == null) {
-            throw new ErrorResultException("You must log in with an Eclipse Foundation account and sign a Publisher Agreement before publishing any extension.");
+            throw new ErrorResultException(
+                    "You must log in with an Eclipse Foundation account and sign a Publisher Agreement before publishing any extension.");
         }
 
         var json = user.toUserJson();
@@ -115,14 +120,16 @@ public class EclipseService {
         var publisherAgreement = json.getPublisherAgreement();
 
         if (publisherAgreement == null || publisherAgreement.getStatus().equals("none")) {
-            throw new ErrorResultException("You must sign a Publisher Agreement with the Eclipse Foundation before publishing any extension.");
+            throw new ErrorResultException(
+                    "You must sign a Publisher Agreement with the Eclipse Foundation before publishing any extension.");
         }
 
         if (!publisherAgreement.getStatus().equals("signed")) {
             if (publisherAgreement.getVersion() != null) {
-                throw new ErrorResultException("Your Publisher Agreement with the Eclipse Foundation is outdated (version "
-                        + publisherAgreement.getVersion() + "). The current version is "
-                        + publisherAgreementVersion + ".");
+                throw new ErrorResultException(
+                        "Your Publisher Agreement with the Eclipse Foundation is outdated (version "
+                                + publisherAgreement.getVersion() + "). The current version is "
+                                + publisherAgreementVersion + ".");
             } else {
                 throw new ErrorResultException("Your Publisher Agreement with the Eclipse Foundation is outdated.");
             }
@@ -143,13 +150,16 @@ public class EclipseService {
         } catch (RestClientException exc) {
             if (exc instanceof HttpStatusCodeException) {
                 var status = ((HttpStatusCodeException) exc).getStatusCode();
-                if (status == HttpStatus.NOT_FOUND)
-                    throw new ErrorResultException("No Eclipse profile data available for user '" + personId + "': " + exc.getMessage());
+                if (status == HttpStatus.NOT_FOUND) {
+                    throw new ErrorResultException(
+                            "No Eclipse profile data available for user '" + personId + "': " + exc.getMessage());
+                }
             }
 
             var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
             logger.error("Get request failed with URL: {}", url, exc);
-            throw new ErrorResultException("Request for retrieving user profile failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Request for retrieving user profile failed: " + exc.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -238,10 +248,11 @@ public class EclipseService {
             var eclipseLogin = new UserJson();
             eclipseLogin.setProvider("eclipse");
             eclipseLogin.setLoginName(personId);
-            if (json.getAdditionalLogins() == null)
+            if (json.getAdditionalLogins() == null) {
                 json.setAdditionalLogins(new ArrayList<>(List.of(eclipseLogin)));
-            else
+            } else {
                 json.getAdditionalLogins().add(eclipseLogin);
+            }
         }
     }
 
@@ -260,13 +271,14 @@ public class EclipseService {
         try {
             var profile = getPublicProfile(personId);
             var openVsxPublisherAgreement = profile.getOpenVsxPublisherAgreement();
-            if (openVsxPublisherAgreement.isEmpty() || StringUtils.isEmpty(openVsxPublisherAgreement.get().getVersion())) {
+            if (openVsxPublisherAgreement.isEmpty()
+                    || StringUtils.isEmpty(openVsxPublisherAgreement.get().getVersion())) {
                 publisherAgreement.setStatus("none");
-            }
-            else if (publisherAgreementAllowedVersions.contains(openVsxPublisherAgreement.get().getVersion()))
+            } else if (publisherAgreementAllowedVersions.contains(openVsxPublisherAgreement.get().getVersion())) {
                 publisherAgreement.setStatus("signed");
-            else
+            } else {
                 publisherAgreement.setStatus("outdated");
+            }
 
             json.setPublisherAgreement(publisherAgreement);
         } catch (ErrorResultException e) {
@@ -288,7 +300,8 @@ public class EclipseService {
             return parseEclipseProfile(response);
         } catch (RestClientException exc) {
             logger.error("Get request failed with URL: {}", requestUrl, exc);
-            throw new ErrorResultException("Request for retrieving user profile failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Request for retrieving user profile failed: " + exc.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -303,12 +316,15 @@ public class EclipseService {
             if (json.startsWith("[\"")) {
                 var error = jsonMapper.readValue(json, TYPE_LIST_STRING);
                 logger.error("Profile request failed:\n{}", json);
-                throw new ErrorResultException("Request to the Eclipse Foundation server failed: " + error,
+                throw new ErrorResultException(
+                        "Request to the Eclipse Foundation server failed: " + error,
                         HttpStatus.INTERNAL_SERVER_ERROR);
             } else if (json.startsWith("[")) {
                 var profileList = jsonMapper.readValue(json, TYPE_LIST_PROFILE);
                 if (profileList.isEmpty()) {
-                    throw new ErrorResultException("No Eclipse user profile available.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    throw new ErrorResultException(
+                            "No Eclipse user profile available.",
+                            HttpStatus.INTERNAL_SERVER_ERROR);
                 }
                 return profileList.getFirst();
             } else {
@@ -316,7 +332,8 @@ public class EclipseService {
             }
         } catch (JacksonException exc) {
             logger.error("Failed to parse JSON response ({}):\n{}", response.getStatusCode(), json, exc);
-            throw new ErrorResultException("Parsing Eclipse user profile failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Parsing Eclipse user profile failed: " + exc.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -344,18 +361,21 @@ public class EclipseService {
             if (exc instanceof HttpStatusCodeException) {
                 status = ((HttpStatusCodeException) exc).getStatusCode();
                 // The endpoint yields 404 if the specified user has not signed a publisher agreement
-                if (status == HttpStatus.NOT_FOUND)
+                if (status == HttpStatus.NOT_FOUND) {
                     return null;
+                }
             }
 
             var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
             logger.error("Get request failed with URL: {}", url, exc);
-            throw new ErrorResultException("Request for retrieving publisher agreement failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Request for retrieving publisher agreement failed: " + exc.getMessage(),
                     status);
         }
     }
 
-    private static final Pattern STATUS_400_MESSAGE = Pattern.compile("400 Bad Request: \\[\\[\"(?<message>[^\"]+)\"]]");
+    private static final Pattern STATUS_400_MESSAGE = Pattern
+            .compile("400 Bad Request: \\[\\[\"(?<message>[^\"]+)\"]]");
 
     /**
      * Sign the publisher agreement on behalf of the given user.
@@ -410,7 +430,7 @@ public class EclipseService {
 
     private PublisherAgreement parseAgreementResponse(ResponseEntity<String> response) {
         var json = response.getBody();
-        if(json == null) {
+        if (json == null) {
             return null;
         }
 
@@ -419,12 +439,15 @@ public class EclipseService {
             if (json.startsWith("[\"")) {
                 var error = jsonMapper.readValue(json, TYPE_LIST_STRING);
                 logger.error("Publisher agreement request failed:\n{}", json);
-                throw new ErrorResultException("Request to the Eclipse Foundation server failed: " + error,
+                throw new ErrorResultException(
+                        "Request to the Eclipse Foundation server failed: " + error,
                         HttpStatus.INTERNAL_SERVER_ERROR);
             } else if (json.startsWith("[")) {
                 var profileList = jsonMapper.readValue(json, TYPE_LIST_AGREEMENT);
                 if (profileList.isEmpty()) {
-                    throw new ErrorResultException("No publisher agreement available.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    throw new ErrorResultException(
+                            "No publisher agreement available.",
+                            HttpStatus.INTERNAL_SERVER_ERROR);
                 }
                 agreementResponse = profileList.getFirst();
             } else {
@@ -436,11 +459,11 @@ public class EclipseService {
                     TimeUtil.getCurrentUTC().isAfter(timestamp),
                     agreementResponse.documentID,
                     agreementResponse.version,
-                    timestamp
-            );
+                    timestamp);
         } catch (JacksonException exc) {
             logger.error("Failed to parse JSON response ({}):\n{}", response.getStatusCode(), json, exc);
-            throw new ErrorResultException("Parsing publisher agreement response failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Parsing publisher agreement response failed: " + exc.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -475,7 +498,8 @@ public class EclipseService {
         } catch (RestClientException exc) {
             var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
             logger.error("Delete request failed with URL: {}", url, exc);
-            throw new ErrorResultException("Request for revoking publisher agreement failed: " + exc.getMessage(),
+            throw new ErrorResultException(
+                    "Request for revoking publisher agreement failed: " + exc.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -507,8 +531,9 @@ public class EclipseService {
 
     private void checkEclipseData(UserData user) {
         if (StringUtils.isEmpty(user.getEclipsePersonId())) {
-            throw new ErrorResultException("Eclipse person ID is unavailable for user: "
-                    + user.getProvider() + "/" + user.getLoginName());
+            throw new ErrorResultException(
+                    "Eclipse person ID is unavailable for user: "
+                            + user.getProvider() + "/" + user.getLoginName());
         }
     }
 }

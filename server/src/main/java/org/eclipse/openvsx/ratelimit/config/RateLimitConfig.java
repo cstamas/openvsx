@@ -12,6 +12,8 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.config;
 
+import java.time.Duration;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -19,7 +21,6 @@ import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.distributed.proxy.ClientSideConfig;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.github.bucket4j.redis.jedis.cas.JedisBasedProxyManager;
-import org.eclipse.openvsx.cache.jedis.JedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,13 +39,13 @@ import org.springframework.expression.spel.SpelParserConfiguration;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import redis.clients.jedis.RedisClusterClient;
 
-import java.time.Duration;
+import org.eclipse.openvsx.cache.jedis.JedisUtil;
 
 import static org.eclipse.openvsx.ratelimit.cache.RateLimitCacheService.*;
 
 @Configuration
 @ConditionalOnProperty(prefix = RateLimitProperties.PROPERTY_PREFIX, name = "enabled", havingValue = "true")
-@EnableConfigurationProperties({RateLimitProperties.class})
+@EnableConfigurationProperties({ RateLimitProperties.class })
 public class RateLimitConfig {
 
     private final Logger logger = LoggerFactory.getLogger(RateLimitConfig.class);
@@ -144,7 +145,9 @@ public class RateLimitConfig {
                 .withClientSideConfig(
                         ClientSideConfig
                                 .getDefault()
-                                .withExpirationAfterWriteStrategy(ExpirationAfterWriteStrategy.basedOnTimeForRefillingBucketUpToMax(Duration.ofSeconds(10))))
+                                .withExpirationAfterWriteStrategy(
+                                        ExpirationAfterWriteStrategy
+                                                .basedOnTimeForRefillingBucketUpToMax(Duration.ofSeconds(10))))
                 .build();
     }
 }

@@ -9,10 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 @Component
 public class ElasticSearchUpdateIndexJobRequestHandler implements JobRequestHandler<HandlerJobRequest> {

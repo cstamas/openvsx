@@ -9,13 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.entities.Extension;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+
+import org.eclipse.openvsx.entities.Extension;
 
 /**
  * Common interface for all search service implementations.
@@ -89,24 +89,24 @@ public interface ISearchService {
                 String[] namespacesToExclude
         ) {
             String namespace = null;
-            if(queryString != null) {
-                var matcher =  PUBLISHER_PATTERN.matcher(queryString);
+            if (queryString != null) {
+                var matcher = PUBLISHER_PATTERN.matcher(queryString);
                 var results = matcher.results().toList();
-                if(results.size() > 1) {
+                if (results.size() > 1) {
                     requestedSize = 0;
-                } else if(!results.isEmpty()) {
+                } else if (!results.isEmpty()) {
                     var first = results.getFirst();
                     var publisherStartIndex = first.start();
                     var publisherEndIndex = queryString.indexOf(' ', first.end());
-                    if(publisherEndIndex == -1) {
+                    if (publisherEndIndex == -1) {
                         publisherEndIndex = queryString.length();
                     }
                     namespace = queryString.substring(first.end(), publisherEndIndex);
                     var newQuery = "";
-                    if(publisherStartIndex > 0) {
+                    if (publisherStartIndex > 0) {
                         newQuery += queryString.substring(0, publisherStartIndex);
                     }
-                    if(publisherEndIndex < queryString.length()) {
+                    if (publisherEndIndex < queryString.length()) {
                         newQuery += queryString.substring(publisherEndIndex);
                     }
 
@@ -124,15 +124,17 @@ public interface ISearchService {
                     sortBy,
                     includeAllVersions,
                     namespacesToExclude,
-                    namespace
-            );
+                    namespace);
         }
-
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             Options options = (Options) o;
             return requestedSize == options.requestedSize
                     && requestedOffset == options.requestedOffset
@@ -148,7 +150,16 @@ public interface ISearchService {
 
         @Override
         public int hashCode() {
-            int result = Objects.hash(queryString, category, targetPlatform, requestedSize, requestedOffset, sortOrder, sortBy, includeAllVersions, namespace);
+            int result = Objects.hash(
+                    queryString,
+                    category,
+                    targetPlatform,
+                    requestedSize,
+                    requestedOffset,
+                    sortOrder,
+                    sortBy,
+                    includeAllVersions,
+                    namespace);
             result = 31 * result + Arrays.hashCode(namespacesToExclude);
             return result;
         }

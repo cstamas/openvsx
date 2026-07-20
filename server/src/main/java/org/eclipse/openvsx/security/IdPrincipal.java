@@ -71,16 +71,16 @@ public class IdPrincipal implements OidcUser, Serializable {
         return null;
     }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("Id: [");
-		sb.append(this.getId());
-		sb.append("], ");
-		sb.append("Name: [");
-		sb.append(this.getName());
-		sb.append("]");
-		return sb.toString();
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Id: [");
+        sb.append(this.getId());
+        sb.append("], ");
+        sb.append("Name: [");
+        sb.append(this.getName());
+        sb.append("]");
+        return sb.toString();
     }
 
 }

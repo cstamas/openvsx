@@ -12,11 +12,12 @@ package org.eclipse.openvsx.mirror.aop;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.storage.StorageUtilService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
@@ -35,7 +36,7 @@ public class RepositoryServiceAspect {
     @Around("execution(* org.eclipse.openvsx.repositories.RepositoryService.findFileByTypeAndName(..))")
     public Object findFileByTypeAndName(ProceedingJoinPoint joinPoint) throws Throwable {
         var args = joinPoint.getArgs();
-        var resource =  new FileResource();
+        var resource = new FileResource();
         resource.setExtension((ExtensionVersion) args[0]);
         resource.setName((String) args[2]);
         resource.setType((String) args[1]);

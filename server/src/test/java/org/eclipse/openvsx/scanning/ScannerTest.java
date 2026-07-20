@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
+
+import org.jspecify.annotations.NonNull;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,8 +89,7 @@ class ScannerTest {
         var threat = new Scanner.Threat("test", null, "LOW");
         var result = Scanner.Result.withThreats(List.of(threat));
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                result.getThreats().clear());
+        assertThrows(UnsupportedOperationException.class, () -> result.getThreats().clear());
     }
 
     @Test
@@ -126,9 +125,18 @@ class ScannerTest {
         // checks, self-hosted services without a dashboard). They simply don't
         // contribute a "View in scanner" deep link.
         Scanner scanner = new Scanner() {
-            @Override public @NonNull String getScannerType() { return "TEST"; }
-            @Override public boolean isAsync() { return false; }
-            @Override public Scanner.@NonNull Invocation startScan(@NonNull Command command) { throw new UnsupportedOperationException(); }
+            @Override
+            public @NonNull String getScannerType() {
+                return "TEST";
+            }
+            @Override
+            public boolean isAsync() {
+                return false;
+            }
+            @Override
+            public Scanner.@NonNull Invocation startScan(@NonNull Command command) {
+                throw new UnsupportedOperationException();
+            }
         };
 
         assertNull(scanner.buildExternalUrl("any-job-id"));
@@ -163,8 +171,7 @@ class ScannerTest {
                 "Malware detected",
                 "CRITICAL",
                 "bin/payload.exe",
-                "abc123def456"
-        );
+                "abc123def456");
 
         assertEquals("malware", threat.getName());
         assertEquals("Malware detected", threat.getDescription());

@@ -9,8 +9,34 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
+import org.jobrunr.scheduling.JobRequestScheduler;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.util.Streamable;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.eclipse.openvsx.accesstoken.AccessTokenConfig;
 import org.eclipse.openvsx.accesstoken.AccessTokenService;
 import org.eclipse.openvsx.cache.CacheService;
@@ -38,31 +64,6 @@ import org.eclipse.openvsx.util.LogService;
 import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.util.VersionService;
-import org.jobrunr.scheduling.JobRequestScheduler;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Streamable;
-import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,12 +75,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserAPI.class)
-@MockitoBean(types = {
-        EclipseService.class, ClientRegistrationRepository.class, StorageUtilService.class, CacheService.class,
-        ExtensionValidator.class, SimpleMeterRegistry.class, SearchUtilService.class, PublishExtensionVersionHandler.class,
-        JobRequestScheduler.class, VersionService.class, ExtensionVersionIntegrityService.class, ExtensionScanService.class,
-        ExtensionScanPersistenceService.class, LogService.class, AccessTokenConfig.class, MailService.class
-})
+@MockitoBean(
+    types = {
+        EclipseService.class,
+        ClientRegistrationRepository.class,
+        StorageUtilService.class,
+        CacheService.class,
+        ExtensionValidator.class,
+        SimpleMeterRegistry.class,
+        SearchUtilService.class,
+        PublishExtensionVersionHandler.class,
+        JobRequestScheduler.class,
+        VersionService.class,
+        ExtensionVersionIntegrityService.class,
+        ExtensionScanService.class,
+        ExtensionScanPersistenceService.class,
+        LogService.class,
+        AccessTokenConfig.class,
+        MailService.class
+    }
+)
 class UserAPITest {
 
     @MockitoSpyBean
@@ -124,8 +139,9 @@ class UserAPITest {
     @Test
     void testAccessTokens() throws Exception {
         mockAccessTokens();
-        mockMvc.perform(get("/user/tokens")
-                .with(user("test_user")))
+        mockMvc.perform(
+                get("/user/tokens")
+                        .with(user("test_user")))
                 .andExpect(status().isOk())
                 .andExpect(content().json(accessTokensJson(a -> {
                     var t1 = new AccessTokenJson();
@@ -150,9 +166,10 @@ class UserAPITest {
     void testCreateAccessToken() throws Exception {
         mockUserData();
         Mockito.doReturn("foobar").when(tokens).generateTokenValue();
-        mockMvc.perform(post("/user/token/create?description={description}", "This is my token")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/user/token/create?description={description}", "This is my token")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isCreated())
                 .andExpect(content().json(accessTokenJson(t -> {
                     t.setValue("foobar");
@@ -162,8 +179,9 @@ class UserAPITest {
 
     @Test
     void testCreateAccessTokenNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/user/token/create?description={description}", "This is my token")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/user/token/create?description={description}", "This is my token")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -179,17 +197,19 @@ class UserAPITest {
         Mockito.when(entityManager.merge(userData))
                 .thenReturn(userData);
 
-        mockMvc.perform(post("/user/token/delete/{id}", 100)
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/user/token/delete/{id}", 100)
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deactivated access token for user test_user.")));
     }
 
     @Test
     void testDeleteAccessTokenNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/user/token/delete/{id}", 100)
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/user/token/delete/{id}", 100)
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -203,9 +223,10 @@ class UserAPITest {
         Mockito.when(repositories.findAccessToken(100))
                 .thenReturn(token);
 
-        mockMvc.perform(post("/user/token/delete/{id}", 100)
-                .with(user("test_user"))
-                .with(csrf()))
+        mockMvc.perform(
+                post("/user/token/delete/{id}", 100)
+                        .with(user("test_user"))
+                        .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(errorJson("Token does not exist.")));
     }
@@ -222,9 +243,10 @@ class UserAPITest {
         Mockito.when(repositories.findAccessToken(100))
                 .thenReturn(token);
 
-        mockMvc.perform(post("/user/token/delete/{id}", 100)
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/user/token/delete/{id}", 100)
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(errorJson("Token does not exist.")));
     }
@@ -232,8 +254,9 @@ class UserAPITest {
     @Test
     void testOwnNamespaces() throws Exception {
         mockOwnMemberships();
-        mockMvc.perform(get("/user/namespaces")
-                .with(user("test_user")))
+        mockMvc.perform(
+                get("/user/namespaces")
+                        .with(user("test_user")))
                 .andExpect(status().isOk())
                 .andExpect(content().json(namespacesJson(a -> {
                     var ns1 = new NamespaceJson();
@@ -256,7 +279,8 @@ class UserAPITest {
     void testOwnExtension() throws Exception {
         var userData = mockUserData();
         mockExtension(userData, 2, 0, 0);
-        mockMvc.perform(get("/user/extensions")
+        mockMvc.perform(
+                get("/user/extensions")
                         .with(user("test_user")))
                 .andExpect(status().isOk())
                 .andExpect(content().json(extensionJson(a -> {
@@ -278,8 +302,9 @@ class UserAPITest {
     @Test
     void testNamespaceMembers() throws Exception {
         mockNamespaceMemberships(NamespaceMembership.ROLE_OWNER);
-        mockMvc.perform(get("/user/namespace/{name}/members", "foobar")
-                .with(user("test_user")))
+        mockMvc.perform(
+                get("/user/namespace/{name}/members", "foobar")
+                        .with(user("test_user")))
                 .andExpect(status().isOk())
                 .andExpect(content().json(membershipsJson(a -> {
                     var u1 = new UserJson();
@@ -303,8 +328,9 @@ class UserAPITest {
     @Test
     void testNamespaceMembersNotOwner() throws Exception {
         mockNamespaceMemberships(NamespaceMembership.ROLE_CONTRIBUTOR);
-        mockMvc.perform(get("/user/namespace/{name}/members", "foobar")
-                .with(user("test_user")))
+        mockMvc.perform(
+                get("/user/namespace/{name}/members", "foobar")
+                        .with(user("test_user")))
                 .andExpect(status().isForbidden());
     }
 
@@ -330,19 +356,27 @@ class UserAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(null);
 
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "contributor")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Added other_user as contributor of foobar.")));
     }
 
     @Test
     void testAddNamespaceMemberNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "contributor")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -372,10 +406,14 @@ class UserAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "contributor")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Changed role of other_user in foobar to contributor.")));
     }
@@ -406,10 +444,14 @@ class UserAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "remove")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "remove")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Removed other_user from namespace foobar.")));
     }
@@ -428,10 +470,14 @@ class UserAPITest {
         Mockito.when(repositories.findMembership(userData1, namespace))
                 .thenReturn(membership);
 
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "contributor")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("You must be an owner of this namespace.")));
     }
@@ -462,18 +508,23 @@ class UserAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/user/namespace/{namespace}/role?user={user}&role={role}", "foobar",
-                    "other_user", "contributor")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/user/namespace/{namespace}/role?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("User other_user already has the role contributor.")));
     }
 
     @Test
     void testDeleteExtensionNotLoggedIn() throws Exception {
-        mockExtension(null,2, 0, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+        mockExtension(null, 2, 0, 0);
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
                         .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
@@ -489,7 +540,8 @@ class UserAPITest {
         Mockito.doReturn(otherUser).when(users).findLoggedInUser();
 
         mockExtension(userData, 2, 0, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
                         .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("other_user"))
@@ -500,9 +552,11 @@ class UserAPITest {
     @Test
     void testDeleteExtension() throws Exception {
         var userData = mockUserData();
-        mockExtension(userData,2, 0, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+        mockExtension(userData, 2, 0, 0);
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
@@ -514,8 +568,10 @@ class UserAPITest {
     void testDeleteExtensionVersion() throws Exception {
         var userData = mockUserData();
         mockExtension(userData, 3, 0, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
@@ -527,7 +583,8 @@ class UserAPITest {
     void testDeleteLastExtensionVersion() throws Exception {
         var userData = mockUserData();
         mockExtension(userData, 1, 0, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
                         .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("test_user"))
@@ -540,26 +597,36 @@ class UserAPITest {
     void testDeleteBundledExtension() throws Exception {
         var userData = mockUserData();
         mockExtension(userData, 2, 1, 0);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(errorJson("Extension foobar.baz is bundled by the following extension packs: foobar.bundle-1.0.0")));
+                .andExpect(
+                        content().json(
+                                errorJson(
+                                        "Extension foobar.baz is bundled by the following extension packs: foobar.bundle-1.0.0")));
     }
 
     @Test
     void testDeleteDependingExtension() throws Exception {
         var userData = mockUserData();
         mockExtension(userData, 2, 0, 1);
-        mockMvc.perform(post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+        mockMvc.perform(
+                post("/user/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(errorJson("The following extensions have a dependency on foobar.baz: foobar.dependant-1.0.0")));
+                .andExpect(
+                        content().json(
+                                errorJson(
+                                        "The following extensions have a dependency on foobar.baz: foobar.dependant-1.0.0")));
     }
 
     //---------- UTILITY ----------//
@@ -667,7 +734,10 @@ class UserAPITest {
         membership2.setRole(NamespaceMembership.ROLE_CONTRIBUTOR);
 
         Mockito.when(repositories.findMembershipsForOwner(userData, "foobar"))
-                .thenReturn(userRole.equals(NamespaceMembership.ROLE_OWNER) ? List.of(membership1, membership2) : Collections.emptyList());
+                .thenReturn(
+                        userRole.equals(NamespaceMembership.ROLE_OWNER)
+                                ? List.of(membership1, membership2)
+                                : Collections.emptyList());
     }
 
     private String membershipsJson(Consumer<NamespaceMembershipListJson> content) throws JacksonException {
@@ -703,7 +773,12 @@ class UserAPITest {
         return major + ".0.0";
     }
 
-    private List<ExtensionVersion> mockExtension(UserData user, int numberOfVersions, int numberOfBundles, int numberOfDependants) {
+    private List<ExtensionVersion> mockExtension(
+            UserData user,
+            int numberOfVersions,
+            int numberOfBundles,
+            int numberOfDependants
+    ) {
         var namespace = mockNamespace();
         var extension = new Extension();
         extension.setNamespace(namespace);
@@ -724,7 +799,13 @@ class UserAPITest {
             versions.add(extVersion);
             Mockito.when(repositories.findFiles(extVersion))
                     .thenReturn(Streamable.empty());
-            Mockito.when(repositories.findVersionPublishedWithUser(user, extVersion.getVersion(), TargetPlatform.NAME_UNIVERSAL, "baz", "foobar"))
+            Mockito.when(
+                    repositories.findVersionPublishedWithUser(
+                            user,
+                            extVersion.getVersion(),
+                            TargetPlatform.NAME_UNIVERSAL,
+                            "baz",
+                            "foobar"))
                     .thenReturn(extVersion);
         }
 
@@ -732,12 +813,14 @@ class UserAPITest {
         Mockito.when(repositories.findVersions(extension))
                 .thenReturn(Streamable.of(versions));
         Mockito.when(repositories.findLatestVersions(user)).thenReturn(List.of(versions.getLast()));
-        Mockito.when(repositories.isDeleteAllVersions(any(), eq("foobar"), eq("baz"), any(TargetPlatformVersion[].class))).then(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) {
-                return ((TargetPlatformVersion[]) invocation.getRawArguments()[3]).length == numberOfVersions;
-            }
-        });
+        Mockito.when(
+                repositories.isDeleteAllVersions(any(), eq("foobar"), eq("baz"), any(TargetPlatformVersion[].class)))
+                .then(new Answer<Boolean>() {
+                    @Override
+                    public Boolean answer(InvocationOnMock invocation) {
+                        return ((TargetPlatformVersion[]) invocation.getRawArguments()[3]).length == numberOfVersions;
+                    }
+                });
 
         var bundleExt = new Extension();
         bundleExt.setName("bundle");
@@ -794,7 +877,14 @@ class UserAPITest {
                 @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository,
                 OAuth2AttributesConfig attributesConfig
         ) {
-            return new UserService(entityManager, repositories, storageUtil, cache, validator, clientRegistrationRepository, attributesConfig);
+            return new UserService(
+                    entityManager,
+                    repositories,
+                    storageUtil,
+                    cache,
+                    validator,
+                    clientRegistrationRepository,
+                    attributesConfig);
         }
 
         @Bean
@@ -862,8 +952,7 @@ class UserAPITest {
                     cache,
                     integrityService,
                     similarityCheckService,
-                    new PublishingConfig()
-            );
+                    new PublishingConfig());
         }
 
         @Bean
@@ -907,8 +996,7 @@ class UserAPITest {
                     publishHandler,
                     scheduler,
                     extensionScanService,
-                    scanPersistenceService
-            );
+                    scanPersistenceService);
         }
     }
 }

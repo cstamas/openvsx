@@ -9,10 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.UserData;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.UserData;
 
 import static org.eclipse.openvsx.jooq.tables.ExtensionReview.EXTENSION_REVIEW;
 
@@ -31,7 +32,6 @@ public class ExtensionReviewJooqRepository {
                         .from(EXTENSION_REVIEW)
                         .where(EXTENSION_REVIEW.EXTENSION_ID.eq(extension.getId()))
                         .and(EXTENSION_REVIEW.USER_ID.eq(user.getId()))
-                        .and(EXTENSION_REVIEW.ACTIVE.eq(true))
-        );
+                        .and(EXTENSION_REVIEW.ACTIVE.eq(true)));
     }
 }

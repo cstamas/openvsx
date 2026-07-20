@@ -22,18 +22,26 @@ import static org.eclipse.openvsx.util.TargetPlatform.*;
  * @param active Whether this target platform version is active
  */
 @Schema(
-        name = "TargetPlatformActive",
-        description = "Target platform of an extension version and whether it is active"
+    name = "TargetPlatformActive",
+    description = "Target platform of an extension version and whether it is active"
 )
 public record TargetPlatformActiveJson(
-        @Schema(description = "Name of the target platform", allowableValues = {
-                NAME_WIN32_X64, NAME_WIN32_IA32, NAME_WIN32_ARM64,
-                NAME_LINUX_X64, NAME_LINUX_ARM64, NAME_LINUX_ARMHF,
-                NAME_ALPINE_X64, NAME_ALPINE_ARM64,
-                NAME_DARWIN_X64, NAME_DARWIN_ARM64,
-                NAME_WEB, NAME_UNIVERSAL
-        })
-        String targetPlatform,
-        @Schema(description = "Whether this extension version for this target platform is active")
-        boolean active
-) {}
+        @Schema(
+            description = "Name of the target platform",
+            allowableValues = {
+                NAME_WIN32_X64,
+                NAME_WIN32_IA32,
+                NAME_WIN32_ARM64,
+                NAME_LINUX_X64,
+                NAME_LINUX_ARM64,
+                NAME_LINUX_ARMHF,
+                NAME_ALPINE_X64,
+                NAME_ALPINE_ARM64,
+                NAME_DARWIN_X64,
+                NAME_DARWIN_ARM64,
+                NAME_WEB,
+                NAME_UNIVERSAL
+            }
+        ) String targetPlatform,
+        @Schema(description = "Whether this extension version for this target platform is active") boolean active
+){}

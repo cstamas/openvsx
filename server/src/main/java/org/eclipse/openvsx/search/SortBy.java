@@ -14,5 +14,6 @@ public class SortBy {
     public static final String TIMESTAMP = "timestamp";
     public static final String RATING = "rating";
     public static final String DOWNLOADS = "downloadCount";
-    public static final String OPTIONS = String.format("'%s', '%s', '%s' or '%s'", RELEVANCE, TIMESTAMP, RATING, DOWNLOADS);
+    public static final String OPTIONS = String
+            .format("'%s', '%s', '%s' or '%s'", RELEVANCE, TIMESTAMP, RATING, DOWNLOADS);
 }

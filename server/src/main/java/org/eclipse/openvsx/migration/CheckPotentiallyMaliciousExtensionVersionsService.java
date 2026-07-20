@@ -11,13 +11,14 @@ package org.eclipse.openvsx.migration;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.ExtensionProcessor;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TempFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 @Component
 public class CheckPotentiallyMaliciousExtensionVersionsService {
@@ -32,7 +33,7 @@ public class CheckPotentiallyMaliciousExtensionVersionsService {
 
     @Transactional
     public void checkPotentiallyMaliciousExtensionVersion(ExtensionVersion extVersion, TempFile extensionFile) {
-        try(var extProcessor = new ExtensionProcessor(extensionFile)) {
+        try (var extProcessor = new ExtensionProcessor(extensionFile)) {
             boolean isMalicious = extProcessor.isPotentiallyMalicious();
             extVersion.setPotentiallyMalicious(isMalicious);
             if (isMalicious) {

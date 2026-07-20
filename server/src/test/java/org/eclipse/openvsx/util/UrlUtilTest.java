@@ -9,9 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
-
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -22,6 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+
 class UrlUtilTest {
 
     @Mock
@@ -31,7 +31,7 @@ class UrlUtilTest {
 
     @BeforeEach
     void openMocks() {
-     closeable = MockitoAnnotations.openMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
     }
 
     @AfterEach
@@ -42,7 +42,8 @@ class UrlUtilTest {
     @Test
     void testCreateApiFileUrl() throws Exception {
         var baseUrl = "http://localhost/";
-        assertThat(UrlUtil.createApiFileUrl(baseUrl, "foo", "bar", "linux-x64", "0.1.0", "foo.bar-0.1.0@linux-x64.vsix"))
+        assertThat(
+                UrlUtil.createApiFileUrl(baseUrl, "foo", "bar", "linux-x64", "0.1.0", "foo.bar-0.1.0@linux-x64.vsix"))
                 .isEqualTo("http://localhost/api/foo/bar/linux-x64/0.1.0/file/foo.bar-0.1.0@linux-x64.vsix");
     }
 

@@ -12,6 +12,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -21,15 +30,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import tools.jackson.dataformat.yaml.YAMLMapper;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Loads secret detection rules from a YAML file.
@@ -105,7 +105,7 @@ public class SecretRuleLoader {
         // Create combined global allowlist if any items were found
         GlobalAllowlist combinedAllowlist = null;
         if (!allPaths.isEmpty() || !allRegexes.isEmpty() || !allStopwords.isEmpty() ||
-            !allFileExtensions.isEmpty() || !allSkipMimeTypes.isEmpty()) {
+                !allFileExtensions.isEmpty() || !allSkipMimeTypes.isEmpty()) {
             combinedAllowlist = new GlobalAllowlist();
             combinedAllowlist.paths = allPaths;
             combinedAllowlist.regexes = allRegexes;
@@ -188,8 +188,13 @@ public class SecretRuleLoader {
                 int stopwordCount = globalAllowlist.stopwords != null ? globalAllowlist.stopwords.size() : 0;
                 int extensionCount = globalAllowlist.fileExtensions != null ? globalAllowlist.fileExtensions.size() : 0;
                 int mimeTypeCount = globalAllowlist.skipMimeTypes != null ? globalAllowlist.skipMimeTypes.size() : 0;
-                logger.debug("Loaded global allowlist from YAML: {} paths, {} regexes, {} stopwords, {} file extensions, {} mime-types",
-                        pathCount, regexCount, stopwordCount, extensionCount, mimeTypeCount);
+                logger.debug(
+                        "Loaded global allowlist from YAML: {} paths, {} regexes, {} stopwords, {} file extensions, {} mime-types",
+                        pathCount,
+                        regexCount,
+                        stopwordCount,
+                        extensionCount,
+                        mimeTypeCount);
             }
 
             return new RuleFileData(result, globalAllowlist);

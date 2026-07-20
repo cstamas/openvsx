@@ -12,13 +12,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.ScanStatus;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.repositories.FileDecisionRepository;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.repositories.ScanCheckResultRepository;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +21,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.LocalDateTime;
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.ScanStatus;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.repositories.FileDecisionRepository;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.repositories.ScanCheckResultRepository;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -34,13 +35,18 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class ExtensionScanPersistenceServiceTest {
 
-    @Mock RepositoryService repositories;
+    @Mock
+    RepositoryService repositories;
     @Mock
     JsonMapper jsonMapper;
-    @Mock FileDecisionRepository fileDecisionRepository;
-    @Mock ScannerJobRepository scannerJobRepository;
-    @Mock ScanCheckResultRepository scanCheckResultRepository;
-    @Mock ScannerRegistry scannerRegistry;
+    @Mock
+    FileDecisionRepository fileDecisionRepository;
+    @Mock
+    ScannerJobRepository scannerJobRepository;
+    @Mock
+    ScanCheckResultRepository scanCheckResultRepository;
+    @Mock
+    ScannerRegistry scannerRegistry;
 
     private ExtensionScanPersistenceService svc;
 
@@ -52,8 +58,7 @@ class ExtensionScanPersistenceServiceTest {
                 fileDecisionRepository,
                 scannerJobRepository,
                 scanCheckResultRepository,
-                scannerRegistry
-        );
+                scannerRegistry);
     }
 
     @Test

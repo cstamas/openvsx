@@ -9,9 +9,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.security;
 
-import org.springframework.security.core.AuthenticationException;
-
 import java.io.Serial;
+
+import org.springframework.security.core.AuthenticationException;
 
 /**
  * Authentication exception that contains a code to be used in user interfaces to

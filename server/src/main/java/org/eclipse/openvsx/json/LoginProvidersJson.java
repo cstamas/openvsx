@@ -9,13 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.json;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class LoginProvidersJson extends ResultJson {
-    private Map<String,String> loginProviders;
+    private Map<String, String> loginProviders;
 
     public Map<String, String> getLoginProviders() {
         return loginProviders;

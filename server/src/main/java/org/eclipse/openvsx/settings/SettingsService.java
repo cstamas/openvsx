@@ -12,18 +12,19 @@
  *****************************************************************************/
 package org.eclipse.openvsx.settings;
 
+import java.util.ArrayList;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.apache.logging.log4j.util.Strings;
-import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
-import org.eclipse.openvsx.json.SettingsJson;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.RedisClusterClient;
 
-import java.util.ArrayList;
+import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
+import org.eclipse.openvsx.json.SettingsJson;
 
 @Service
 public class SettingsService {

@@ -12,26 +12,26 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
+
 import jakarta.transaction.Transactional;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.eclipse.openvsx.entities.*;
 import org.eclipse.openvsx.repositories.FileDecisionRepository;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.repositories.ScanCheckResultRepository;
 import org.eclipse.openvsx.repositories.ScannerJobRepository;
 import org.eclipse.openvsx.util.TimeUtil;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Map;
 
 import static jakarta.transaction.Transactional.TxType;
 
@@ -96,14 +96,13 @@ public class ExtensionScanPersistenceService {
         }
 
         return initializeScanInternal(
-            namespaceName,
-            extensionName,
-            version,
-            targetPlatform,
-            isUniversal,
-            displayName,
-            user
-        );
+                namespaceName,
+                extensionName,
+                version,
+                targetPlatform,
+                isUniversal,
+                displayName,
+                user);
     }
 
     /**
@@ -255,9 +254,16 @@ public class ExtensionScanPersistenceService {
 
         repositories.saveScanCheckResult(checkResult);
 
-        logger.debug("Recorded check result: {}.{} {} (scan={}) type={}, result={}, duration={}ms, required={}",
-            scan.getNamespaceName(), scan.getExtensionName(), scan.getExtensionVersion(),
-            scan.getId(), checkType, result, checkResult.getDurationMs(), required);
+        logger.debug(
+                "Recorded check result: {}.{} {} (scan={}) type={}, result={}, duration={}ms, required={}",
+                scan.getNamespaceName(),
+                scan.getExtensionName(),
+                scan.getExtensionVersion(),
+                scan.getId(),
+                checkType,
+                result,
+                checkResult.getDurationMs(),
+                required);
     }
 
     /**
@@ -284,22 +290,21 @@ public class ExtensionScanPersistenceService {
 
         // Look up the scanner to get its "required" configuration
         Scanner scanner = scannerRegistry.getScanner(job.getScannerType());
-        Boolean required = scanner == null || scanner.isRequired();  // Default to required if scanner not found
+        Boolean required = scanner == null || scanner.isRequired(); // Default to required if scanner not found
 
         recordCheckResult(
-            scan,
-            job.getScannerType(),
-            ScanCheckResult.CheckCategory.SCANNER_JOB,
-            result,
-            startedAt,
-            TimeUtil.getCurrentUTC(),
-            filesScanned,
-            findingsCount,
-            summary,
-            errorMessage,
-            job.getId(),
-            required
-        );
+                scan,
+                job.getScannerType(),
+                ScanCheckResult.CheckCategory.SCANNER_JOB,
+                result,
+                startedAt,
+                TimeUtil.getCurrentUTC(),
+                filesScanned,
+                findingsCount,
+                summary,
+                errorMessage,
+                job.getId(),
+                required);
     }
 
     /**
@@ -307,9 +312,9 @@ public class ExtensionScanPersistenceService {
      * Used to determine the final check result status.
      */
     public record ThreatSaveResult(
-        int totalThreats,
-        int enforcedCount,
-        int notEnforcedCount
+            int totalThreats,
+            int enforcedCount,
+            int notEnforcedCount
     ) {
         /** Returns true if any threats will block publication */
         public boolean hasEnforcedThreats() {
@@ -340,7 +345,11 @@ public class ExtensionScanPersistenceService {
      * - If enforced threats exist → check FOUND (blocks publication)
      */
     @Transactional(TxType.REQUIRES_NEW)
-    public ThreatSaveResult saveThreats(@NonNull ScannerJob job, Scanner.@NonNull Result result, boolean scannerEnforced) {
+    public ThreatSaveResult saveThreats(
+            @NonNull ScannerJob job,
+            Scanner.@NonNull Result result,
+            boolean scannerEnforced
+    ) {
         if (result.isClean()) {
             logger.debug("No threats to save for scanner job {}", job.getId());
             return ThreatSaveResult.clean();
@@ -369,8 +378,13 @@ public class ExtensionScanPersistenceService {
 
         for (Scanner.Threat threat : result.getThreats()) {
             ExtensionThreat scanThreat = createThreatEntity(
-                    scan, scanJobId, scannerType, threat, fileHashes, scannerEnforced, now
-            );
+                    scan,
+                    scanJobId,
+                    scannerType,
+                    threat,
+                    fileHashes,
+                    scannerEnforced,
+                    now);
 
             repositories.saveExtensionThreat(scanThreat);
 
@@ -381,7 +395,8 @@ public class ExtensionScanPersistenceService {
                 notEnforcedCount++;
             }
 
-            logger.debug("Saved threat: {} (severity: {}, file: {}, enforced: {})",
+            logger.debug(
+                    "Saved threat: {} (severity: {}, file: {}, enforced: {})",
                     threat.getName(),
                     threat.getSeverity(),
                     scanThreat.getFileName(),
@@ -389,8 +404,12 @@ public class ExtensionScanPersistenceService {
         }
 
         int totalThreats = result.getThreats().size();
-        logger.debug("Saved {} threats ({} enforced, {} not enforced) for scanner job {}",
-                totalThreats, enforcedCount, notEnforcedCount, scanJobId);
+        logger.debug(
+                "Saved {} threats ({} enforced, {} not enforced) for scanner job {}",
+                totalThreats,
+                enforcedCount,
+                notEnforcedCount,
+                scanJobId);
 
         return new ThreatSaveResult(totalThreats, enforcedCount, notEnforcedCount);
     }
@@ -399,9 +418,9 @@ public class ExtensionScanPersistenceService {
      * Result of processing a completed scan.
      */
     public record CompletedScanResult(
-        ScanCheckResult.CheckResult checkResult,
-        int threatCount,
-        String summary
+            ScanCheckResult.CheckResult checkResult,
+            int threatCount,
+            String summary
     ) {}
 
     /**
@@ -433,8 +452,10 @@ public class ExtensionScanPersistenceService {
             // Determine check result based on actual enforcement (considers allowlist)
             if (saveResult.hasEnforcedThreats()) {
                 checkResult = ScanCheckResult.CheckResult.QUARANTINE;
-                summary = String.format("Found %d threat(s) - %d enforced",
-                    threatCount, saveResult.enforcedCount());
+                summary = String.format(
+                        "Found %d threat(s) - %d enforced",
+                        threatCount,
+                        saveResult.enforcedCount());
             } else {
                 // Threats found but none enforced (scanner not enforced OR all on allowlist)
                 checkResult = ScanCheckResult.CheckResult.PASSED;
@@ -450,14 +471,14 @@ public class ExtensionScanPersistenceService {
 
         // Record scanner job result for audit trail
         recordScannerJobResult(
-            job.getScanId(),
-            job,
-            checkResult,
-            startedAt,
-            null,  // filesScanned - could be added if scanner tracks this
-            threatCount,
-            summary,
-            null   // errorMessage - none for successful completion
+                job.getScanId(),
+                job,
+                checkResult,
+                startedAt,
+                null, // filesScanned - could be added if scanner tracks this
+                threatCount,
+                summary,
+                null // errorMessage - none for successful completion
         );
 
         return new CompletedScanResult(checkResult, threatCount, summary);
@@ -486,8 +507,7 @@ public class ExtensionScanPersistenceService {
                 scannerType,
                 ruleName,
                 reason,
-                severity
-        );
+                severity);
         threat.setEnforced(enforced);
         scan.addThreat(threat);
         repositories.saveExtensionThreat(threat);
@@ -568,8 +588,11 @@ public class ExtensionScanPersistenceService {
                 String allowlistNote = " [NOT ENFORCED: File is on the allowlist]";
                 reason = (reason != null ? reason + allowlistNote : allowlistNote);
 
-                logger.debug("Threat for file '{}' not enforced because hash {} is on allowlist (scanner: {})",
-                        fileName, fileHash, scannerType);
+                logger.debug(
+                        "Threat for file '{}' not enforced because hash {} is on allowlist (scanner: {})",
+                        fileName,
+                        fileHash,
+                        scannerType);
             }
         }
 
@@ -587,7 +610,8 @@ public class ExtensionScanPersistenceService {
             return Collections.emptyMap();
         }
         try {
-            return jsonMapper.readValue(fileHashesJson, new TypeReference<Map<String, String>>() {});
+            return jsonMapper.readValue(fileHashesJson, new TypeReference<Map<String, String>>() {
+            });
         } catch (JacksonException e) {
             logger.warn("Failed to parse file hashes JSON: {}", e.getMessage());
             return Collections.emptyMap();

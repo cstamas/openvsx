@@ -9,23 +9,25 @@
  ********************************************************************************/
 package org.eclipse.openvsx.util;
 
-import org.jspecify.annotations.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
+import org.jspecify.annotations.Nullable;
+
 public final class CollectionUtil {
 
-    private CollectionUtil() {}
+    private CollectionUtil() {
+    }
 
     public static <S, T> List<T> map(List<S> source, Function<? super S, ? extends T> function) {
         var result = new ArrayList<T>(source.size());
         for (var s : source) {
             var t = function.apply(s);
-            if (t != null)
+            if (t != null) {
                 result.add(t);
+            }
         }
         return result;
     }
@@ -34,13 +36,18 @@ public final class CollectionUtil {
         var result = new ArrayList<T>();
         for (var s : source) {
             var t = function.apply(s);
-            if (t != null)
+            if (t != null) {
                 result.add(t);
+            }
         }
         return result;
     }
 
-    public static <S, T> T[] toArray(@Nullable List<S> source, Function<? super S, ? extends T> function, IntFunction<T[]> generator) {
+    public static <S, T> T[] toArray(
+            @Nullable List<S> source,
+            Function<? super S, ? extends T> function,
+            IntFunction<T[]> generator
+    ) {
         if (source == null) {
             return generator.apply(0);
         }
@@ -57,8 +64,9 @@ public final class CollectionUtil {
         for (var s : source) {
             result.add(s);
             count++;
-            if (count == limit)
+            if (count == limit) {
                 return result;
+            }
         }
         return result;
     }

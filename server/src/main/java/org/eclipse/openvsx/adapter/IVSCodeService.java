@@ -17,12 +17,23 @@ public interface IVSCodeService {
 
     ExtensionQueryResult.Extension latest(String namespaceName, String extensionName);
 
-    ResponseEntity<StreamingResponseBody> browse(String namespaceName, String extensionName, String version, String path);
+    ResponseEntity<StreamingResponseBody> browse(
+            String namespaceName,
+            String extensionName,
+            String version,
+            String path
+    );
 
     String download(String namespace, String extension, String version, String targetPlatform);
 
     String getItemUrl(String namespace, String extension);
 
-    ResponseEntity<StreamingResponseBody> getAsset(String namespace, String extensionName, String version, String assetType,
-                                                   String targetPlatform, String restOfTheUrl);
+    ResponseEntity<StreamingResponseBody> getAsset(
+            String namespace,
+            String extensionName,
+            String version,
+            String assetType,
+            String targetPlatform,
+            String restOfTheUrl
+    );
 }

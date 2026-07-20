@@ -21,13 +21,13 @@ public class MirrorConfig {
 
     @Bean
     @ConfigurationProperties(prefix = "ovsx.data.mirror.exclude-extensions")
-    public Set<String> excludeExtensions(){
+    public Set<String> excludeExtensions() {
         return new HashSet<>();
     }
 
     @Bean
     @ConfigurationProperties(prefix = "ovsx.data.mirror.include-extensions")
-    public Set<String> includeExtensions(){
+    public Set<String> includeExtensions() {
         return new HashSet<>();
     }
 }

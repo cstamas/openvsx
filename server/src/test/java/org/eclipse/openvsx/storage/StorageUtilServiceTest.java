@@ -9,15 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.storage;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.UserService;
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.SearchUtilService;
-import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
-import org.eclipse.openvsx.storage.log.DownloadCountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,20 +24,34 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import org.eclipse.openvsx.UserService;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.SearchUtilService;
+import org.eclipse.openvsx.storage.log.DownloadCountService;
 
 import static org.eclipse.openvsx.entities.FileResource.README;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
-@MockitoBean(types = {
-        EntityManager.class, SearchUtilService.class, GoogleCloudStorageService.class,
-        DownloadCountService.class, ExtensionDownloadMetrics.class, CacheService.class, UserService.class, FileCacheDurationConfig.class,
-        FilesCacheKeyGenerator.class, RepositoryService.class, LocalStorageService.class
-})
+@MockitoBean(
+    types = {
+        EntityManager.class,
+        SearchUtilService.class,
+        GoogleCloudStorageService.class,
+        DownloadCountService.class,
+        ExtensionDownloadMetrics.class,
+        CacheService.class,
+        UserService.class,
+        FileCacheDurationConfig.class,
+        FilesCacheKeyGenerator.class,
+        RepositoryService.class,
+        LocalStorageService.class
+    }
+)
 @ContextConfiguration(classes = StorageUtilServiceTest.TestConfig.class)
 public class StorageUtilServiceTest {
 
@@ -63,8 +74,12 @@ public class StorageUtilServiceTest {
         var resourceAws = mockFileResource(1, extensionVersion, "README.md", README, FileResource.STORAGE_AWS);
         var resourceAzure = mockFileResource(1, extensionVersion, "README.md", README, FileResource.STORAGE_AZURE);
 
-        assertEquals("https://test.cloudfront.com/aws/redhat/vscode-yaml/1.0.0/README.md", storageUtilService.getLocation(resourceAws).toString());
-        assertEquals("https://test.cloudfront.com/azure/redhat/vscode-yaml/1.0.0/README.md", storageUtilService.getLocation(resourceAzure).toString());
+        assertEquals(
+                "https://test.cloudfront.com/aws/redhat/vscode-yaml/1.0.0/README.md",
+                storageUtilService.getLocation(resourceAws).toString());
+        assertEquals(
+                "https://test.cloudfront.com/azure/redhat/vscode-yaml/1.0.0/README.md",
+                storageUtilService.getLocation(resourceAzure).toString());
 
         cdnServiceConfig.setEnabled(false);
     }
@@ -128,7 +143,13 @@ public class StorageUtilServiceTest {
         return extVersion;
     }
 
-    private FileResource mockFileResource(long id, ExtensionVersion extVersion, String name, String type, String storageType) {
+    private FileResource mockFileResource(
+            long id,
+            ExtensionVersion extVersion,
+            String name,
+            String type,
+            String storageType
+    ) {
         var resource = new FileResource();
         resource.setId(id);
         resource.setExtension(extVersion);
@@ -193,8 +214,7 @@ public class StorageUtilServiceTest {
                     cache,
                     entityManager,
                     fileCacheDurationConfig,
-                    cdnServiceConfig
-            );
+                    cdnServiceConfig);
         }
     }
 }

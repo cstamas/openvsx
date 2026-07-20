@@ -12,4 +12,5 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.cache;
 
-public class ConfigurationChanged {}
+public class ConfigurationChanged {
+}

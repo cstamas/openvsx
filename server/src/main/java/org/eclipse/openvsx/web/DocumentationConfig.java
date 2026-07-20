@@ -9,6 +9,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.web;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.info.Info;
@@ -16,25 +19,26 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Map;
-import java.util.TreeMap;
 
 @Configuration
 public class DocumentationConfig {
 
     @Bean
-    public GroupedOpenApi registry(OpenApiCustomizer sortSchemasAlphabetically, OpenApiCustomizer addRateLimitResponse) {
+    public GroupedOpenApi registry(
+            OpenApiCustomizer sortSchemasAlphabetically,
+            OpenApiCustomizer addRateLimitResponse
+    ) {
         var description = "This API provides metadata of VS Code extensions in the Open VSX Registry as well as means to publish extensions.";
         return GroupedOpenApi.builder()
                 .group("registry")
                 .displayName("Registry API")
                 .pathsToMatch("/api/**")
-                .addOpenApiCustomizer(openApi -> openApi.getInfo().title("Open VSX Registry API").description(description))
+                .addOpenApiCustomizer(
+                        openApi -> openApi.getInfo().title("Open VSX Registry API").description(description))
                 .addOpenApiCustomizer(sortSchemasAlphabetically)
                 .addOpenApiCustomizer(addRateLimitResponse)
                 .build();
@@ -47,7 +51,8 @@ public class DocumentationConfig {
                 .group("vscode-adapter")
                 .displayName("VSCode Adapter")
                 .pathsToMatch("/vscode/**")
-                .addOpenApiCustomizer(openApi -> openApi.getInfo().title("Open VSX VSCode Adapter").description(description))
+                .addOpenApiCustomizer(
+                        openApi -> openApi.getInfo().title("Open VSX VSCode Adapter").description(description))
                 .addOpenApiCustomizer(sortSchemasAlphabetically)
                 .addOpenApiCustomizer(addRateLimitResponse)
                 .build();
@@ -90,41 +95,47 @@ public class DocumentationConfig {
 
         var response = new ApiResponse()
                 .description("A client has sent too many requests in a given amount of time")
-                .headers(Map.of(
-                        "X-RateLimit-Limit", limitLimitHeader,
-                        "X-RateLimit-Remaining", limitRemainingHeader,
-                        "X-RateLimit-Reset", limitResetHeader,
-                        "Retry-After", retryAfterHeader
-                ));
+                .headers(
+                        Map.of(
+                                "X-RateLimit-Limit",
+                                limitLimitHeader,
+                                "X-RateLimit-Remaining",
+                                limitRemainingHeader,
+                                "X-RateLimit-Reset",
+                                limitResetHeader,
+                                "Retry-After",
+                                retryAfterHeader));
 
         return openApi -> openApi.getPaths()
-                .forEach((path, item) -> item.readOperations()
-                        .forEach(operation -> {
-                            var responses = operation.getResponses();
-                            if (responses == null) {
-                                responses = new ApiResponses();
-                            }
+                .forEach(
+                        (path, item) -> item.readOperations()
+                                .forEach(operation -> {
+                                    var responses = operation.getResponses();
+                                    if (responses == null) {
+                                        responses = new ApiResponses();
+                                    }
 
-                            // add default rate limit headers present in all responses
-                            responses.forEach((status, r) -> {
-                                r.addHeaderObject("X-RateLimit-Limit", limitLimitHeader);
-                                r.addHeaderObject("X-RateLimit-Remaining", limitRemainingHeader);
-                            });
+                                    // add default rate limit headers present in all responses
+                                    responses.forEach((status, r) -> {
+                                        r.addHeaderObject("X-RateLimit-Limit", limitLimitHeader);
+                                        r.addHeaderObject("X-RateLimit-Remaining", limitRemainingHeader);
+                                    });
 
-                            responses.addApiResponse("429", response);
-                            operation.setResponses(responses);
-                        })
-                );
+                                    responses.addApiResponse("429", response);
+                                    operation.setResponses(responses);
+                                }));
     }
 
     @Bean
     public OpenAPI apiInfo() {
         return new OpenAPI()
-            .info(new Info()
-                .termsOfService("https://www.eclipse.org/legal/termsofuse.php")
-                .version("0.1")
-                .license(new License()
-                    .name("Eclipse Public License 2.0")
-                    .url("https://www.eclipse.org/legal/epl-2.0/")));
+                .info(
+                        new Info()
+                                .termsOfService("https://www.eclipse.org/legal/termsofuse.php")
+                                .version("0.1")
+                                .license(
+                                        new License()
+                                                .name("Eclipse Public License 2.0")
+                                                .url("https://www.eclipse.org/legal/epl-2.0/")));
     }
 }

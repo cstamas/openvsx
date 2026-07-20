@@ -9,20 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.admin;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +17,30 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.jobrunr.scheduling.JobRequestScheduler;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.util.Streamable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.eclipse.openvsx.ExtensionService;
 import org.eclipse.openvsx.ExtensionValidator;
@@ -91,40 +101,47 @@ import org.eclipse.openvsx.util.LogService;
 import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.util.VersionService;
-import org.jobrunr.scheduling.JobRequestScheduler;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Streamable;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import jakarta.persistence.EntityManager;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminAPI.class)
-@MockitoBean(types = {
-    ClientRegistrationRepository.class, UpstreamRegistryService.class, GoogleCloudStorageService.class,
-    AzureBlobStorageService.class, AwsStorageService.class, VSCodeIdService.class, DownloadCountService.class,
-    ExtensionDownloadMetrics.class, CacheService.class, PublishExtensionVersionHandler.class, SearchUtilService.class,
-    EclipseService.class, SimpleMeterRegistry.class, FileCacheDurationConfig.class, MailService.class, CdnServiceConfig.class,
-    ExtensionScanService.class, ExtensionScanPersistenceService.class, LogService.class, AccessTokenConfig.class,
-    SettingsService.class
-})
+@MockitoBean(
+    types = {
+        ClientRegistrationRepository.class,
+        UpstreamRegistryService.class,
+        GoogleCloudStorageService.class,
+        AzureBlobStorageService.class,
+        AwsStorageService.class,
+        VSCodeIdService.class,
+        DownloadCountService.class,
+        ExtensionDownloadMetrics.class,
+        CacheService.class,
+        PublishExtensionVersionHandler.class,
+        SearchUtilService.class,
+        EclipseService.class,
+        SimpleMeterRegistry.class,
+        FileCacheDurationConfig.class,
+        MailService.class,
+        CdnServiceConfig.class,
+        ExtensionScanService.class,
+        ExtensionScanPersistenceService.class,
+        LogService.class,
+        AccessTokenConfig.class,
+        SettingsService.class
+    }
+)
 class AdminAPITest {
 
     @MockitoSpyBean
@@ -148,8 +165,9 @@ class AdminAPITest {
     @Test
     void testGetExtensionNotLoggedIn() throws Exception {
         mockExtension(2, 0, 0);
-        mockMvc.perform(get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -157,9 +175,10 @@ class AdminAPITest {
     void testGetExtensionNotAdmin() throws Exception {
         mockNormalUser();
         mockExtension(2, 0, 0);
-        mockMvc.perform(get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -167,9 +186,10 @@ class AdminAPITest {
     void testGetExtension() throws Exception {
         mockAdminUser();
         mockExtension(2, 0, 0);
-        mockMvc.perform(get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(extensionJson(e -> {
                     e.setNamespace("foobar");
@@ -187,9 +207,10 @@ class AdminAPITest {
             ev.getExtension().setActive(false);
         });
 
-        mockMvc.perform(get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/extension/{namespace}/{extension}", "foobar", "baz")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(extensionJson(e -> {
                     e.setNamespace("foobar");
@@ -201,17 +222,27 @@ class AdminAPITest {
 
     @Test
     void testAddNamespaceMemberNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "owner")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "owner")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testAddNamespaceMemberNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "owner")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "owner")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -226,9 +257,14 @@ class AdminAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(null);
 
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "owner")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "owner")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Added other_user as owner of foobar.")));
     }
@@ -248,9 +284,14 @@ class AdminAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "contributor")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Changed role of other_user in foobar to contributor.")));
     }
@@ -270,7 +311,13 @@ class AdminAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/admin/api/namespace/{namespace}/change-member?user={user}&role={role}&token={token}", "foobar", "other_user", "contributor", token.getValue()))
+        mockMvc.perform(
+                post(
+                        "/admin/api/namespace/{namespace}/change-member?user={user}&role={role}&token={token}",
+                        "foobar",
+                        "other_user",
+                        "contributor",
+                        token.getValue()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Changed role of other_user in foobar to contributor.")));
     }
@@ -278,7 +325,13 @@ class AdminAPITest {
     @Test
     void testChangeNamespaceMemberWithInvalidToken() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(post("/admin/api/namespace/{namespace}/change-member?user={user}&role={role}&token={token}", "foobar", "other_user", "contributor", token.getValue()))
+        mockMvc.perform(
+                post(
+                        "/admin/api/namespace/{namespace}/change-member?user={user}&role={role}&token={token}",
+                        "foobar",
+                        "other_user",
+                        "contributor",
+                        token.getValue()))
                 .andExpect(status().isForbidden());
     }
 
@@ -297,9 +350,14 @@ class AdminAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "remove")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "remove")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Removed other_user from namespace foobar.")));
     }
@@ -319,9 +377,14 @@ class AdminAPITest {
         Mockito.when(repositories.findMembership(userData2, namespace))
                 .thenReturn(membership2);
 
-        mockMvc.perform(post("/admin/namespace/{namespace}/change-member?user={user}&role={role}", "foobar", "other_user", "contributor")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/namespace/{namespace}/change-member?user={user}&role={role}",
+                        "foobar",
+                        "other_user",
+                        "contributor")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("User other_user already has the role contributor.")));
     }
@@ -329,8 +392,9 @@ class AdminAPITest {
     @Test
     void testDeleteExtensionNotLoggedIn() throws Exception {
         mockExtension(2, 0, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -338,9 +402,10 @@ class AdminAPITest {
     void testDeleteExtensionNotAdmin() throws Exception {
         mockNormalUser();
         mockExtension(2, 0, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -348,11 +413,13 @@ class AdminAPITest {
     void testDeleteExtension() throws Exception {
         mockAdminUser();
         mockExtension(2, 0, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
-                .contentType(MediaType.APPLICATION_JSON)
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted foobar.baz")));
     }
@@ -361,7 +428,12 @@ class AdminAPITest {
     void testDeleteExtensionWithToken() throws Exception {
         var token = mockAdminToken();
         mockExtension(2, 0, 0);
-        mockMvc.perform(post("/admin/api/extension/{namespace}/{extension}/delete?token={token}", "foobar", "baz", token.getValue()))
+        mockMvc.perform(
+                post(
+                        "/admin/api/extension/{namespace}/{extension}/delete?token={token}",
+                        "foobar",
+                        "baz",
+                        token.getValue()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted foobar.baz")));
     }
@@ -369,7 +441,12 @@ class AdminAPITest {
     @Test
     void testDeleteExtensionWithInvalidToken() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(post("/admin/api/extension/{namespace}/{extension}/delete?token={token}", "foobar", "baz", token.getValue()))
+        mockMvc.perform(
+                post(
+                        "/admin/api/extension/{namespace}/{extension}/delete?token={token}",
+                        "foobar",
+                        "baz",
+                        token.getValue()))
                 .andExpect(status().isForbidden());
     }
 
@@ -377,11 +454,13 @@ class AdminAPITest {
     void testDeleteExtensionVersion() throws Exception {
         mockAdminUser();
         mockExtension(3, 0, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
-                .contentType(MediaType.APPLICATION_JSON)
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted foobar.baz 1.0.0\nDeleted foobar.baz 2.0.0")));
     }
@@ -390,8 +469,14 @@ class AdminAPITest {
     void testDeleteExtensionVersionWithToken() throws Exception {
         var token = mockAdminToken();
         mockExtension(3, 0, 0);
-        mockMvc.perform(post("/admin/api/extension/{namespace}/{extension}/delete?token={token}", "foobar", "baz", token.getValue())
-                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+        mockMvc.perform(
+                post(
+                        "/admin/api/extension/{namespace}/{extension}/delete?token={token}",
+                        "foobar",
+                        "baz",
+                        token.getValue())
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted foobar.baz 1.0.0\nDeleted foobar.baz 2.0.0")));
@@ -400,7 +485,12 @@ class AdminAPITest {
     @Test
     void testDeleteExtensionVersionWithInvalidToken() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(post("/admin/api/extension/{namespace}/{extension}/delete?token={token}", "foobar", "baz", token.getValue())
+        mockMvc.perform(
+                post(
+                        "/admin/api/extension/{namespace}/{extension}/delete?token={token}",
+                        "foobar",
+                        "baz",
+                        token.getValue())
                         .content("[{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -410,11 +500,12 @@ class AdminAPITest {
     void testDeleteLastExtensionVersion() throws Exception {
         mockAdminUser();
         mockExtension(1, 0, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"}]")
-                .contentType(MediaType.APPLICATION_JSON)
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"}]")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted foobar.baz")));
     }
@@ -423,33 +514,44 @@ class AdminAPITest {
     void testDeleteBundledExtension() throws Exception {
         mockAdminUser();
         mockExtension(2, 1, 0);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
-                .contentType(MediaType.APPLICATION_JSON)
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(errorJson("Extension foobar.baz is bundled by the following extension packs: foobar.bundle-1.0.0")));
+                .andExpect(
+                        content().json(
+                                errorJson(
+                                        "Extension foobar.baz is bundled by the following extension packs: foobar.bundle-1.0.0")));
     }
 
     @Test
     void testDeleteDependingExtension() throws Exception {
         mockAdminUser();
         mockExtension(2, 0, 1);
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
-                .content("[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
-                .contentType(MediaType.APPLICATION_JSON)
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/extension/{namespace}/{extension}/delete", "foobar", "baz")
+                        .content(
+                                "[{\"targetPlatform\":\"universal\",\"version\":\"1.0.0\"},{\"targetPlatform\":\"universal\",\"version\":\"2.0.0\"}]")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(errorJson("The following extensions have a dependency on foobar.baz: foobar.dependant-1.0.0")));
+                .andExpect(
+                        content().json(
+                                errorJson(
+                                        "The following extensions have a dependency on foobar.baz: foobar.dependant-1.0.0")));
     }
 
     @Test
     void testGetNamespaceNotLoggedIn() throws Exception {
         mockNamespace();
-        mockMvc.perform(get("/admin/namespace/{namespace}", "foobar")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}", "foobar")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -457,9 +559,10 @@ class AdminAPITest {
     void testGetNamespaceNotAdmin() throws Exception {
         mockNormalUser();
         mockNamespace();
-        mockMvc.perform(get("/admin/namespace/{namespace}", "foobar")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}", "foobar")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -467,9 +570,10 @@ class AdminAPITest {
     void testGetNamespace() throws Exception {
         mockAdminUser();
         mockNamespace();
-        mockMvc.perform(get("/admin/namespace/{namespace}", "foobar")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}", "foobar")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(namespaceJson(n -> {
                     n.setName("foobar");
@@ -479,8 +583,9 @@ class AdminAPITest {
     @Test
     void testGetNamespaceMembersNotLoggedIn() throws Exception {
         mockNamespace();
-        mockMvc.perform(get("/admin/namespace/{namespace}/members", "foobar")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}/members", "foobar")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -488,9 +593,10 @@ class AdminAPITest {
     void testGetNamespaceMembersNotAdmin() throws Exception {
         mockNormalUser();
         mockNamespace();
-        mockMvc.perform(get("/admin/namespace/{namespace}/members", "foobar")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}/members", "foobar")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -507,9 +613,10 @@ class AdminAPITest {
         Mockito.when(repositories.findMemberships(namespace.getName()))
                 .thenReturn(List.of(membership1));
 
-        mockMvc.perform(get("/admin/namespace/{namespace}/members", "foobar")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/namespace/{namespace}/members", "foobar")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(namespaceMemberJson(nml -> {
                     var u = new UserJson();
@@ -532,7 +639,8 @@ class AdminAPITest {
         Mockito.when(repositories.findMemberships(namespace.getName()))
                 .thenReturn(List.of(membership1));
 
-        mockMvc.perform(get("/admin/api/namespace/{namespace}/members?token={token}", "foobar", token.getValue())
+        mockMvc.perform(
+                get("/admin/api/namespace/{namespace}/members?token={token}", "foobar", token.getValue())
                         .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(namespaceMemberJson(nml -> {
@@ -552,32 +660,41 @@ class AdminAPITest {
 
     @Test
     void testCreateNamespaceNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/admin/create-namespace")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(namespaceJson(n -> { n.setName("foobar"); }))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/create-namespace")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(namespaceJson(n -> {
+                            n.setName("foobar");
+                        }))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testCreateNamespaceNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(post("/admin/create-namespace")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(namespaceJson(n -> { n.setName("foobar"); }))
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/create-namespace")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(namespaceJson(n -> {
+                            n.setName("foobar");
+                        }))
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testCreateNamespace() throws Exception {
         mockAdminUser();
-        mockMvc.perform(post("/admin/create-namespace")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(namespaceJson(n -> { n.setName("foobar"); }))
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/create-namespace")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(namespaceJson(n -> {
+                            n.setName("foobar");
+                        }))
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrl("http://localhost/admin/namespace/foobar"))
                 .andExpect(content().json(successJson("Created namespace foobar")));
@@ -589,29 +706,33 @@ class AdminAPITest {
         Mockito.when(repositories.findNamespaceName("foobar"))
                 .thenReturn("foobar");
 
-        mockMvc.perform(post("/admin/create-namespace")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(namespaceJson(n -> { n.setName("foobar"); }))
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/create-namespace")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(namespaceJson(n -> {
+                            n.setName("foobar");
+                        }))
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Namespace already exists: foobar")));
     }
 
-
     @Test
     void testDeleteNamespaceNotLoggedIn() throws Exception {
-        mockMvc.perform(delete("/admin/namespace/test-namespace")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/test-namespace")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testDeleteNamespaceNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(delete("/admin/namespace/test-namespace")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/test-namespace")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -621,9 +742,10 @@ class AdminAPITest {
         var namespace = mockNamespace();
         Mockito.when(repositories.findExtensions(namespace)).thenReturn(Streamable.empty());
 
-        mockMvc.perform(delete("/admin/namespace/" + namespace.getName())
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/" + namespace.getName())
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted namespace foobar")));
     }
@@ -635,18 +757,20 @@ class AdminAPITest {
         var namespace = mockNamespace(1);
         Mockito.when(repositories.findExtensions(namespace)).thenReturn(Streamable.empty());
 
-        mockMvc.perform(delete("/admin/namespace/" + namespace.getName())
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/" + namespace.getName())
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Deleted namespace foobar")));
     }
     @Test
     void testDeleteNamespaceNotExist() throws Exception {
         mockAdminUser();
-        mockMvc.perform(delete("/admin/namespace/" + UUID.randomUUID())
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/" + UUID.randomUUID())
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isNotFound());
     }
 
@@ -654,43 +778,48 @@ class AdminAPITest {
     void testDeleteNamespaceNotEmpty() throws Exception {
         mockAdminUser();
         var extensionVersions = mockExtension(2, 0, 0);
-        mockMvc.perform(delete("/admin/namespace/" + extensionVersions.getFirst().getExtension().getNamespace().getName())
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                delete("/admin/namespace/" + extensionVersions.getFirst().getExtension().getNamespace().getName())
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void testGetUsersNotLoggedIn() throws Exception {
-        mockMvc.perform(get("/admin/users")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/users")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testGetUsersNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(get("/admin/users")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/users")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testUpdateUserRoleNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "test")
-                .param("role", "admin")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "test")
+                        .param("role", "admin")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testUpdateUserRoleNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "test")
-                .param("role", "admin")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "test")
+                        .param("role", "admin")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -703,10 +832,11 @@ class AdminAPITest {
         Mockito.when(repositories.findUserByLoginName("github", "test"))
                 .thenReturn(user);
 
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "test")
-                .param("role", "admin")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "test")
+                        .param("role", "admin")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Updated role for user github/test to admin.")));
 
@@ -723,10 +853,11 @@ class AdminAPITest {
         Mockito.when(repositories.findUserByLoginName("github", "test"))
                 .thenReturn(user);
 
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "test")
-                .param("role", "none")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "test")
+                        .param("role", "none")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(successJson("Removed role from user github/test.")));
 
@@ -742,10 +873,11 @@ class AdminAPITest {
         Mockito.when(repositories.findUserByLoginName("github", "test"))
                 .thenReturn(user);
 
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "test")
-                .param("role", "invalid_role")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "test")
+                        .param("role", "invalid_role")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -755,27 +887,30 @@ class AdminAPITest {
         Mockito.when(repositories.findUserByLoginName("github", "unknown"))
                 .thenReturn(null);
 
-        mockMvc.perform(post("/admin/user/{provider}/{loginName}/role", "github", "unknown")
-                .param("role", "admin")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/user/{provider}/{loginName}/role", "github", "unknown")
+                        .param("role", "admin")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void testGetUserPublishInfoNotLoggedIn() throws Exception {
         mockNamespace();
-        mockMvc.perform(get("/admin/publisher/{provider}/{loginName}", "github", "test")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/publisher/{provider}/{loginName}", "github", "test")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testGetUserPublishInfoNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(get("/admin/publisher/{provider}/{loginName}", "github", "test")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/publisher/{provider}/{loginName}", "github", "test")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -797,9 +932,10 @@ class AdminAPITest {
         Mockito.when(repositories.findLatestVersions(user)).thenReturn(versions);
         Mockito.when(repositories.findActiveReviews(user)).thenReturn(Streamable.empty());
 
-        mockMvc.perform(get("/admin/publisher/{provider}/{loginName}", "github", "test")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                get("/admin/publisher/{provider}/{loginName}", "github", "test")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(publishInfoJson(upi -> {
                     upi.setUser(new UserJson());
@@ -816,17 +952,19 @@ class AdminAPITest {
     @Test
     void testRevokePublisherAgreementNotLoggedIn() throws Exception {
         mockNamespace();
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testRevokePublisherAgreementNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
-                .with(user("test_user"))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
 
@@ -851,11 +989,15 @@ class AdminAPITest {
         Mockito.when(repositories.findActiveReviews(user))
                 .thenReturn(Streamable.empty());
 
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/revoke", "github", "test")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isOk())
-                .andExpect(content().json(successJson("Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test.")));
+                .andExpect(
+                        content().json(
+                                successJson(
+                                        "Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test.")));
 
         assertThat(token.isActive()).isFalse();
         assertThat(versions.getFirst().isActive()).isFalse();
@@ -864,7 +1006,8 @@ class AdminAPITest {
     @Test
     void testRevokeAccessTokensNotLoggedIn() throws Exception {
         mockNamespace();
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
                         .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
     }
@@ -872,7 +1015,8 @@ class AdminAPITest {
     @Test
     void testRevokeAccessTokensNotAdmin() throws Exception {
         mockNormalUser();
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
@@ -888,7 +1032,8 @@ class AdminAPITest {
                 .thenReturn(user);
 
         Mockito.when(repositories.deactivateAccessTokens(user)).thenReturn(2);
-        mockMvc.perform(post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
+        mockMvc.perform(
+                post("/admin/publisher/{provider}/{loginName}/tokens/revoke", "github", "test")
                         .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
                         .with(csrf().asHeader()))
                 .andExpect(status().isOk())
@@ -898,32 +1043,36 @@ class AdminAPITest {
     @Test
     void testReportUnsupportedMediaType() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(get("/admin/report?token={token}&year=2021&month=3", token.getValue())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_XML_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year=2021&month=3", token.getValue())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_XML_VALUE))
                 .andExpect(status().isNotAcceptable());
     }
 
     @Test
     void testReportNoAdminTokenCsv() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(get("/admin/report?token={token}&year=2021&month=3", token.getValue())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year=2021&month=3", token.getValue())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testReportNoAdminTokenJson() throws Exception {
         var token = mockNonAdminToken();
-        mockMvc.perform(get("/admin/report?token={token}&year=2021&month=3", token.getValue())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year=2021&month=3", token.getValue())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testReportNegativeYearCsv() throws Exception {
         var token = mockAdminToken();
-        mockMvc.perform(get("/admin/report?token={token}&year=-1&month=3", token.getValue())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year=-1&month=3", token.getValue())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Year can't be negative"));
     }
@@ -931,8 +1080,9 @@ class AdminAPITest {
     @Test
     void testReportNegativeYearJson() throws Exception {
         var token = mockAdminToken();
-        mockMvc.perform(get("/admin/report?token={token}&year=-1&month=3", token.getValue())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year=-1&month=3", token.getValue())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Year can't be negative")));
     }
@@ -941,8 +1091,9 @@ class AdminAPITest {
     void testReportFutureYearCsv() throws Exception {
         var token = mockAdminToken();
         var future = LocalDateTime.now().plusYears(1);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=3", token.getValue(), future.getYear())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=3", token.getValue(), future.getYear())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Combination of year and month lies in the future"));
     }
@@ -951,8 +1102,9 @@ class AdminAPITest {
     void testReportFutureYearJson() throws Exception {
         var token = mockAdminToken();
         var future = LocalDateTime.now().plusYears(1);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=3", token.getValue(), future.getYear())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=3", token.getValue(), future.getYear())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Combination of year and month lies in the future")));
     }
@@ -961,8 +1113,9 @@ class AdminAPITest {
     void testReportMonthLessThanOneCsv() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=0", token.getValue(), now.getYear())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=0", token.getValue(), now.getYear())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Month must be a value between 1 and 12"));
     }
@@ -971,8 +1124,9 @@ class AdminAPITest {
     void testReportMonthLessThanOneJson() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=0", token.getValue(), now.getYear())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=0", token.getValue(), now.getYear())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Month must be a value between 1 and 12")));
     }
@@ -981,8 +1135,9 @@ class AdminAPITest {
     void testReportMonthGreaterThanTwelveCsv() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=13", token.getValue(), now.getYear())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=13", token.getValue(), now.getYear())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Month must be a value between 1 and 12"));
     }
@@ -991,8 +1146,9 @@ class AdminAPITest {
     void testReportMonthGreaterThanTwelveJson() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month=13", token.getValue(), now.getYear())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month=13", token.getValue(), now.getYear())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Month must be a value between 1 and 12")));
     }
@@ -1001,8 +1157,13 @@ class AdminAPITest {
     void testReportFutureMonthCsv() throws Exception {
         var token = mockAdminToken();
         var future = LocalDateTime.now().plusMonths(1);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), future.getYear(), future.getMonthValue())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get(
+                        "/admin/report?token={token}&year={year}&month={month}",
+                        token.getValue(),
+                        future.getYear(),
+                        future.getMonthValue())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Combination of year and month lies in the future"));
     }
@@ -1011,8 +1172,13 @@ class AdminAPITest {
     void testReportFutureMonthJson() throws Exception {
         var token = mockAdminToken();
         var future = LocalDateTime.now().plusMonths(1);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), future.getYear(), future.getMonthValue())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get(
+                        "/admin/report?token={token}&year={year}&month={month}",
+                        token.getValue(),
+                        future.getYear(),
+                        future.getMonthValue())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Combination of year and month lies in the future")));
     }
@@ -1046,23 +1212,58 @@ class AdminAPITest {
         stats.setTopNamespaceExtensionVersions(Map.of("nv_foo", 234, "nv_bar", 67, "nv_baz", 932));
         stats.setTopMostDownloadedExtensions(Map.of("foo.bar", 3847L, "bar.foo", 1237L, "foo.baz", 4378L));
 
-        var values = List.<Object>of(year, month, extensions, downloads, downloadsTotal, publishers,
-                averageReviewsPerExtension, namespaceOwners, 7, 16, 560, 427, 136, 670, 99, 70, 52, 543, 93, 82,
-                1239, 48, 9, 932, 234, 67, 4378, 3847, 1237);
+        var values = List.<Object>of(
+                year,
+                month,
+                extensions,
+                downloads,
+                downloadsTotal,
+                publishers,
+                averageReviewsPerExtension,
+                namespaceOwners,
+                7,
+                16,
+                560,
+                427,
+                136,
+                670,
+                99,
+                70,
+                52,
+                543,
+                93,
+                82,
+                1239,
+                48,
+                9,
+                932,
+                234,
+                67,
+                4378,
+                3847,
+                1237);
         Mockito.when(repositories.findAdminStatisticsByYearAndMonth(year, month)).thenReturn(stats);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), year, month)
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), year, month)
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("year,month,extensions,downloads,downloads_total,publishers," +
-                        "average_reviews_per_extension,namespace_owners,extensions_by_rating_1,extensions_by_rating_2," +
-                        "extensions_by_rating_3,extensions_by_rating_4,extensions_by_rating_5," +
-                        "publishers_published_extensions_1,publishers_published_extensions_2," +
-                        "publishers_published_extensions_3,publishers_published_extensions_4," +
-                        "most_active_publishing_users_u_bar,most_active_publishing_users_u_foo,most_active_publishing_users_u_baz," +
-                        "namespace_extensions_n_baz,namespace_extensions_n_bar,namespace_extensions_n_foo," +
-                        "namespace_extension_versions_nv_baz,namespace_extension_versions_nv_foo,namespace_extension_versions_nv_bar," +
-                        "most_downloaded_extensions_foo.baz,most_downloaded_extensions_foo.bar,most_downloaded_extensions_bar.foo\n" +
-                        values.stream().map(Object::toString).collect(Collectors.joining(","))));
+                .andExpect(
+                        content().string(
+                                "year,month,extensions,downloads,downloads_total,publishers," +
+                                        "average_reviews_per_extension,namespace_owners,extensions_by_rating_1,extensions_by_rating_2,"
+                                        +
+                                        "extensions_by_rating_3,extensions_by_rating_4,extensions_by_rating_5," +
+                                        "publishers_published_extensions_1,publishers_published_extensions_2," +
+                                        "publishers_published_extensions_3,publishers_published_extensions_4," +
+                                        "most_active_publishing_users_u_bar,most_active_publishing_users_u_foo,most_active_publishing_users_u_baz,"
+                                        +
+                                        "namespace_extensions_n_baz,namespace_extensions_n_bar,namespace_extensions_n_foo,"
+                                        +
+                                        "namespace_extension_versions_nv_baz,namespace_extension_versions_nv_foo,namespace_extension_versions_nv_bar,"
+                                        +
+                                        "most_downloaded_extensions_foo.baz,most_downloaded_extensions_foo.bar,most_downloaded_extensions_bar.foo\n"
+                                        +
+                                        values.stream().map(Object::toString).collect(Collectors.joining(","))));
     }
 
     @Test
@@ -1095,8 +1296,9 @@ class AdminAPITest {
         stats.setTopMostDownloadedExtensions(Map.of("foo.bar", 3847L, "bar.foo", 1237L, "foo.baz", 4378L));
 
         Mockito.when(repositories.findAdminStatisticsByYearAndMonth(year, month)).thenReturn(stats);
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), year, month)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), year, month)
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(content().json(adminStatisticsJson(s -> {
                     s.setYear(year);
@@ -1159,7 +1361,8 @@ class AdminAPITest {
                     var namespaceExtensions3 = new AdminStatisticsJson.TopNamespaceExtensions();
                     namespaceExtensions3.setNamespace("n_foo");
                     namespaceExtensions3.setExtensions(9);
-                    s.setTopNamespaceExtensions(List.of(namespaceExtensions1, namespaceExtensions2, namespaceExtensions3));
+                    s.setTopNamespaceExtensions(
+                            List.of(namespaceExtensions1, namespaceExtensions2, namespaceExtensions3));
 
                     var namespaceExtensionVersions1 = new AdminStatisticsJson.TopNamespaceExtensionVersions();
                     namespaceExtensionVersions1.setNamespace("nv_baz");
@@ -1170,7 +1373,11 @@ class AdminAPITest {
                     var namespaceExtensionVersions3 = new AdminStatisticsJson.TopNamespaceExtensionVersions();
                     namespaceExtensionVersions3.setNamespace("nv_bar");
                     namespaceExtensionVersions3.setExtensionVersions(67);
-                    s.setTopNamespaceExtensionVersions(List.of(namespaceExtensionVersions1, namespaceExtensionVersions2, namespaceExtensionVersions3));
+                    s.setTopNamespaceExtensionVersions(
+                            List.of(
+                                    namespaceExtensionVersions1,
+                                    namespaceExtensionVersions2,
+                                    namespaceExtensionVersions3));
 
                     var mostDownloadedExtensions1 = new AdminStatisticsJson.TopMostDownloadedExtensions();
                     mostDownloadedExtensions1.setExtensionIdentifier("foo.baz");
@@ -1181,7 +1388,8 @@ class AdminAPITest {
                     var mostDownloadedExtensions3 = new AdminStatisticsJson.TopMostDownloadedExtensions();
                     mostDownloadedExtensions3.setExtensionIdentifier("bar.foo");
                     mostDownloadedExtensions3.setDownloads(1237L);
-                    s.setTopMostDownloadedExtensions(List.of(mostDownloadedExtensions1, mostDownloadedExtensions2, mostDownloadedExtensions3));
+                    s.setTopMostDownloadedExtensions(
+                            List.of(mostDownloadedExtensions1, mostDownloadedExtensions2, mostDownloadedExtensions3));
                 })));
     }
 
@@ -1189,8 +1397,13 @@ class AdminAPITest {
     void testCurrentMonthAdminReportCsv() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), now.getYear(), now.getMonthValue())
-                .header(HttpHeaders.ACCEPT, "text/csv"))
+        mockMvc.perform(
+                get(
+                        "/admin/report?token={token}&year={year}&month={month}",
+                        token.getValue(),
+                        now.getYear(),
+                        now.getMonthValue())
+                        .header(HttpHeaders.ACCEPT, "text/csv"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Combination of year and month lies in the future"));
     }
@@ -1199,8 +1412,13 @@ class AdminAPITest {
     void testCurrentMonthAdminReportJson() throws Exception {
         var token = mockAdminToken();
         var now = LocalDateTime.now();
-        mockMvc.perform(get("/admin/report?token={token}&year={year}&month={month}", token.getValue(), now.getYear(), now.getMonthValue())
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(
+                get(
+                        "/admin/report?token={token}&year={year}&month={month}",
+                        token.getValue(),
+                        now.getYear(),
+                        now.getMonthValue())
+                        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Combination of year and month lies in the future")));
     }
@@ -1221,16 +1439,20 @@ class AdminAPITest {
                 "\"newNamespace\": \"bar\", " +
                 "\"removeOldNamespace\": false, " +
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
-            "}";
+                "}";
 
         var json = new ChangeNamespaceJson("foo", "bar", false, true);
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(successJson("Scheduled namespace change from 'foo' to 'bar'.\nIt can take 15 minutes to a couple hours for the change to become visible.")))
+                .andExpect(
+                        content().json(
+                                successJson(
+                                        "Scheduled namespace change from 'foo' to 'bar'.\nIt can take 15 minutes to a couple hours for the change to become visible.")))
                 .andExpect(result -> Mockito.verify(scheduler).enqueue(new ChangeNamespaceJobRequest(json)));
     }
 
@@ -1244,11 +1466,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Old namespace must have a value")));
     }
@@ -1263,11 +1486,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Old namespace must have a value")));
     }
@@ -1288,11 +1512,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("Old namespace doesn't exists: foo")));
     }
@@ -1307,11 +1532,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("New namespace must have a value")));
     }
@@ -1326,11 +1552,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": true" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("New namespace must have a value")));
     }
@@ -1353,11 +1580,12 @@ class AdminAPITest {
                 "\"mergeIfNewNamespaceAlreadyExists\": false" +
                 "}";
 
-        mockMvc.perform(post("/admin/change-namespace")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader())
-                .content(content)
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/admin/change-namespace")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader())
+                        .content(content)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(errorJson("New namespace already exists: bar")));
     }
@@ -1367,7 +1595,13 @@ class AdminAPITest {
         mockAdminUser();
         mockReviews();
 
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete", "foobar", "baz", "github", "user1")
+        mockMvc.perform(
+                post(
+                        "/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete",
+                        "foobar",
+                        "baz",
+                        "github",
+                        "user1")
                         .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
                         .with(csrf().asHeader()))
                 .andExpect(status().isOk())
@@ -1376,7 +1610,13 @@ class AdminAPITest {
 
     @Test
     void testDeleteReviewNotLoggedIn() throws Exception {
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete", "foo", "bar", "github", "user1")
+        mockMvc.perform(
+                post(
+                        "/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete",
+                        "foo",
+                        "bar",
+                        "github",
+                        "user1")
                         .with(csrf()))
                 .andExpect(status().isForbidden());
     }
@@ -1385,7 +1625,13 @@ class AdminAPITest {
     void testDeleteReviewNormalUser() throws Exception {
         mockNormalUser();
 
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete", "foo", "bar", "github", "user1")
+        mockMvc.perform(
+                post(
+                        "/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete",
+                        "foo",
+                        "bar",
+                        "github",
+                        "user1")
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
@@ -1394,9 +1640,15 @@ class AdminAPITest {
     @Test
     void testDeleteReviewUnknownExtension() throws Exception {
         mockAdminUser();
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete", "foo", "bar", "github", "user1")
-                .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
-                .with(csrf().asHeader()))
+        mockMvc.perform(
+                post(
+                        "/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete",
+                        "foo",
+                        "bar",
+                        "github",
+                        "user1")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(errorJson("Extension not found: foo.bar")));
     }
@@ -1406,7 +1658,13 @@ class AdminAPITest {
         mockAdminUser();
         mockReviews();
 
-        mockMvc.perform(post("/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete", "foobar", "baz", "github", "user3")
+        mockMvc.perform(
+                post(
+                        "/admin/extension/{namespace}/{extension}/review/{provider}/{loginName}/delete",
+                        "foobar",
+                        "baz",
+                        "github",
+                        "user3")
                         .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
                         .with(csrf().asHeader()))
                 .andExpect(status().isNotFound())
@@ -1420,10 +1678,11 @@ class AdminAPITest {
                     "publishers": []
                 }
                 """;
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke")
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke")
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -1433,10 +1692,11 @@ class AdminAPITest {
                     "publishers": []
                 }
                 """;
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke")
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke")
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -1448,10 +1708,11 @@ class AdminAPITest {
                 """;
 
         var token = mockNonAdminToken();
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isForbidden());
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -1461,35 +1722,35 @@ class AdminAPITest {
         user.setLoginName("test");
         user.setProvider("github");
         Mockito.when(repositories.findUserByLoginName("github", "test"))
-            .thenReturn(user);
+                .thenReturn(user);
         var userToken = new PersonalAccessToken();
         userToken.setUser(user);
         userToken.setActive(true);
         Mockito.when(repositories.findAccessTokens(user))
-            .thenReturn(Streamable.of(userToken));
+                .thenReturn(Streamable.of(userToken));
         versions.getFirst().setPublishedWith(userToken);
         Mockito.when(repositories.findVersionsByUser(user, true))
-            .thenReturn(Streamable.of(versions.getFirst()));
+                .thenReturn(Streamable.of(versions.getFirst()));
 
         Mockito.when(repositories.findActiveReviews(user))
-            .thenReturn(Streamable.empty());
+                .thenReturn(Streamable.empty());
 
         var user2 = new UserData();
         user2.setLoginName("test2");
         user2.setProvider("github");
         Mockito.when(repositories.findUserByLoginName("github", "test2"))
-            .thenReturn(user2);
+                .thenReturn(user2);
         var user2Token = new PersonalAccessToken();
         user2Token.setUser(user2);
         user2Token.setActive(true);
         Mockito.when(repositories.findAccessTokens(user2))
-            .thenReturn(Streamable.of(user2Token));
+                .thenReturn(Streamable.of(user2Token));
         versions.get(1).setPublishedWith(user2Token);
         Mockito.when(repositories.findVersionsByUser(user2, true))
-            .thenReturn(Streamable.of(versions.get(1)));
+                .thenReturn(Streamable.of(versions.get(1)));
 
         Mockito.when(repositories.findActiveReviews(user2))
-            .thenReturn(Streamable.empty());
+                .thenReturn(Streamable.empty());
 
         var namespace = mockNamespace();
         var membership = new NamespaceMembership();
@@ -1497,13 +1758,13 @@ class AdminAPITest {
         membership.setRole(NamespaceMembership.ROLE_OWNER);
         membership.setUser(user);
         Mockito.when(repositories.findMemberships(user))
-            .thenReturn(Streamable.of(membership));
+                .thenReturn(Streamable.of(membership));
         var membership2 = new NamespaceMembership();
         membership2.setNamespace(namespace);
         membership2.setRole(NamespaceMembership.ROLE_CONTRIBUTOR);
         membership2.setUser(user2);
         Mockito.when(repositories.findMemberships(user2))
-            .thenReturn(Streamable.of(membership2));
+                .thenReturn(Streamable.of(membership2));
 
         var baseRequest = """
                 {
@@ -1519,17 +1780,22 @@ class AdminAPITest {
                 }
                 """;
         var token = mockAdminToken();
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
-                .with(csrf().asHeader())
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().json(bulkPublishResponseJson(Map.of(
-                "test:github",
-                ResultJson.success("Deactivated 1 tokens, deactivated 1 extensions, removed 1 namespace memberships of user github/test."),
-                "test2:github",
-                ResultJson.success("Deactivated 1 tokens, deactivated 1 extensions, removed 1 namespace memberships of user github/test2."))
-            )));
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
+                        .with(csrf().asHeader())
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().json(
+                                bulkPublishResponseJson(
+                                        Map.of(
+                                                "test:github",
+                                                ResultJson.success(
+                                                        "Deactivated 1 tokens, deactivated 1 extensions, removed 1 namespace memberships of user github/test."),
+                                                "test2:github",
+                                                ResultJson.success(
+                                                        "Deactivated 1 tokens, deactivated 1 extensions, removed 1 namespace memberships of user github/test2.")))));
 
         assertThat(userToken.isActive()).isFalse();
         assertThat(user2Token.isActive()).isFalse();
@@ -1543,18 +1809,18 @@ class AdminAPITest {
         user.setLoginName("test");
         user.setProvider("github");
         Mockito.when(repositories.findUserByLoginName("github", "test"))
-            .thenReturn(user);
+                .thenReturn(user);
         var userToken = new PersonalAccessToken();
         userToken.setUser(user);
         userToken.setActive(true);
         Mockito.when(repositories.findAccessTokens(user))
-            .thenReturn(Streamable.of(userToken));
+                .thenReturn(Streamable.of(userToken));
         versions.getFirst().setPublishedWith(userToken);
         Mockito.when(repositories.findVersionsByUser(user, true))
-            .thenReturn(Streamable.of(versions.getFirst()));
+                .thenReturn(Streamable.of(versions.getFirst()));
 
         Mockito.when(repositories.findActiveReviews(user))
-            .thenReturn(Streamable.empty());
+                .thenReturn(Streamable.empty());
 
         var baseRequest = """
                 {
@@ -1567,14 +1833,18 @@ class AdminAPITest {
                 }
                 """;
         var token = mockAdminToken();
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().json(bulkPublishResponseJson(Map.of(
-                "test:github",
-                ResultJson.success("Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test. Reason: Some passed reason."))
-            )));
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().json(
+                                bulkPublishResponseJson(
+                                        Map.of(
+                                                "test:github",
+                                                ResultJson.success(
+                                                        "Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test. Reason: Some passed reason.")))));
 
         assertThat(userToken.isActive()).isFalse();
         versions.forEach(version -> assertThat(version.isActive()).isFalse());
@@ -1587,18 +1857,18 @@ class AdminAPITest {
         user.setLoginName("test");
         user.setProvider("github");
         Mockito.when(repositories.findUserByLoginName("github", "test"))
-            .thenReturn(user);
+                .thenReturn(user);
         var userToken = new PersonalAccessToken();
         userToken.setUser(user);
         userToken.setActive(true);
         Mockito.when(repositories.findAccessTokens(user))
-            .thenReturn(Streamable.of(userToken));
+                .thenReturn(Streamable.of(userToken));
         versions.getFirst().setPublishedWith(userToken);
         Mockito.when(repositories.findVersionsByUser(user, true))
-            .thenReturn(Streamable.of(versions.getFirst()));
+                .thenReturn(Streamable.of(versions.getFirst()));
 
         Mockito.when(repositories.findActiveReviews(user))
-            .thenReturn(Streamable.empty());
+                .thenReturn(Streamable.empty());
 
         var baseRequest = """
                 {
@@ -1614,16 +1884,20 @@ class AdminAPITest {
                 }
                 """;
         var token = mockAdminToken();
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().json(bulkPublishResponseJson(Map.of(
-                "test:github",
-                ResultJson.success("Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test."),
-                "test2:github",
-                ResultJson.error("User not found: test2"))
-            )));
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(
+                        content().json(
+                                bulkPublishResponseJson(
+                                        Map.of(
+                                                "test:github",
+                                                ResultJson.success(
+                                                        "Deactivated 1 tokens, deactivated 1 extensions, removed 0 namespace memberships of user github/test."),
+                                                "test2:github",
+                                                ResultJson.error("User not found: test2")))));
     }
 
     @Test
@@ -1634,10 +1908,11 @@ class AdminAPITest {
                 }
                 """;
         var token = mockAdminToken();
-        mockMvc.perform(post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
-                .content(baseRequest)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk());
+        mockMvc.perform(
+                post("/admin/api/publisher/bulk-revoke?token={token}", token.getValue())
+                        .content(baseRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     //---------- UTILITY ----------//
@@ -1700,12 +1975,12 @@ class AdminAPITest {
                 .thenReturn(Streamable.empty());
         if (numberOfMembers == 0) {
             Mockito.when(repositories.hasMemberships(namespace, NamespaceMembership.ROLE_OWNER))
-                .thenReturn(false);
+                    .thenReturn(false);
             Mockito.when(repositories.findMemberships(namespace))
-                .thenReturn(Streamable.empty());
+                    .thenReturn(Streamable.empty());
         } else {
             Mockito.when(repositories.hasMemberships(namespace, NamespaceMembership.ROLE_OWNER))
-                .thenReturn(true);
+                    .thenReturn(true);
             var memberships = new ArrayList<NamespaceMembership>(numberOfMembers);
 
             var user = new UserData();
@@ -1719,7 +1994,7 @@ class AdminAPITest {
                 memberships.add(membership);
             }
             Mockito.when(repositories.findMemberships(namespace))
-                .thenReturn(Streamable.of(memberships));
+                    .thenReturn(Streamable.of(memberships));
         }
 
         return namespace;
@@ -1762,7 +2037,8 @@ class AdminAPITest {
                     .thenReturn(Streamable.empty());
             Mockito.when(repositories.findFilesByType(anyCollection(), any()))
                     .thenReturn(Collections.emptyList());
-            Mockito.when(repositories.findVersion(extVersion.getVersion(), TargetPlatform.NAME_UNIVERSAL, "baz", "foobar"))
+            Mockito.when(
+                    repositories.findVersion(extVersion.getVersion(), TargetPlatform.NAME_UNIVERSAL, "baz", "foobar"))
                     .thenReturn(extVersion);
             Mockito.when(repositories.findTargetPlatformVersions(extVersion.getVersion(), "baz", "foobar"))
                     .thenReturn(Streamable.of(versions));
@@ -1770,13 +2046,19 @@ class AdminAPITest {
         }
 
         extension.getVersions().addAll(versions);
-        Mockito.when(repositories.isDeleteAllVersions(any(), eq(namespace.getName()), eq(extension.getName()), any(TargetPlatformVersion[].class))).then(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) {
-                var len = ((TargetPlatformVersion[]) invocation.getRawArguments()[3]).length;
-                return len == 0 || len == numberOfVersions;
-            }
-        });
+        Mockito.when(
+                repositories.isDeleteAllVersions(
+                        any(),
+                        eq(namespace.getName()),
+                        eq(extension.getName()),
+                        any(TargetPlatformVersion[].class)))
+                .then(new Answer<Boolean>() {
+                    @Override
+                    public Boolean answer(InvocationOnMock invocation) {
+                        var len = ((TargetPlatformVersion[]) invocation.getRawArguments()[3]).length;
+                        return len == 0 || len == numberOfVersions;
+                    }
+                });
         Mockito.when(repositories.countVersions(namespace.getName(), extension.getName())).thenReturn(numberOfVersions);
         Mockito.when(repositories.findLatestVersion(namespace.getName(), extension.getName(), null, false, false))
                 .thenReturn(versions.get(numberOfVersions - 1));
@@ -1927,7 +2209,14 @@ class AdminAPITest {
                 @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository,
                 OAuth2AttributesConfig attributesConfig
         ) {
-            return new UserService(entityManager, repositories, storageUtil, cache, validator, clientRegistrationRepository, attributesConfig);
+            return new UserService(
+                    entityManager,
+                    repositories,
+                    storageUtil,
+                    cache,
+                    validator,
+                    clientRegistrationRepository,
+                    attributesConfig);
         }
 
         @Bean
@@ -1989,8 +2278,7 @@ class AdminAPITest {
                     cache,
                     scheduler,
                     mail,
-                    logs
-            );
+                    logs);
         }
 
         @Bean
@@ -2023,8 +2311,7 @@ class AdminAPITest {
                     cache,
                     integrityService,
                     similarityCheckService,
-                    new PublishingConfig()
-            );
+                    new PublishingConfig());
         }
 
         @Bean
@@ -2068,8 +2355,7 @@ class AdminAPITest {
                     publishHandler,
                     scheduler,
                     extensionScanService,
-                    scanPersistenceService
-            );
+                    scanPersistenceService);
         }
 
         @Bean
@@ -2104,8 +2390,7 @@ class AdminAPITest {
                     cache,
                     entityManager,
                     fileCacheDurationConfig,
-                    cdnServiceConfig
-            );
+                    cdnServiceConfig);
         }
 
         @Bean

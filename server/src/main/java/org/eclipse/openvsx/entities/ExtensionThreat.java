@@ -12,13 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.util.TimeUtil;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Threat detection result from security scanners.
@@ -204,8 +205,12 @@ public class ExtensionThreat implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionThreat that = (ExtensionThreat) o;
         return id == that.id
                 && Objects.equals(getScanId(scan), getScanId(that.scan))

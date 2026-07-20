@@ -9,15 +9,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.List;
-import java.util.Map;
 
 @Schema(
     name = "SearchEntry",
@@ -30,7 +30,9 @@ public class SearchEntryJson {
     @NotNull
     private String url;
 
-    @Schema(description = "Map of file types (download, manifest, icon, readme, license, changelog) to their respective URLs")
+    @Schema(
+        description = "Map of file types (download, manifest, icon, readme, license, changelog) to their respective URLs"
+    )
     @NotNull
     private Map<String, String> files;
 
@@ -50,14 +52,18 @@ public class SearchEntryJson {
     @NotNull
     private String timestamp;
 
-    @Schema(description = "The value 'true' means the publishing user is a privileged user or the publishing user is a member of the extension's namespace and the namespace has at least one owner.")
+    @Schema(
+        description = "The value 'true' means the publishing user is a privileged user or the publishing user is a member of the extension's namespace and the namespace has at least one owner."
+    )
     @NotNull
     private Boolean verified;
 
     /**
      * @deprecated
      */
-    @Schema(description = "Essential metadata of all available versions. Deprecated: only returns the last 100 versions. Use allVersionsUrl instead.")
+    @Schema(
+        description = "Essential metadata of all available versions. Deprecated: only returns the last 100 versions. Use allVersionsUrl instead."
+    )
     @Deprecated
     private List<VersionReferenceJson> allVersions;
 

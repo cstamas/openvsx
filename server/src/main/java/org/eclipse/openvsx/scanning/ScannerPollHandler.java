@@ -12,10 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ScanCheckResult;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.time.Instant;
+import java.time.LocalDateTime;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -23,8 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
+import org.eclipse.openvsx.entities.ScanCheckResult;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * JobRunr handler that polls async scan jobs.
@@ -78,7 +79,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
     @Override
     @Job(
         name = "Poll async scan job",
-        retries = 3    // Retry 3 times on failure
+        retries = 3 // Retry 3 times on failure
     )
     public void run(ScannerPollRequest jobRequest) throws Exception {
         long scanJobId = jobRequest.getScanJobId();
@@ -86,7 +87,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // Phase 1: Load job info (read-only, no transaction needed)
         var pollContext = loadJobForPolling(scanJobId);
         if (pollContext == null) {
-            return;  // Job not found, terminal, or invalid
+            return; // Job not found, terminal, or invalid
         }
 
         try {
@@ -110,7 +111,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
             // Error during polling - clear lease so job can be polled again
             logger.error("Error polling scan job " + scanJobId, e);
             clearJobLease(scanJobId);
-            throw e;  // Let JobRunr handle retry
+            throw e; // Let JobRunr handle retry
         }
     }
 
@@ -132,13 +133,18 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // Skip if job is already in terminal state
         // This can happen if another poll completed the job before this one ran
         if (job.getStatus().isTerminal()) {
-            logger.debug("Scan job {} already in terminal state {}, skipping poll",
-                scanJobId, job.getStatus());
+            logger.debug(
+                    "Scan job {} already in terminal state {}, skipping poll",
+                    scanJobId,
+                    job.getStatus());
             return null;
         }
 
-        logger.debug("Polling scan job {} (scanner: {}, external ID: {})",
-            scanJobId, job.getScannerType(), job.getExternalJobId());
+        logger.debug(
+                "Polling scan job {} (scanner: {}, external ID: {})",
+                scanJobId,
+                job.getScannerType(),
+                job.getExternalJobId());
 
         // Get the scanner for this job type
         Scanner scanner = scannerRegistry.getScanner(job.getScannerType());
@@ -172,17 +178,22 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
      * Handle the poll result and update database.
      * Called for non-COMPLETED statuses (PROCESSING, SUBMITTED, FAILED).
      */
-    private void handlePollResult(long scanJobId, Scanner scanner, Scanner.Submission submission,
-                                   Scanner.PollStatus status) {
+    private void handlePollResult(
+            long scanJobId,
+            Scanner scanner,
+            Scanner.Submission submission,
+            Scanner.PollStatus status
+    ) {
         ScannerJob job = scanJobRepository.findById(scanJobId).orElse(null);
         if (job == null || job.getStatus().isTerminal()) {
-            return;  // Job gone or already completed
+            return; // Job gone or already completed
         }
 
         switch (status) {
             case FAILED -> handleFailedStatus(job, scanner, submission);
             case PROCESSING, SUBMITTED -> handleProcessingStatus(job, scanner);
-            case COMPLETED -> {} // Handled separately via saveCompletedResults
+            case COMPLETED -> {
+            } // Handled separately via saveCompletedResults
         }
     }
 
@@ -193,7 +204,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
     private void saveCompletedResults(long scanJobId, Scanner scanner, Scanner.Result result) {
         ScannerJob job = scanJobRepository.findById(scanJobId).orElse(null);
         if (job == null || job.getStatus().isTerminal()) {
-            return;  // Job gone or already completed
+            return; // Job gone or already completed
         }
 
         logger.debug("Scan job {} completed, saving results", job.getId());
@@ -211,7 +222,10 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
 
         // Process result: save threats, determine check result, record audit
         var processed = persistenceService.processCompletedScan(
-            job, result, scanner.enforcesThreats(), startedAt);
+                job,
+                result,
+                scanner.enforcesThreats(),
+                startedAt);
 
         // Log based on result
         if (processed.threatCount() == 0) {
@@ -249,8 +263,8 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // Try to get the actual error from the scanner's result endpoint
         String errorDetail = fetchErrorDetail(scanner, submission);
         String errorMessage = errorDetail != null
-            ? "External scan failed: " + errorDetail
-            : "External scan failed (no details from scanner)";
+                ? "External scan failed: " + errorDetail
+                : "External scan failed (no details from scanner)";
 
         logger.error("Scan job {} failed at external scanner: {}", job.getId(), errorMessage);
         LocalDateTime startedAt = job.getUpdatedAt();
@@ -258,15 +272,14 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
 
         // Record scanner job result for audit trail
         persistenceService.recordScannerJobResult(
-            job.getScanId(),
-            job,
-            ScanCheckResult.CheckResult.ERROR,
-            startedAt,
-            null,  // filesScanned
-            0,     // threatCount
-            errorMessage,
-            errorMessage
-        );
+                job.getScanId(),
+                job,
+                ScanCheckResult.CheckResult.ERROR,
+                startedAt,
+                null, // filesScanned
+                0, // threatCount
+                errorMessage,
+                errorMessage);
 
         // Still check completion - might need to mark scan as errored
         completionService.checkCompletionSafely(job.getScanId());
@@ -281,9 +294,9 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
             Scanner.Result result = scanner.fetchResults(submission);
             if (result != null && !result.isClean()) {
                 return result.getThreats().stream()
-                    .map(Scanner.Threat::getDescription)
-                    .findFirst()
-                    .orElse(null);
+                        .map(Scanner.Threat::getDescription)
+                        .findFirst()
+                        .orElse(null);
             }
         } catch (Exception e) {
             logger.debug("Could not fetch error details from scanner: {}", e.getMessage());
@@ -311,8 +324,10 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // Check if we've exceeded max attempts
         int maxAttempts = pollConfig.getMaxAttempts();
         if (attempts >= maxAttempts) {
-            logger.error("Scan job {} exceeded max poll attempts ({}), marking as failed",
-                job.getId(), maxAttempts);
+            logger.error(
+                    "Scan job {} exceeded max poll attempts ({}), marking as failed",
+                    job.getId(),
+                    maxAttempts);
             markJobFailed(job, "Exceeded max poll attempts (" + maxAttempts + ")");
             completionService.checkCompletionSafely(job.getScanId());
             return;
@@ -322,7 +337,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // submission time (set in handleSubmittedScan). This is important for
         // accurate duration display and timeout calculation.
         job.setStatus(ScannerJob.JobStatus.PROCESSING);
-        job.setPollLeaseUntil(null);  // No lease needed with self-scheduling
+        job.setPollLeaseUntil(null); // No lease needed with self-scheduling
         scanJobRepository.save(job);
 
         // Calculate delay based on poll config
@@ -331,8 +346,11 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
         // Schedule next poll
         scheduleNextPoll(job.getId(), delaySeconds);
 
-        logger.debug("Scan job {} still processing (attempt {}), next poll in {}s",
-            job.getId(), attempts, delaySeconds);
+        logger.debug(
+                "Scan job {} still processing (attempt {}), next poll in {}s",
+                job.getId(),
+                attempts,
+                delaySeconds);
     }
 
     /**
@@ -379,7 +397,7 @@ public class ScannerPollHandler implements JobRequestHandler<ScannerPollRequest>
     private void markJobFailed(ScannerJob job, String errorMessage) {
         job.setStatus(ScannerJob.JobStatus.FAILED);
         job.setErrorMessage(errorMessage);
-        job.setPollLeaseUntil(null);  // Clear lease - no more polling needed
+        job.setPollLeaseUntil(null); // Clear lease - no more polling needed
         job.setUpdatedAt(TimeUtil.getCurrentUTC());
         scanJobRepository.save(job);
     }

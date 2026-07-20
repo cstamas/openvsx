@@ -9,12 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
+import java.util.Optional;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 public class ScheduleDataMirrorJobs {

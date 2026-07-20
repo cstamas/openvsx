@@ -9,9 +9,8 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
-import org.eclipse.openvsx.ExtensionProcessor;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.util.NamingUtil;
+import java.nio.file.Files;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
@@ -20,13 +19,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
+import org.eclipse.openvsx.ExtensionProcessor;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.util.NamingUtil;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "false", matchIfMissing = true)
 public class ExtractVsixManifestsJobRequestHandler implements JobRequestHandler<MigrationJobRequest<?>> {
 
-    protected final Logger logger = new JobRunrDashboardLogger(LoggerFactory.getLogger(ExtractVsixManifestsJobRequestHandler.class));
+    protected final Logger logger = new JobRunrDashboardLogger(
+            LoggerFactory.getLogger(ExtractVsixManifestsJobRequestHandler.class));
 
     private final MigrationService migrations;
 
@@ -45,13 +47,13 @@ public class ExtractVsixManifestsJobRequestHandler implements JobRequestHandler<
                 .log();
 
         var existingVsixManifest = migrations.getFileResource(extVersion, FileResource.VSIXMANIFEST);
-        if(existingVsixManifest != null) {
+        if (existingVsixManifest != null) {
             migrations.removeFile(existingVsixManifest);
             migrations.deleteFileResource(existingVsixManifest);
         }
 
-        try(var extensionFile = migrations.getExtensionFile(download)) {
-            if(Files.size(extensionFile.getPath()) == 0) {
+        try (var extensionFile = migrations.getExtensionFile(download)) {
+            if (Files.size(extensionFile.getPath()) == 0) {
                 return;
             }
             try (

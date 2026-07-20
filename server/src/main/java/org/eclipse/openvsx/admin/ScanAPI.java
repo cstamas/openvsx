@@ -12,6 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.admin;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.Explode;
@@ -22,32 +30,24 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.settings.MutatingOperation;
-import org.eclipse.openvsx.json.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.LogService;
-import org.eclipse.openvsx.util.TimeUtil;
-import org.eclipse.openvsx.util.UrlUtil;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.json.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.MutatingOperation;
+import org.eclipse.openvsx.storage.StorageUtilService;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.LogService;
+import org.eclipse.openvsx.util.TimeUtil;
+import org.eclipse.openvsx.util.UrlUtil;
 
 /**
  * REST API for extension scan management.
@@ -111,31 +111,37 @@ public class ScanAPI {
         )
     )
     public ResponseEntity<ScanStatisticsJson> getScanCounts(
-        @RequestParam(required = false)
-        @Parameter(description = "Filter scans started on or after this date (ISO 8601 format)")
-        String dateStartedFrom,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter scans started on or before this date (ISO 8601 format)")
-        String dateStartedTo,
-        @RequestParam(defaultValue = "all")
-        @Parameter(description = "Filter by enforcement status of threats/validations", schema = @Schema(type = "string", allowableValues = {"enforced", "notEnforced", "all"}, defaultValue = "all"))
-        String enforcement,
-        @RequestParam(name = "validationType", required = false)
-        @Parameter(
-            description = "Filter by validation type (comma-separated for multiple values, e.g., NAME SQUATTING, BLOCKLIST, SECRET)",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(type = "string", example = "NAME SQUATTING"))
-        )
-        List<String> validationType,
-        @RequestParam(name = "threatScannerName", required = false)
-        @Parameter(
-            description = "Filter by threat scanner name (comma-separated for multiple values).",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(type = "string", example = "ClamAV"))
-        )
-        List<String> threatScannerName
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter scans started on or after this date (ISO 8601 format)"
+            ) String dateStartedFrom,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter scans started on or before this date (ISO 8601 format)"
+            ) String dateStartedTo,
+            @RequestParam(defaultValue = "all")
+            @Parameter(
+                description = "Filter by enforcement status of threats/validations",
+                schema = @Schema(
+                    type = "string",
+                    allowableValues = { "enforced", "notEnforced", "all" },
+                    defaultValue = "all"
+                )
+            ) String enforcement,
+            @RequestParam(name = "validationType", required = false)
+            @Parameter(
+                description = "Filter by validation type (comma-separated for multiple values, e.g., NAME SQUATTING, BLOCKLIST, SECRET)",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(schema = @Schema(type = "string", example = "NAME SQUATTING"))
+            ) List<String> validationType,
+            @RequestParam(name = "threatScannerName", required = false)
+            @Parameter(
+                description = "Filter by threat scanner name (comma-separated for multiple values).",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(schema = @Schema(type = "string", example = "ClamAV"))
+            ) List<String> threatScannerName
     ) {
         try {
             admins.checkAdminUser();
@@ -153,7 +159,8 @@ public class ScanAPI {
             boolean hasEnforcementFilter = enforcementFilter != EnforcementFilter.ALL;
             boolean hasCheckTypesFilter = checkTypes != null && !checkTypes.isEmpty();
             boolean hasScannerNamesFilter = scannerNames != null && !scannerNames.isEmpty();
-            boolean hasAnyFilter = hasDateFilter || hasEnforcementFilter || hasCheckTypesFilter || hasScannerNamesFilter;
+            boolean hasAnyFilter = hasDateFilter || hasEnforcementFilter || hasCheckTypesFilter
+                    || hasScannerNamesFilter;
 
             if (!hasAnyFilter) {
                 // Fast path: simple DB counts when no filtering is requested
@@ -175,26 +182,80 @@ public class ScanAPI {
                 };
 
                 // Count each status with all filters applied
-                stats.setSTARTED((int) repositories.countScansForStatistics(
-                    ScanStatus.STARTED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setVALIDATING((int) repositories.countScansForStatistics(
-                    ScanStatus.VALIDATING, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setSCANNING((int) repositories.countScansForStatistics(
-                    ScanStatus.SCANNING, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setPASSED((int) repositories.countScansForStatistics(
-                    ScanStatus.PASSED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setQUARANTINED((int) repositories.countScansForStatistics(
-                    ScanStatus.QUARANTINED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setAUTO_REJECTED((int) repositories.countScansForStatistics(
-                    ScanStatus.REJECTED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setERROR((int) repositories.countScansForStatistics(
-                    ScanStatus.ERRORED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
+                stats.setSTARTED(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.STARTED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setVALIDATING(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.VALIDATING,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setSCANNING(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.SCANNING,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setPASSED(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.PASSED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setQUARANTINED(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.QUARANTINED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setAUTO_REJECTED(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.REJECTED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setERROR(
+                        (int) repositories.countScansForStatistics(
+                                ScanStatus.ERRORED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
 
                 // Admin decision counts with all filters applied
-                stats.setALLOWED((int) repositories.countAdminDecisionsForStatistics(
-                    AdminScanDecision.ALLOWED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
-                stats.setBLOCKED((int) repositories.countAdminDecisionsForStatistics(
-                    AdminScanDecision.BLOCKED, startedFrom, startedTo, checkTypes, scannerNames, enforcedOnly));
+                stats.setALLOWED(
+                        (int) repositories.countAdminDecisionsForStatistics(
+                                AdminScanDecision.ALLOWED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
+                stats.setBLOCKED(
+                        (int) repositories.countAdminDecisionsForStatistics(
+                                AdminScanDecision.BLOCKED,
+                                startedFrom,
+                                startedTo,
+                                checkTypes,
+                                scannerNames,
+                                enforcedOnly));
             }
 
             // NEEDS_REVIEW = quarantined scans without a decision
@@ -218,9 +279,7 @@ public class ScanAPI {
      * Threat scanning enforcement will be added when threats are persisted.
      */
     private enum EnforcementFilter {
-        ENFORCED,
-        NOT_ENFORCED,
-        ALL
+        ENFORCED, NOT_ENFORCED, ALL
     }
 
     private EnforcementFilter parseEnforcementFilter(String enforcement) {
@@ -232,9 +291,8 @@ public class ScanAPI {
             case "notenforced" -> EnforcementFilter.NOT_ENFORCED;
             case "all" -> EnforcementFilter.ALL;
             default -> throw new ErrorResultException(
-                "Parameter 'enforcement' must be one of: enforced, notEnforced, all",
-                HttpStatus.BAD_REQUEST
-            );
+                    "Parameter 'enforcement' must be one of: enforced, notEnforced, all",
+                    HttpStatus.BAD_REQUEST);
         };
     }
 
@@ -256,78 +314,102 @@ public class ScanAPI {
         )
     )
     public ResponseEntity<ScanResultListJson> getAllScans(
-        @RequestParam(required = false)
-        @Parameter(
-            description = "Filter by scan status (comma-separated for multiple values)",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(
-                type = "string",
-                allowableValues = { "STARTED", "VALIDATING", "SCANNING", "PASSED", "QUARANTINED", "AUTO REJECTED", "ERROR" },
-                example = "QUARANTINED"
-            ))
-        )
-        List<String> status,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by publisher name (partial matches supported)")
-        String publisher,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by namespace (partial matches supported)")
-        String namespace,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by display name or extension name (partial matches supported)")
-        String name,
-        @RequestParam(defaultValue = "10")
-        @Min(value = 0, message = "parameter must not be negative")
-        @Max(value = 100, message = "parameter must not be larger than 100")
-        @Parameter(description = "Maximal number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "10"))
-        int size,
-        @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "parameter must not be negative")
-        @Parameter(description = "Number of entries to skip", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
-        int offset,
-        @RequestParam(defaultValue = "scanEndTime")
-        @Parameter(description = "Field to sort by", schema = @Schema(type = "string", allowableValues = {"scanEndTime", "scanStartTime", "displayName", "publisher", "status"}, defaultValue = "scanEndTime"))
-        String sortBy,
-        @RequestParam(defaultValue = "desc")
-        @Parameter(description = "Sort order", schema = @Schema(type = "string", allowableValues = {"asc", "desc"}, defaultValue = "desc"))
-        String sortOrder,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter scans started on or after this date (ISO 8601 format)")
-        String dateStartedFrom,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter scans started on or before this date (ISO 8601 format)")
-        String dateStartedTo,
-        @RequestParam(name = "validationType", required = false)
-        @Parameter(
-            description = "Filter by validation type (comma-separated for multiple values, e.g., NAME SQUATTING, BLOCKLIST, SECRET)",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(type = "string", example = "NAME SQUATTING"))
-        )
-        List<String> validationType,
-        @RequestParam(required = false)
-        @Parameter(
-            description = "Filter by threat scanner name (comma-separated for multiple values).",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(type = "string", example = "ClamAV"))
-        )
-        List<String> threatScannerName,
-        @RequestParam(defaultValue = "all")
-        @Parameter(
-            description = "Filter by enforcement status of threats/validations",
-            schema = @Schema(type = "string", allowableValues = {"enforced", "notEnforced", "all"}, defaultValue = "all")
-        )
-        String enforcement,
-        @RequestParam(name = "adminDecision", required = false)
-        @Parameter(
-            description = "Filter by admin decision status (comma-separated for multiple values). Use 'allowed' for scans with Allowed decision, 'blocked' for Blocked decision, 'needs-review' for scans with no decision yet.",
-            style = ParameterStyle.FORM,
-            explode = Explode.FALSE,
-            array = @ArraySchema(schema = @Schema(type = "string", allowableValues = {"allowed", "blocked", "needs-review"}))
-        )
-        List<String> adminDecision
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter by scan status (comma-separated for multiple values)",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(
+                    schema = @Schema(
+                        type = "string",
+                        allowableValues = {
+                            "STARTED",
+                            "VALIDATING",
+                            "SCANNING",
+                            "PASSED",
+                            "QUARANTINED",
+                            "AUTO REJECTED",
+                            "ERROR"
+                        },
+                        example = "QUARANTINED"
+                    )
+                )
+            ) List<String> status,
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by publisher name (partial matches supported)") String publisher,
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by namespace (partial matches supported)") String namespace,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter by display name or extension name (partial matches supported)"
+            ) String name,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not be larger than 100")
+            @Parameter(
+                description = "Maximal number of entries to return",
+                schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "10")
+            ) int size,
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
+            @Parameter(
+                description = "Number of entries to skip",
+                schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ) int offset,
+            @RequestParam(defaultValue = "scanEndTime")
+            @Parameter(
+                description = "Field to sort by",
+                schema = @Schema(
+                    type = "string",
+                    allowableValues = { "scanEndTime", "scanStartTime", "displayName", "publisher", "status" },
+                    defaultValue = "scanEndTime"
+                )
+            ) String sortBy,
+            @RequestParam(defaultValue = "desc")
+            @Parameter(
+                description = "Sort order",
+                schema = @Schema(type = "string", allowableValues = { "asc", "desc" }, defaultValue = "desc")
+            ) String sortOrder,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter scans started on or after this date (ISO 8601 format)"
+            ) String dateStartedFrom,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter scans started on or before this date (ISO 8601 format)"
+            ) String dateStartedTo,
+            @RequestParam(name = "validationType", required = false)
+            @Parameter(
+                description = "Filter by validation type (comma-separated for multiple values, e.g., NAME SQUATTING, BLOCKLIST, SECRET)",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(schema = @Schema(type = "string", example = "NAME SQUATTING"))
+            ) List<String> validationType,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter by threat scanner name (comma-separated for multiple values).",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(schema = @Schema(type = "string", example = "ClamAV"))
+            ) List<String> threatScannerName,
+            @RequestParam(defaultValue = "all")
+            @Parameter(
+                description = "Filter by enforcement status of threats/validations",
+                schema = @Schema(
+                    type = "string",
+                    allowableValues = { "enforced", "notEnforced", "all" },
+                    defaultValue = "all"
+                )
+            ) String enforcement,
+            @RequestParam(name = "adminDecision", required = false)
+            @Parameter(
+                description = "Filter by admin decision status (comma-separated for multiple values). Use 'allowed' for scans with Allowed decision, 'blocked' for Blocked decision, 'needs-review' for scans with no decision yet.",
+                style = ParameterStyle.FORM,
+                explode = Explode.FALSE,
+                array = @ArraySchema(
+                    schema = @Schema(type = "string", allowableValues = { "allowed", "blocked", "needs-review" })
+                )
+            ) List<String> adminDecision
     ) {
         try {
             admins.checkAdminUser();
@@ -353,7 +435,6 @@ public class ScanAPI {
                 case ALL -> null;
             };
 
-
             var sort = createSort(sortBy, ascending);
             var pageNumber = offset / Math.max(size, 1);
             var pageable = PageRequest.of(pageNumber, size, sort);
@@ -362,26 +443,26 @@ public class ScanAPI {
             var includeCheckErrors = statusFilter.contains(ScanStatus.ERRORED);
 
             var page = repositories.findScansFullyFiltered(
-                statusFilter.isEmpty() ? null : statusFilter,
-                normalizedNamespace.isEmpty() ? null : normalizedNamespace,
-                normalizedPublisher.isEmpty() ? null : normalizedPublisher,
-                normalizedName.isEmpty() ? null : normalizedName,
-                startedFrom,
-                startedTo,
-                checkTypes,
-                scannerNames,
-                enforcedOnly,
-                adminDecisionFilter,
-                includeCheckErrors,
-                pageable
-            );
+                    statusFilter.isEmpty() ? null : statusFilter,
+                    normalizedNamespace.isEmpty() ? null : normalizedNamespace,
+                    normalizedPublisher.isEmpty() ? null : normalizedPublisher,
+                    normalizedName.isEmpty() ? null : normalizedName,
+                    startedFrom,
+                    startedTo,
+                    checkTypes,
+                    scannerNames,
+                    enforcedOnly,
+                    adminDecisionFilter,
+                    includeCheckErrors,
+                    pageable);
 
             var result = new ScanResultListJson();
             result.setTotalSize((int) page.getTotalElements());
             result.setOffset(offset);
-            result.setScans(page.getContent().stream()
-                .map(this::toScanResultJson)
-                .collect(Collectors.toList()));
+            result.setScans(
+                    page.getContent().stream()
+                            .map(this::toScanResultJson)
+                            .collect(Collectors.toList()));
 
             return ResponseEntity.ok(result);
         } catch (ErrorResultException exc) {
@@ -398,9 +479,9 @@ public class ScanAPI {
             return null;
         }
         var types = validationType.stream()
-            .filter(v -> v != null && !v.isBlank())
-            .map(String::trim)
-            .collect(Collectors.toSet());
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toSet());
         return types.isEmpty() ? null : types;
     }
 
@@ -413,9 +494,9 @@ public class ScanAPI {
             return null;
         }
         var names = scannerNames.stream()
-            .filter(v -> v != null && !v.isBlank())
-            .map(String::trim)
-            .collect(Collectors.toSet());
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toSet());
         return names.isEmpty() ? null : names;
     }
 
@@ -423,9 +504,9 @@ public class ScanAPI {
      * Admin decision filter values for the database query.
      */
     public record AdminDecisionFilterValues(
-        boolean filterAllowed,      // Include scans with ALLOWED decision
-        boolean filterBlocked,      // Include scans with BLOCKED decision
-        boolean filterNeedsReview   // Include scans with no decision (needs review)
+            boolean filterAllowed, // Include scans with ALLOWED decision
+            boolean filterBlocked, // Include scans with BLOCKED decision
+            boolean filterNeedsReview // Include scans with no decision (needs review)
     ) {
         public boolean hasFilter() {
             return filterAllowed || filterBlocked || filterNeedsReview;
@@ -445,20 +526,19 @@ public class ScanAPI {
         }
 
         var values = adminDecision.stream()
-            .filter(v -> v != null && !v.isBlank())
-            .map(String::trim)
-            .map(String::toLowerCase)
-            .collect(Collectors.toSet());
+                .filter(v -> v != null && !v.isBlank())
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
 
         if (values.isEmpty()) {
             return null;
         }
 
         return new AdminDecisionFilterValues(
-            values.contains("allowed"),
-            values.contains("blocked"),
-            values.contains("needs-review")
-        );
+                values.contains("allowed"),
+                values.contains("blocked"),
+                values.contains("needs-review"));
     }
 
     /**
@@ -489,7 +569,7 @@ public class ScanAPI {
 
         if ("scanendtime".equals(normalizedSortBy)) {
             var completedAtOrder = new Sort.Order(direction, "completed_at")
-                .with(Sort.NullHandling.NULLS_FIRST);
+                    .with(Sort.NullHandling.NULLS_FIRST);
             var startedAtOrder = new Sort.Order(direction, "started_at");
             return Sort.by(completedAtOrder, startedAtOrder);
         }
@@ -555,7 +635,8 @@ public class ScanAPI {
         content = @Content()
     )
     public ResponseEntity<ScanResultJson> getScan(
-        @PathVariable @Parameter(description = "Scan ID", example = "123") long scanId
+            @PathVariable
+            @Parameter(description = "Scan ID", example = "123") long scanId
     ) {
         try {
             admins.checkAdminUser();
@@ -570,9 +651,8 @@ public class ScanAPI {
             return ResponseEntity.ok(result);
         } catch (ErrorResultException exc) {
             throw new org.springframework.web.server.ResponseStatusException(
-                exc.getStatus() != null ? (HttpStatus) exc.getStatus() : HttpStatus.BAD_REQUEST,
-                exc.getMessage()
-            );
+                    exc.getStatus() != null ? (HttpStatus) exc.getStatus() : HttpStatus.BAD_REQUEST,
+                    exc.getMessage());
         }
     }
 
@@ -605,13 +685,14 @@ public class ScanAPI {
         content = @Content()
     )
     public ResponseEntity<ScanResultJson> retryFailedScannerJobs(
-        @PathVariable @Parameter(description = "Scan ID", example = "123") long scanId
+            @PathVariable
+            @Parameter(description = "Scan ID", example = "123") long scanId
     ) {
         try {
             var adminUser = admins.checkAdminUser();
 
             var scan = Optional.ofNullable(repositories.findExtensionScan(scanId))
-                .orElseThrow(() -> new ErrorResultException("Scan not found: " + scanId, HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new ErrorResultException("Scan not found: " + scanId, HttpStatus.NOT_FOUND));
 
             var updatedScan = scanService.retryFailedJobs(scan);
 
@@ -658,7 +739,7 @@ public class ScanAPI {
         content = @Content()
     )
     public ResponseEntity<ScanDecisionResponseJson> makeScanDecisions(
-        @RequestBody ScanDecisionRequest request
+            @RequestBody ScanDecisionRequest request
     ) {
         try {
             var adminUser = admins.checkAdminUser();
@@ -688,16 +769,20 @@ public class ScanAPI {
                     }
 
                     if (scan.getStatus() != ScanStatus.QUARANTINED) {
-                        results.add(ScanDecisionResultJson.failure(scanIdStr,
-                            "Scan not in quarantined status: " + formatScanStatus(scan.getStatus())));
+                        results.add(
+                                ScanDecisionResultJson.failure(
+                                        scanIdStr,
+                                        "Scan not in quarantined status: " + formatScanStatus(scan.getStatus())));
                         failed++;
                         continue;
                     }
 
                     var existingDecision = repositories.findAdminScanDecisionByScanId(scanId);
                     if (existingDecision != null) {
-                        results.add(ScanDecisionResultJson.failure(scanIdStr,
-                            "Decision already exists: " + existingDecision.getDecision()));
+                        results.add(
+                                ScanDecisionResultJson.failure(
+                                        scanIdStr,
+                                        "Decision already exists: " + existingDecision.getDecision()));
                         failed++;
                         continue;
                     }
@@ -756,21 +841,26 @@ public class ScanAPI {
             case "allowed", "allow" -> AdminScanDecision.ALLOWED;
             case "blocked", "block" -> AdminScanDecision.BLOCKED;
             default -> throw new ErrorResultException(
-                "Invalid decision value: " + decision + ". Must be 'allowed' or 'blocked'",
-                HttpStatus.BAD_REQUEST
-            );
+                    "Invalid decision value: " + decision + ". Must be 'allowed' or 'blocked'",
+                    HttpStatus.BAD_REQUEST);
         };
     }
 
     /**
      * Format a log message for a scan decision.
      */
-    private String formatDecisionLogMessage(ExtensionScan scan, String decisionValue, int threatCount, boolean activated) {
+    private String formatDecisionLogMessage(
+            ExtensionScan scan,
+            String decisionValue,
+            int threatCount,
+            boolean activated
+    ) {
         var action = AdminScanDecision.ALLOWED.equals(decisionValue) ? "Allowed" : "Blocked";
-        var extensionId = String.format("%s.%s v%s",
-            scan.getNamespaceName(),
-            scan.getExtensionName(),
-            scan.getExtensionVersion());
+        var extensionId = String.format(
+                "%s.%s v%s",
+                scan.getNamespaceName(),
+                scan.getExtensionName(),
+                scan.getExtensionVersion());
 
         var details = new java.util.ArrayList<String>();
         if (threatCount > 0) {
@@ -782,8 +872,12 @@ public class ScanAPI {
 
         var detailsStr = details.isEmpty() ? "" : " (" + String.join(", ", details) + ")";
 
-        return String.format("%s scan #%d for extension %s%s",
-            action, scan.getId(), extensionId, detailsStr);
+        return String.format(
+                "%s scan #%d for extension %s%s",
+                action,
+                scan.getId(),
+                extensionId,
+                detailsStr);
     }
 
     /**
@@ -849,11 +943,10 @@ public class ScanAPI {
         json.setUniversalTargetPlatform(scan.isUniversalTargetPlatform());
 
         var version = repositories.findVersion(
-            scan.getExtensionVersion(),
-            scan.getTargetPlatform(),
-            scan.getExtensionName(),
-            scan.getNamespaceName()
-        );
+                scan.getExtensionVersion(),
+                scan.getTargetPlatform(),
+                scan.getExtensionName(),
+                scan.getNamespaceName());
 
         if (version != null) {
             populateExtensionMetadata(scan.getStatus(), json, version);
@@ -883,16 +976,16 @@ public class ScanAPI {
         var validationFailures = repositories.findValidationFailures(scan).toList();
         if (!validationFailures.isEmpty()) {
             var failures = validationFailures.stream()
-                .map(this::toValidationFailureJson)
-                .collect(Collectors.toList());
+                    .map(this::toValidationFailureJson)
+                    .collect(Collectors.toList());
             json.setValidationFailures(failures);
         }
 
         var threats = repositories.findExtensionThreats(scan).toList();
         if (!threats.isEmpty()) {
             var threatJsons = threats.stream()
-                .map(this::toThreatJson)
-                .collect(Collectors.toList());
+                    .map(this::toThreatJson)
+                    .collect(Collectors.toList());
             json.setThreats(threatJsons);
         }
 
@@ -912,11 +1005,12 @@ public class ScanAPI {
         // Include all check results for audit trail
         var checkResults = repositories.findScanCheckResultsByScanId(scan.getId());
         if (!checkResults.isEmpty()) {
-            var scannerJobsById = scannerJobs.stream().collect(Collectors.toMap(ScannerJob::getId, Function.identity()));
+            var scannerJobsById = scannerJobs.stream()
+                    .collect(Collectors.toMap(ScannerJob::getId, Function.identity()));
 
             var checkResultJsons = checkResults.stream()
-                .map(r -> toCheckResultJson(r, scannerJobsById.get(r.getScannerJobId())))
-                .collect(Collectors.toList());
+                    .map(r -> toCheckResultJson(r, scannerJobsById.get(r.getScannerJobId())))
+                    .collect(Collectors.toList());
             json.setCheckResults(checkResultJsons);
         }
 
@@ -1021,15 +1115,14 @@ public class ScanAPI {
 
         var isQuarantined = scanStatus == ScanStatus.QUARANTINED;
         var isErrored = scanStatus == ScanStatus.ERRORED;
-        var fileTypes = isQuarantined ?
-                new String[] { FileResource.ICON } :
-                new String[] { FileResource.ICON, FileResource.DOWNLOAD };
+        var fileTypes = isQuarantined
+                ? new String[] { FileResource.ICON }
+                : new String[] { FileResource.ICON, FileResource.DOWNLOAD };
 
         var fileUrls = storageUtil.getFileUrls(
-            List.of(version),
-            UrlUtil.getBaseUrl(),
-            fileTypes
-        );
+                List.of(version),
+                UrlUtil.getBaseUrl(),
+                fileTypes);
 
         var files = fileUrls.get(version.getId());
         if (files != null) {
@@ -1058,7 +1151,9 @@ public class ScanAPI {
         }
     }
 
-    private ValidationFailureJson toValidationFailureJson(org.eclipse.openvsx.entities.ExtensionValidationFailure failure) {
+    private ValidationFailureJson toValidationFailureJson(
+            org.eclipse.openvsx.entities.ExtensionValidationFailure failure
+    ) {
         var json = new ValidationFailureJson();
         json.setId(String.valueOf(failure.getId()));
         json.setType(failure.getCheckType());
@@ -1093,9 +1188,8 @@ public class ScanAPI {
             return TimeUtil.fromUTCString(raw);
         } catch (Exception e) {
             throw new ErrorResultException(
-                "Invalid ISO date-time for parameter '" + paramName + "': " + raw,
-                HttpStatus.BAD_REQUEST
-            );
+                    "Invalid ISO date-time for parameter '" + paramName + "': " + raw,
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -1156,7 +1250,8 @@ public class ScanAPI {
         return switch (sortOrder.toLowerCase(Locale.ROOT)) {
             case "asc" -> true;
             case "desc" -> false;
-            default -> throw new ErrorResultException("Unsupported sortOrder value: " + sortOrder, HttpStatus.BAD_REQUEST);
+            default ->
+                throw new ErrorResultException("Unsupported sortOrder value: " + sortOrder, HttpStatus.BAD_REQUEST);
         };
     }
 

@@ -9,11 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.time.Instant;
 import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,8 +44,7 @@ class AuthTokenConverterTest {
                 Instant.parse("2026-01-01T11:00:00Z"),
                 Set.of("read", "write"),
                 "refresh-token-value",
-                Instant.parse("2026-01-08T10:00:00Z")
-        );
+                Instant.parse("2026-01-08T10:00:00Z"));
 
         var json = converter.convertToDatabaseColumn(token);
         var restored = converter.convertToEntityAttribute(json);
@@ -85,15 +84,15 @@ class AuthTokenConverterTest {
     @Test
     void deserializeFromJackson2Timestamps() {
         String json = """
-        {
-            "accessToken":"test-token",
-            "issuedAt":1782716836.174727396,
-            "expiresAt":1782717136.174727396,
-            "scopes":[],
-            "refreshToken":null,
-            "refreshExpiresAt":null
-        }
-        """;
+                {
+                    "accessToken":"test-token",
+                    "issuedAt":1782716836.174727396,
+                    "expiresAt":1782717136.174727396,
+                    "scopes":[],
+                    "refreshToken":null,
+                    "refreshExpiresAt":null
+                }
+                """;
 
         var restored = converter.convertToEntityAttribute(json);
 

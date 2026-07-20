@@ -37,23 +37,56 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, OAuth2UserServices userServices) throws Exception {
         var filterChain = http.authorizeHttpRequests(
                 registry -> registry
-                        .requestMatchers(pathMatchers("/*", "/login/**", "/oauth2/**", "/login-providers", "/user", "/user/auth-error", "/logout", "/actuator/health/**", "/actuator/metrics", "/actuator/metrics/**", "/actuator/prometheus", "/v3/api-docs/**", "/swagger-resources/**", "/swagger-ui/**", "/webjars/**"))
-                            .permitAll()
-                        .requestMatchers(pathMatchers("/api/*/*/review", "/api/*/*/review/delete", "/api/user/publish", "/api/user/namespace/create"))
-                            .authenticated()
-                        .requestMatchers(pathMatchers("/api/**", "/vscode/**", "/documents/**", "/admin/api/**", "/admin/report"))
-                            .permitAll()
+                        .requestMatchers(
+                                pathMatchers(
+                                        "/*",
+                                        "/login/**",
+                                        "/oauth2/**",
+                                        "/login-providers",
+                                        "/user",
+                                        "/user/auth-error",
+                                        "/logout",
+                                        "/actuator/health/**",
+                                        "/actuator/metrics",
+                                        "/actuator/metrics/**",
+                                        "/actuator/prometheus",
+                                        "/v3/api-docs/**",
+                                        "/swagger-resources/**",
+                                        "/swagger-ui/**",
+                                        "/webjars/**"))
+                        .permitAll()
+                        .requestMatchers(
+                                pathMatchers(
+                                        "/api/*/*/review",
+                                        "/api/*/*/review/delete",
+                                        "/api/user/publish",
+                                        "/api/user/namespace/create"))
+                        .authenticated()
+                        .requestMatchers(
+                                pathMatchers(
+                                        "/api/**",
+                                        "/vscode/**",
+                                        "/documents/**",
+                                        "/admin/api/**",
+                                        "/admin/report"))
+                        .permitAll()
                         .requestMatchers(pathMatchers("/admin/**"))
-                            .hasAuthority("ROLE_ADMIN")
+                        .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(pathMatchers(frontendRoutes))
-                            .permitAll()
+                        .permitAll()
                         .requestMatchers(pathMatchers(additionalRoutes))
-                            .permitAll()
+                        .permitAll()
                         .anyRequest()
-                            .authenticated()
-                )
+                        .authenticated())
                 .cors(configurer -> configurer.configure(http))
-                .csrf(configurer -> configurer.ignoringRequestMatchers(pathMatchers("/api/-/publish", "/api/-/namespace/create", "/api/-/query", "/vscode/**", "/admin/api/**")))
+                .csrf(
+                        configurer -> configurer.ignoringRequestMatchers(
+                                pathMatchers(
+                                        "/api/-/publish",
+                                        "/api/-/namespace/create",
+                                        "/api/-/query",
+                                        "/vscode/**",
+                                        "/admin/api/**")))
                 .exceptionHandling(configurer -> configurer.authenticationEntryPoint(new Http403ForbiddenEntryPoint()));
 
         if (userServices.canLogin()) {
@@ -62,18 +95,19 @@ public class SecurityConfig {
                 configurer.defaultSuccessUrl(redirectUrl);
                 configurer.successHandler(new CustomAuthenticationSuccessHandler(redirectUrl));
                 configurer.failureUrl(redirectUrl + "?auth-error");
-                configurer.userInfoEndpoint(customizer -> customizer.oidcUserService(userServices.getOidc()).userService(userServices.getOauth2()));
+                configurer.userInfoEndpoint(
+                        customizer -> customizer.oidcUserService(userServices.getOidc())
+                                .userService(userServices.getOauth2()));
             })
-            .logout(configurer -> configurer.logoutSuccessUrl(redirectUrl));
+                    .logout(configurer -> configurer.logoutSuccessUrl(redirectUrl));
         }
 
         return filterChain.build();
     }
 
-    private RequestMatcher[] pathMatchers(String... patterns)
-    {
+    private RequestMatcher[] pathMatchers(String... patterns) {
         var pathMatchers = new RequestMatcher[patterns.length];
-        for(var i = 0; i < patterns.length; i++) {
+        for (var i = 0; i < patterns.length; i++) {
             pathMatchers[i] = PathPatternRequestMatcher.withDefaults().matcher(patterns[i]);
         }
 

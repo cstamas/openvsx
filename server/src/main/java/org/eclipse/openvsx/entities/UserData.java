@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.eclipse.openvsx.json.UserJson;
-import org.jspecify.annotations.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -24,6 +22,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
+import org.jspecify.annotations.Nullable;
+
+import org.eclipse.openvsx.json.UserJson;
 
 @Entity
 public class UserData implements Serializable {
@@ -32,11 +33,12 @@ public class UserData implements Serializable {
     private static final long serialVersionUID = 1L;
 
     public enum Role {
-        ADMIN,
-        PRIVILEGED;
+        ADMIN, PRIVILEGED;
 
         public static Role valueOfIgnoreCase(String value) {
-            if (value == null) return null;
+            if (value == null) {
+                return null;
+            }
             return Role.valueOf(value.trim().toUpperCase());
         }
 
@@ -82,7 +84,6 @@ public class UserData implements Serializable {
     @Convert(converter = AuthTokenConverter.class)
     private AuthToken eclipseToken;
 
-
     /**
      * Convert to a JSON object.
      */
@@ -101,8 +102,8 @@ public class UserData implements Serializable {
     }
 
     public void setId(long id) {
-		this.id = id;
-	}
+        this.id = id;
+    }
 
     public Role getRole() {
         return role;
@@ -116,13 +117,13 @@ public class UserData implements Serializable {
         this.role = role;
     }
 
-	public String getLoginName() {
-		return loginName;
-	}
+    public String getLoginName() {
+        return loginName;
+    }
 
-	public void setLoginName(String loginName) {
-		this.loginName = loginName;
-	}
+    public void setLoginName(String loginName) {
+        this.loginName = loginName;
+    }
 
     public String getFullName() {
         return fullName;
@@ -190,8 +191,12 @@ public class UserData implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         UserData userData = (UserData) o;
         return id == userData.id
                 && Objects.equals(role, userData.role)
@@ -211,8 +216,18 @@ public class UserData implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, role, loginName, fullName, email, avatarUrl, provider, authId, providerUrl, tokens, memberships,
-                eclipsePersonId, eclipseToken
-        );
+                id,
+                role,
+                loginName,
+                fullName,
+                email,
+                avatarUrl,
+                provider,
+                authId,
+                providerUrl,
+                tokens,
+                memberships,
+                eclipsePersonId,
+                eclipseToken);
     }
 }

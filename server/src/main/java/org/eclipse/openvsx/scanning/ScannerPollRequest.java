@@ -28,7 +28,8 @@ public class ScannerPollRequest implements JobRequest {
     /**
      * Default constructor required by JobRunr for deserialization.
      */
-    public ScannerPollRequest() {}
+    public ScannerPollRequest() {
+    }
 
     /**
      * Create a poll request for a specific scan job.

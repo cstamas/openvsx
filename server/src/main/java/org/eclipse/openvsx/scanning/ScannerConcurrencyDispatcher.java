@@ -12,10 +12,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.util.List;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -24,7 +22,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Periodic dispatcher for concurrency-limited scanners.
@@ -66,7 +67,7 @@ public class ScannerConcurrencyDispatcher implements JobRequestHandler<HandlerJo
     @Job(name = "Scanner concurrency dispatcher", retries = 0)
     public void run(HandlerJobRequest<?> jobRequest) throws Exception {
         boolean anyLimited = scannerRegistry.getAllScanners().stream()
-            .anyMatch(s -> s.getMaxConcurrency() > 0);
+                .anyMatch(s -> s.getMaxConcurrency() > 0);
         if (!anyLimited) {
             return;
         }
@@ -82,8 +83,8 @@ public class ScannerConcurrencyDispatcher implements JobRequestHandler<HandlerJo
             // Async scanners transition to SUBMITTED while still running at the
             // external service, so both count toward the concurrency limit.
             long active = scanJobRepository.countByStatusInAndScannerType(
-                List.of(ScannerJob.JobStatus.PROCESSING, ScannerJob.JobStatus.SUBMITTED),
-                scannerType);
+                    List.of(ScannerJob.JobStatus.PROCESSING, ScannerJob.JobStatus.SUBMITTED),
+                    scannerType);
             int available = (int) (maxConcurrency - active);
             if (available <= 0) {
                 continue;
@@ -91,17 +92,26 @@ public class ScannerConcurrencyDispatcher implements JobRequestHandler<HandlerJo
 
             // Find oldest QUEUED jobs, limited to available concurrency slots
             var queued = scanJobRepository.findByScannerTypeAndStatusOrderByCreatedAtAsc(
-                scannerType, ScannerJob.JobStatus.QUEUED, Pageable.ofSize(available));
+                    scannerType,
+                    ScannerJob.JobStatus.QUEUED,
+                    Pageable.ofSize(available));
 
             int dispatched = 0;
             for (ScannerJob job : queued) {
                 int claimed = scanJobRepository.claimForProcessing(job.getId(), TimeUtil.getCurrentUTC());
                 if (claimed > 0) {
                     dispatched++;
-                    jobScheduler.enqueue(new ScannerInvocationRequest(
-                        scannerType, job.getExtensionVersionId(), job.getScanId()));
-                    logger.debug("Dispatched queued scan job {} for scanner {} ({}/{} slots used)",
-                        job.getId(), scannerType, active + dispatched, maxConcurrency);
+                    jobScheduler.enqueue(
+                            new ScannerInvocationRequest(
+                                    scannerType,
+                                    job.getExtensionVersionId(),
+                                    job.getScanId()));
+                    logger.debug(
+                            "Dispatched queued scan job {} for scanner {} ({}/{} slots used)",
+                            job.getId(),
+                            scannerType,
+                            active + dispatched,
+                            maxConcurrency);
                 }
             }
         }

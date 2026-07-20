@@ -9,13 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
-import org.eclipse.openvsx.UrlConfigService;
-import org.eclipse.openvsx.admin.AdminService;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.XmlUtil;
+import java.net.URI;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.server.runner.ThreadLocalJobContext;
@@ -31,12 +31,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import java.net.URI;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import org.eclipse.openvsx.UrlConfigService;
+import org.eclipse.openvsx.admin.AdminService;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.XmlUtil;
 
 import static org.eclipse.openvsx.util.UrlUtil.createApiUrl;
 
@@ -71,7 +72,7 @@ public class DataMirrorJobRequestHandler implements JobRequestHandler<DataMirror
     }
 
     @Override
-    @Job(name="Data Mirror", retries = 0)
+    @Job(name = "Data Mirror", retries = 0)
     public void run(DataMirrorJobRequest jobRequest) throws Exception {
         if (data == null) {
             return;
@@ -113,11 +114,11 @@ public class DataMirrorJobRequestHandler implements JobRequestHandler<DataMirror
             var namespace = id.namespace();
             var extension = id.extension();
             if (!data.match(namespace, extension)) {
-                jobLogger.info("excluded, skipping " + extensionId + " (" + (i+1) + "/" +  urls.getLength() + ")");
+                jobLogger.info("excluded, skipping " + extensionId + " (" + (i + 1) + "/" + urls.getLength() + ")");
                 continue;
             }
 
-            jobLogger.info("mirroring " + extensionId + " (" + (i+1) + "/" +  urls.getLength() + ")");
+            jobLogger.info("mirroring " + extensionId + " (" + (i + 1) + "/" + urls.getLength() + ")");
             try {
                 LocalDate lastModified = getLastModified(url, extensionId);
                 mirrorExtensionService.mirrorExtension(namespace, extension, mirrorUser, lastModified, jobContext);
@@ -173,7 +174,7 @@ public class DataMirrorJobRequestHandler implements JobRequestHandler<DataMirror
         try {
             var lastModifiedString = url.getElementsByTagName("lastmod").item(0).getTextContent();
             return LocalDate.parse(lastModifiedString, dateFormatter);
-        } catch(Exception e) {
+        } catch (Exception e) {
             logger.error("failed to resolve last modified date {}", extensionId, e);
         }
 

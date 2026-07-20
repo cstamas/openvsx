@@ -16,15 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.publish.PublishExtensionVersionHandler;
-import org.eclipse.openvsx.publish.PublishingConfig;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
-import org.eclipse.openvsx.scanning.ExtensionScanService;
-import org.eclipse.openvsx.search.SearchUtilService;
-import org.eclipse.openvsx.util.LogService;
+import jakarta.persistence.EntityManager;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +26,15 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.util.Streamable;
 
-import jakarta.persistence.EntityManager;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.publish.PublishExtensionVersionHandler;
+import org.eclipse.openvsx.publish.PublishingConfig;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
+import org.eclipse.openvsx.scanning.ExtensionScanService;
+import org.eclipse.openvsx.search.SearchUtilService;
+import org.eclipse.openvsx.util.LogService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,8 +66,17 @@ class ExtensionServiceTest {
 
     @BeforeEach
     void setUp() {
-        svc = new ExtensionService(publishingConfig, entityManager, repositories, search, cache, logs, publishHandler,
-                scheduler, scanService, scanPersistenceService);
+        svc = new ExtensionService(
+                publishingConfig,
+                entityManager,
+                repositories,
+                search,
+                cache,
+                logs,
+                publishHandler,
+                scheduler,
+                scanService,
+                scanPersistenceService);
     }
 
     @Test
@@ -155,8 +164,8 @@ class ExtensionServiceTest {
             Extension extension,
             String version,
             ScanStatus status,
-            UserData user)
-    {
+            UserData user
+    ) {
         var extVersion = new ExtensionVersion();
         extVersion.setId(1L);
         extVersion.setVersion(version);

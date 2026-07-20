@@ -155,7 +155,7 @@ public class SimilarityConfig {
     public void validate() {
         if (similarityThreshold < 0.0 || similarityThreshold > 0.3) {
             throw new IllegalArgumentException(
-                "ovsx.similarity.similarity-threshold must be between 0.0 and 0.3, got: " + similarityThreshold);
+                    "ovsx.similarity.similarity-threshold must be between 0.0 and 0.3, got: " + similarityThreshold);
         }
     }
 }

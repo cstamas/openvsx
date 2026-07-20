@@ -9,10 +9,10 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.search;
 
-import org.jspecify.annotations.NonNull;
-
 import java.util.Collections;
 import java.util.List;
+
+import org.jspecify.annotations.NonNull;
 
 public class SearchResult {
 

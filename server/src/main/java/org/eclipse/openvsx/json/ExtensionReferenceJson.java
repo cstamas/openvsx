@@ -9,12 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.Objects;
 
 @Schema(
     name = "ExtensionReference",
@@ -72,8 +72,12 @@ public class ExtensionReferenceJson {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionReferenceJson that = (ExtensionReferenceJson) o;
         return Objects.equals(url, that.url)
                 && Objects.equals(namespace, that.namespace)

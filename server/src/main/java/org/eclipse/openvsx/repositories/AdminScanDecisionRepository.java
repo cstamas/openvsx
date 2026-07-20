@@ -12,16 +12,17 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.AdminScanDecision;
-import org.eclipse.openvsx.entities.ExtensionScan;
+import java.time.LocalDateTime;
+import java.util.Collection;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
-import java.time.LocalDateTime;
-import java.util.Collection;
+import org.eclipse.openvsx.entities.AdminScanDecision;
+import org.eclipse.openvsx.entities.ExtensionScan;
 
 /**
  * Repository for admin decisions on quarantined scans.
@@ -58,60 +59,69 @@ public interface AdminScanDecisionRepository extends Repository<AdminScanDecisio
     /** Count ALLOWED decisions within a date range.
      *  Uses native query to handle nullable timestamp parameters correctly with PostgreSQL. */
     @Query(value = """
-        SELECT COUNT(*) FROM admin_scan_decision
-        WHERE decision = :decision
-          AND (CAST(:startedFrom AS TIMESTAMP) IS NULL OR decided_at >= :startedFrom)
-          AND (CAST(:startedTo AS TIMESTAMP) IS NULL OR decided_at <= :startedTo)
-        """, nativeQuery = true)
+            SELECT COUNT(*) FROM admin_scan_decision
+            WHERE decision = :decision
+              AND (CAST(:startedFrom AS TIMESTAMP) IS NULL OR decided_at >= :startedFrom)
+              AND (CAST(:startedTo AS TIMESTAMP) IS NULL OR decided_at <= :startedTo)
+            """, nativeQuery = true)
     long countByDecisionAndDateRange(String decision, LocalDateTime startedFrom, LocalDateTime startedTo);
 
     /**
      * Count decisions filtered by enforcement status of the associated scan's validation failures/threats.
      * Used when enforcement filter is applied to scan counts.
      */
-    @Query(value = """
-        SELECT COUNT(*) FROM admin_scan_decision d
-        WHERE d.decision = :decision
-          AND (EXISTS (SELECT 1 FROM extension_validation_failure f WHERE f.scan_id = d.scan_id AND f.enforced = :enforcedOnly)
-               OR EXISTS (SELECT 1 FROM extension_threat t WHERE t.scan_id = d.scan_id AND t.enforced = :enforcedOnly))
-        """, nativeQuery = true)
+    @Query(
+        value = """
+                SELECT COUNT(*) FROM admin_scan_decision d
+                WHERE d.decision = :decision
+                  AND (EXISTS (SELECT 1 FROM extension_validation_failure f WHERE f.scan_id = d.scan_id AND f.enforced = :enforcedOnly)
+                       OR EXISTS (SELECT 1 FROM extension_threat t WHERE t.scan_id = d.scan_id AND t.enforced = :enforcedOnly))
+                """,
+        nativeQuery = true
+    )
     long countByDecisionAndEnforcement(String decision, boolean enforcedOnly);
 
     /**
      * Counts decisions where the associated scan has matching validation failures or threats.
      * Date filtering is based on the scan's started_at timestamp (when the scan began).
      */
-    @Query(value = """
-        SELECT COUNT(*) FROM admin_scan_decision d
-        JOIN extension_scan s ON s.id = d.scan_id
-        WHERE d.decision = :decision
-          AND (CAST(:startedFrom AS TIMESTAMP) IS NULL OR s.started_at >= :startedFrom)
-          AND (CAST(:startedTo AS TIMESTAMP) IS NULL OR s.started_at <= :startedTo)
-          AND (:applyCheckTypesFilter = false OR EXISTS (
-               SELECT 1 FROM extension_validation_failure f
-               WHERE f.scan_id = d.scan_id
-                 AND f.validation_type IN (:checkTypes)
-                 AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL OR f.enforced = :enforcedOnly)))
-          AND (:applyScannerNamesFilter = false OR EXISTS (
-               SELECT 1 FROM extension_threat t
-               WHERE t.scan_id = d.scan_id
-                 AND t.scanner_type IN (:scannerNames)
-                 AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL OR t.enforced = :enforcedOnly)))
-          AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL
-               OR :applyCheckTypesFilter = true
-               OR :applyScannerNamesFilter = true
-               OR EXISTS (SELECT 1 FROM extension_validation_failure f WHERE f.scan_id = d.scan_id AND f.enforced = :enforcedOnly)
-               OR EXISTS (SELECT 1 FROM extension_threat t WHERE t.scan_id = d.scan_id AND t.enforced = :enforcedOnly))
-        """, nativeQuery = true)
+    @Query(
+        value = """
+                SELECT COUNT(*) FROM admin_scan_decision d
+                JOIN extension_scan s ON s.id = d.scan_id
+                WHERE d.decision = :decision
+                  AND (CAST(:startedFrom AS TIMESTAMP) IS NULL OR s.started_at >= :startedFrom)
+                  AND (CAST(:startedTo AS TIMESTAMP) IS NULL OR s.started_at <= :startedTo)
+                  AND (:applyCheckTypesFilter = false OR EXISTS (
+                       SELECT 1 FROM extension_validation_failure f
+                       WHERE f.scan_id = d.scan_id
+                         AND f.validation_type IN (:checkTypes)
+                         AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL OR f.enforced = :enforcedOnly)))
+                  AND (:applyScannerNamesFilter = false OR EXISTS (
+                       SELECT 1 FROM extension_threat t
+                       WHERE t.scan_id = d.scan_id
+                         AND t.scanner_type IN (:scannerNames)
+                         AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL OR t.enforced = :enforcedOnly)))
+                  AND (CAST(:enforcedOnly AS BOOLEAN) IS NULL
+                       OR :applyCheckTypesFilter = true
+                       OR :applyScannerNamesFilter = true
+                       OR EXISTS (SELECT 1 FROM extension_validation_failure f WHERE f.scan_id = d.scan_id AND f.enforced = :enforcedOnly)
+                       OR EXISTS (SELECT 1 FROM extension_threat t WHERE t.scan_id = d.scan_id AND t.enforced = :enforcedOnly))
+                """,
+        nativeQuery = true
+    )
     long countForStatistics(
-        @Param("decision") String decision,
-        @Nullable @Param("startedFrom") LocalDateTime startedFrom,
-        @Nullable @Param("startedTo") LocalDateTime startedTo,
-        @Param("checkTypes") Collection<String> checkTypes,
-        @Param("applyCheckTypesFilter") boolean applyCheckTypesFilter,
-        @Param("scannerNames") Collection<String> scannerNames,
-        @Param("applyScannerNamesFilter") boolean applyScannerNamesFilter,
-        @Nullable @Param("enforcedOnly") Boolean enforcedOnly
+            @Param("decision") String decision,
+            @Nullable
+            @Param("startedFrom") LocalDateTime startedFrom,
+            @Nullable
+            @Param("startedTo") LocalDateTime startedTo,
+            @Param("checkTypes") Collection<String> checkTypes,
+            @Param("applyCheckTypesFilter") boolean applyCheckTypesFilter,
+            @Param("scannerNames") Collection<String> scannerNames,
+            @Param("applyScannerNamesFilter") boolean applyScannerNamesFilter,
+            @Nullable
+            @Param("enforcedOnly") Boolean enforcedOnly
     );
 
     /** Delete a decision by ID */

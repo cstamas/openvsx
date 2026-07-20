@@ -9,14 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.entities.AdminStatistics;
-import org.eclipse.openvsx.repositories.RepositoryService;
+import java.time.LocalDateTime;
+
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import org.eclipse.openvsx.entities.AdminStatistics;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 @Component
 public class AdminStatisticsJobRequestHandler implements JobRequestHandler<AdminStatisticsJobRequest> {
@@ -40,7 +41,8 @@ public class AdminStatisticsJobRequestHandler implements JobRequestHandler<Admin
         var downloadsTotal = repositories.downloadsTotal();
 
         var lastDate = LocalDateTime.of(year, month, 1, 0, 0).minusMonths(1);
-        var lastAdminStatistics = repositories.findAdminStatisticsByYearAndMonth(lastDate.getYear(), lastDate.getMonthValue());
+        var lastAdminStatistics = repositories
+                .findAdminStatisticsByYearAndMonth(lastDate.getYear(), lastDate.getMonthValue());
         var lastDownloadsTotal = lastAdminStatistics != null ? lastAdminStatistics.getDownloadsTotal() : 0;
         var downloads = downloadsTotal - lastDownloadsTotal;
         var publishers = repositories.countActiveExtensionPublishers();

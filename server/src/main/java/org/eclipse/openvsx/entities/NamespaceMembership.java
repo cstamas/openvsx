@@ -9,13 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-
-import org.eclipse.openvsx.json.NamespaceMembershipJson;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.NamespaceMembershipJson;
 
 @Entity
 public class NamespaceMembership implements Serializable {
@@ -46,8 +46,7 @@ public class NamespaceMembership implements Serializable {
         return new NamespaceMembershipJson(
                 this.namespace.getName(),
                 this.role,
-                this.user.toUserJson()
-        );
+                this.user.toUserJson());
     }
 
     public long getId() {
@@ -55,7 +54,7 @@ public class NamespaceMembership implements Serializable {
     }
 
     public void setId(long id) {
-		this.id = id;
+        this.id = id;
     }
 
     public UserData getUser() {
@@ -84,8 +83,12 @@ public class NamespaceMembership implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NamespaceMembership that = (NamespaceMembership) o;
         return id == that.id
                 && Objects.equals(namespace, that.namespace)

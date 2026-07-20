@@ -9,8 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.settings.SettingsService;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -20,8 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.SettingsService;
 
 @Component
 public class MigrationItemJobRequestHandler implements JobRequestHandler<HandlerJobRequest<?>> {

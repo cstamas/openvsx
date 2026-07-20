@@ -9,10 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.util;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.jspecify.annotations.Nullable;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -22,12 +18,17 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.jspecify.annotations.Nullable;
+
 public final class ArchiveUtil {
 
     // Limit the size of fetched zip entries to 32 MB
     private static final long MAX_ENTRY_SIZE = 33_554_432;
 
-    private ArchiveUtil() {}
+    private ArchiveUtil() {
+    }
 
     public static @Nullable ZipEntry getEntryIgnoreCase(ZipFile archive, String entryName) {
         return archive.stream()
@@ -56,7 +57,7 @@ public final class ArchiveUtil {
         var suffix = suffixIndex == -1 ? null : fileName.substring(suffixIndex);
         var prefix = suffixIndex == -1 ? fileName : fileName.substring(0, suffixIndex);
         var file = new TempFile(prefix, suffix);
-        try (var out = Files.newOutputStream(file.getPath())){
+        try (var out = Files.newOutputStream(file.getPath())) {
             if (entry.getSize() < 0) {
                 IOUtils.closeQuietly(file);
                 throw new ErrorResultException("The file " + entry.getName() + " has a negative size.");
@@ -65,7 +66,8 @@ public final class ArchiveUtil {
             if (entry.getSize() > maxEntrySize) {
                 IOUtils.closeQuietly(file);
                 var maxSize = FileUtils.byteCountToDisplaySize(maxEntrySize);
-                throw new ErrorResultException("The file " + entry.getName() + " exceeds the size limit of " + maxSize + ".");
+                throw new ErrorResultException(
+                        "The file " + entry.getName() + " exceeds the size limit of " + maxSize + ".");
             }
 
             // Read at most the number of bytes as declared by the entry
@@ -82,9 +84,11 @@ public final class ArchiveUtil {
     /**
      * Enforce coarse archive limits before reading content.
      */
-    public static void enforceArchiveLimits(List<? extends ZipEntry> entries,
-                                            int maxEntryCount,
-                                            long maxTotalUncompressedBytes) {
+    public static void enforceArchiveLimits(
+            List<? extends ZipEntry> entries,
+            int maxEntryCount,
+            long maxTotalUncompressedBytes
+    ) {
         if (entries.size() > maxEntryCount) {
             throw new ErrorResultException("Archive contains too many entries (" + entries.size() + ").");
         }
@@ -95,7 +99,8 @@ public final class ArchiveUtil {
             if (size > 0) {
                 declaredTotal += size;
                 if (declaredTotal > maxTotalUncompressedBytes) {
-                    throw new ErrorResultException("Uncompressed archive size exceeds limit of " + maxTotalUncompressedBytes + " bytes.");
+                    throw new ErrorResultException(
+                            "Uncompressed archive size exceeds limit of " + maxTotalUncompressedBytes + " bytes.");
                 }
             }
         }

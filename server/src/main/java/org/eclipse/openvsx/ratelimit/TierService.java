@@ -12,14 +12,15 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.util.Optional;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
 import org.eclipse.openvsx.entities.Tier;
 import org.eclipse.openvsx.entities.TierType;
 import org.eclipse.openvsx.ratelimit.cache.RateLimitCacheService;
 import org.eclipse.openvsx.repositories.RepositoryService;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class TierService {
@@ -30,7 +31,11 @@ public class TierService {
         this.repositories = repositories;
     }
 
-    @Cacheable(value = RateLimitCacheService.CACHE_TIER, key = "'#' + #root.methodName", cacheManager = RateLimitCacheService.CACHE_MANAGER)
+    @Cacheable(
+        value = RateLimitCacheService.CACHE_TIER,
+        key = "'#' + #root.methodName",
+        cacheManager = RateLimitCacheService.CACHE_MANAGER
+    )
     public Optional<Tier> getFreeTier() {
         var freeTiers = repositories.findTiersByTierType(TierType.FREE);
         if (!freeTiers.isEmpty()) {
@@ -40,7 +45,11 @@ public class TierService {
         }
     }
 
-    @Cacheable(value = RateLimitCacheService.CACHE_TIER, key = "'#' + #root.methodName", cacheManager = RateLimitCacheService.CACHE_MANAGER)
+    @Cacheable(
+        value = RateLimitCacheService.CACHE_TIER,
+        key = "'#' + #root.methodName",
+        cacheManager = RateLimitCacheService.CACHE_MANAGER
+    )
     public Optional<Tier> getSafetyTier() {
         var safetyTiers = repositories.findTiersByTierType(TierType.SAFETY);
         if (!safetyTiers.isEmpty()) {

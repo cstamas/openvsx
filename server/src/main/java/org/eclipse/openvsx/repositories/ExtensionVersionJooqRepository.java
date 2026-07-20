@@ -9,16 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.json.QueryRequest;
-import org.eclipse.openvsx.json.TargetPlatformActiveJson;
-import org.eclipse.openvsx.json.VersionTargetPlatformsJson;
-import org.eclipse.openvsx.util.TargetPlatform;
-import org.eclipse.openvsx.util.TargetPlatformVersion;
-import org.eclipse.openvsx.util.VersionAlias;
-import org.jooq.Record;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
@@ -27,8 +23,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.json.QueryRequest;
+import org.eclipse.openvsx.json.TargetPlatformActiveJson;
+import org.eclipse.openvsx.json.VersionTargetPlatformsJson;
+import org.eclipse.openvsx.util.TargetPlatform;
+import org.eclipse.openvsx.util.TargetPlatformVersion;
+import org.eclipse.openvsx.util.VersionAlias;
 
 import static org.eclipse.openvsx.jooq.Tables.*;
 
@@ -41,34 +42,36 @@ public class ExtensionVersionJooqRepository {
         this.dsl = dsl;
     }
 
-    public List<ExtensionVersion> findAllActiveByExtensionIdAndTargetPlatform(Collection<Long> extensionIds, String targetPlatform) {
+    public List<ExtensionVersion> findAllActiveByExtensionIdAndTargetPlatform(
+            Collection<Long> extensionIds,
+            String targetPlatform
+    ) {
         var query = dsl.select(
-                    NAMESPACE.ID,
-                    NAMESPACE.NAME,
-                    EXTENSION.ID,
-                    EXTENSION.NAME,
-                    EXTENSION_VERSION.ID,
-                    EXTENSION_VERSION.VERSION,
-                    EXTENSION_VERSION.POTENTIALLY_MALICIOUS,
-                    EXTENSION_VERSION.TARGET_PLATFORM,
-                    EXTENSION_VERSION.PREVIEW,
-                    EXTENSION_VERSION.PRE_RELEASE,
-                    EXTENSION_VERSION.TIMESTAMP,
-                    EXTENSION_VERSION.DISPLAY_NAME,
-                    EXTENSION_VERSION.DESCRIPTION,
-                    EXTENSION_VERSION.ENGINES,
-                    EXTENSION_VERSION.CATEGORIES,
-                    EXTENSION_VERSION.TAGS,
-                    EXTENSION_VERSION.EXTENSION_KIND,
-                    EXTENSION_VERSION.REPOSITORY,
-                    EXTENSION_VERSION.SPONSOR_LINK,
-                    EXTENSION_VERSION.GALLERY_COLOR,
-                    EXTENSION_VERSION.GALLERY_THEME,
-                    EXTENSION_VERSION.LOCALIZED_LANGUAGES,
-                    EXTENSION_VERSION.DEPENDENCIES,
-                    EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                    SIGNATURE_KEY_PAIR.PUBLIC_ID
-                )
+                NAMESPACE.ID,
+                NAMESPACE.NAME,
+                EXTENSION.ID,
+                EXTENSION.NAME,
+                EXTENSION_VERSION.ID,
+                EXTENSION_VERSION.VERSION,
+                EXTENSION_VERSION.POTENTIALLY_MALICIOUS,
+                EXTENSION_VERSION.TARGET_PLATFORM,
+                EXTENSION_VERSION.PREVIEW,
+                EXTENSION_VERSION.PRE_RELEASE,
+                EXTENSION_VERSION.TIMESTAMP,
+                EXTENSION_VERSION.DISPLAY_NAME,
+                EXTENSION_VERSION.DESCRIPTION,
+                EXTENSION_VERSION.ENGINES,
+                EXTENSION_VERSION.CATEGORIES,
+                EXTENSION_VERSION.TAGS,
+                EXTENSION_VERSION.EXTENSION_KIND,
+                EXTENSION_VERSION.REPOSITORY,
+                EXTENSION_VERSION.SPONSOR_LINK,
+                EXTENSION_VERSION.GALLERY_COLOR,
+                EXTENSION_VERSION.GALLERY_THEME,
+                EXTENSION_VERSION.LOCALIZED_LANGUAGES,
+                EXTENSION_VERSION.DEPENDENCIES,
+                EXTENSION_VERSION.BUNDLED_EXTENSIONS,
+                SIGNATURE_KEY_PAIR.PUBLIC_ID)
                 .from(EXTENSION_VERSION)
                 .join(EXTENSION).on(EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID))
                 .join(NAMESPACE).on(NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID))
@@ -76,14 +79,19 @@ public class ExtensionVersionJooqRepository {
                 .where(EXTENSION_VERSION.ACTIVE.eq(true))
                 .and(EXTENSION_VERSION.EXTENSION_ID.in(extensionIds));
 
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             query = query.and(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
         return query.fetch().map(this::toExtensionVersion);
     }
 
-    public Page<String> findActiveVersionStringsSorted(String namespace, String extension, String targetPlatform, Pageable page) {
+    public Page<String> findActiveVersionStringsSorted(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            Pageable page
+    ) {
         var count = DSL.countDistinct(EXTENSION_VERSION.VERSION);
         var totalQuery = dsl.select(count)
                 .from(EXTENSION_VERSION)
@@ -93,7 +101,7 @@ public class ExtensionVersionJooqRepository {
                 .and(NAMESPACE.NAME.equalIgnoreCase(namespace))
                 .and(EXTENSION.NAME.equalIgnoreCase(extension));
 
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             totalQuery = totalQuery.and(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
@@ -101,7 +109,7 @@ public class ExtensionVersionJooqRepository {
         conditions.add(EXTENSION_VERSION.ACTIVE.eq(true));
         conditions.add(NAMESPACE.NAME.equalIgnoreCase(namespace));
         conditions.add(EXTENSION.NAME.equalIgnoreCase(extension));
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             conditions.add(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
@@ -110,8 +118,12 @@ public class ExtensionVersionJooqRepository {
         return new PageImpl<>(versions, page, total);
     }
 
-    public Map<Long, List<String>> findActiveVersionStringsSorted(Collection<Long> extensionIds, String targetPlatform, int numberOfRows) {
-        if(extensionIds.isEmpty()) {
+    public Map<Long, List<String>> findActiveVersionStringsSorted(
+            Collection<Long> extensionIds,
+            String targetPlatform,
+            int numberOfRows
+    ) {
+        if (extensionIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
@@ -123,14 +135,13 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_MAJOR,
                 EXTENSION_VERSION.SEMVER_MINOR,
                 EXTENSION_VERSION.SEMVER_PATCH,
-                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE
-        );
+                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE);
         topQuery.setDistinct(true);
         topQuery.addFrom(EXTENSION_VERSION);
         var conditions = new ArrayList<Condition>();
         conditions.add(EXTENSION_VERSION.EXTENSION_ID.eq(ids.field("id", Long.class)));
         conditions.add(EXTENSION_VERSION.ACTIVE.eq(true));
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             conditions.add(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
@@ -142,14 +153,12 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_MINOR.desc(),
                 EXTENSION_VERSION.SEMVER_PATCH.desc(),
                 EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
-                EXTENSION_VERSION.VERSION.asc()
-        );
+                EXTENSION_VERSION.VERSION.asc());
 
         var top = topQuery.asTable("ev_top");
         return dsl.select(
-                        top.field(EXTENSION_VERSION.EXTENSION_ID),
-                        top.field(EXTENSION_VERSION.VERSION)
-                )
+                top.field(EXTENSION_VERSION.EXTENSION_ID),
+                top.field(EXTENSION_VERSION.VERSION))
                 .from(ids, DSL.lateral(top))
                 .stream()
                 .map(row -> {
@@ -157,11 +166,14 @@ public class ExtensionVersionJooqRepository {
                     var version = row.get(top.field(EXTENSION_VERSION.VERSION));
                     return Map.entry(extensionId, version);
                 })
-                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+                .collect(
+                        Collectors.groupingBy(
+                                Map.Entry::getKey,
+                                Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
     }
 
     public List<ExtensionVersion> findActiveVersionReferencesSorted(Collection<Long> extensionIds, int numberOfRows) {
-        if(extensionIds.isEmpty()) {
+        if (extensionIds.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -169,15 +181,14 @@ public class ExtensionVersionJooqRepository {
         var namespaceCol = NAMESPACE.NAME.as("namespace");
         var extensionCol = EXTENSION.NAME.as("extension");
         var top = dsl.select(
-                    namespaceCol,
-                    extensionCol,
-                    EXTENSION_VERSION.ID,
-                    EXTENSION_VERSION.EXTENSION_ID,
-                    EXTENSION_VERSION.TARGET_PLATFORM,
-                    EXTENSION_VERSION.VERSION,
-                    EXTENSION_VERSION.ENGINES,
-                    SIGNATURE_KEY_PAIR.PUBLIC_ID
-                )
+                namespaceCol,
+                extensionCol,
+                EXTENSION_VERSION.ID,
+                EXTENSION_VERSION.EXTENSION_ID,
+                EXTENSION_VERSION.TARGET_PLATFORM,
+                EXTENSION_VERSION.VERSION,
+                EXTENSION_VERSION.ENGINES,
+                SIGNATURE_KEY_PAIR.PUBLIC_ID)
                 .from(EXTENSION_VERSION)
                 .join(EXTENSION).on(EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID))
                 .join(NAMESPACE).on(NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID))
@@ -192,22 +203,20 @@ public class ExtensionVersionJooqRepository {
                         EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
                         EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
                         EXTENSION_VERSION.TARGET_PLATFORM.asc(),
-                        EXTENSION_VERSION.TIMESTAMP.desc()
-                )
+                        EXTENSION_VERSION.TIMESTAMP.desc())
                 .limit(numberOfRows)
                 .asTable("ev_top");
 
         var converter = new ListOfStringConverter();
         return dsl.select(
-                        top.field(namespaceCol),
-                        top.field(extensionCol),
-                        top.field(EXTENSION_VERSION.ID),
-                        top.field(EXTENSION_VERSION.EXTENSION_ID),
-                        top.field(EXTENSION_VERSION.TARGET_PLATFORM),
-                        top.field(EXTENSION_VERSION.VERSION),
-                        top.field(EXTENSION_VERSION.ENGINES),
-                        top.field(SIGNATURE_KEY_PAIR.PUBLIC_ID)
-                )
+                top.field(namespaceCol),
+                top.field(extensionCol),
+                top.field(EXTENSION_VERSION.ID),
+                top.field(EXTENSION_VERSION.EXTENSION_ID),
+                top.field(EXTENSION_VERSION.TARGET_PLATFORM),
+                top.field(EXTENSION_VERSION.VERSION),
+                top.field(EXTENSION_VERSION.ENGINES),
+                top.field(SIGNATURE_KEY_PAIR.PUBLIC_ID))
                 .from(ids, DSL.lateral(top))
                 .stream()
                 .map(row -> {
@@ -234,7 +243,12 @@ public class ExtensionVersionJooqRepository {
                 .collect(Collectors.toList());
     }
 
-    public List<String> findVersionStringsSorted(Long extensionId, String targetPlatform, boolean onlyActive, int numberOfRows) {
+    public List<String> findVersionStringsSorted(
+            Long extensionId,
+            String targetPlatform,
+            boolean onlyActive,
+            int numberOfRows
+    ) {
         var conditions = new ArrayList<Condition>();
         conditions.add(EXTENSION_VERSION.EXTENSION_ID.eq(extensionId));
         if (targetPlatform != null) {
@@ -255,8 +269,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_MAJOR,
                 EXTENSION_VERSION.SEMVER_MINOR,
                 EXTENSION_VERSION.SEMVER_PATCH,
-                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE
-        );
+                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE);
 
         versionsQuery.addFrom(EXTENSION_VERSION);
         versionsQuery.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
@@ -268,8 +281,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_MINOR.desc(),
                 EXTENSION_VERSION.SEMVER_PATCH.desc(),
                 EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
-                EXTENSION_VERSION.VERSION.asc()
-        );
+                EXTENSION_VERSION.VERSION.asc());
 
         versionsQuery.addLimit(page.getPageSize());
         versionsQuery.addOffset(page.getOffset());
@@ -290,7 +302,7 @@ public class ExtensionVersionJooqRepository {
         if (!StringUtils.isEmpty(request.extensionName())) {
             conditions.add(EXTENSION.NAME.equalIgnoreCase(request.extensionName()));
         }
-        if(request.targetPlatform() != null) {
+        if (request.targetPlatform() != null) {
             conditions.add(EXTENSION_VERSION.TARGET_PLATFORM.eq(request.targetPlatform()));
         }
         if (!StringUtils.isEmpty(request.extensionVersion())) {
@@ -305,11 +317,11 @@ public class ExtensionVersionJooqRepository {
         totalQuery.addConditions(EXTENSION_VERSION.ACTIVE.eq(true));
 
         var query = findAllActive();
-        if(!request.includeAllVersions()) {
+        if (!request.includeAllVersions()) {
             var distinctOn = new Field[] {
-                    EXTENSION_VERSION.EXTENSION_ID,
-                    EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM,
-                    EXTENSION_VERSION.TARGET_PLATFORM
+                EXTENSION_VERSION.EXTENSION_ID,
+                EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM,
+                EXTENSION_VERSION.TARGET_PLATFORM
             };
 
             totalQuery.addSelect(DSL.countDistinct(distinctOn).as(totalCol));
@@ -322,8 +334,7 @@ public class ExtensionVersionJooqRepository {
                     EXTENSION_VERSION.SEMVER_MINOR.desc(),
                     EXTENSION_VERSION.SEMVER_PATCH.desc(),
                     EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
-                    EXTENSION_VERSION.TIMESTAMP.desc()
-            );
+                    EXTENSION_VERSION.TIMESTAMP.desc());
         } else {
             totalQuery.addSelect(DSL.count().as(totalCol));
             query.addOrderBy(
@@ -334,8 +345,7 @@ public class ExtensionVersionJooqRepository {
                     EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
                     EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
                     EXTENSION_VERSION.TARGET_PLATFORM.asc(),
-                    EXTENSION_VERSION.TIMESTAMP.desc()
-            );
+                    EXTENSION_VERSION.TIMESTAMP.desc());
         }
 
         totalQuery.addConditions(conditions);
@@ -350,7 +360,7 @@ public class ExtensionVersionJooqRepository {
             extVersion.getExtension().setDownloadable(row.get(EXTENSION.DOWNLOADABLE));
 
             var replacementId = row.get(EXTENSION.REPLACEMENT_ID);
-            if(replacementId != null) {
+            if (replacementId != null) {
                 var replacement = new Extension();
                 replacement.setId(replacementId);
                 extVersion.getExtension().setReplacement(replacement);
@@ -358,13 +368,16 @@ public class ExtensionVersionJooqRepository {
             return extVersion;
         });
         var total = totalQuery.fetchOne(totalCol, Integer.class);
-        return new PageImpl<>(content, PageRequest.of(request.offset() / request.size(), request.size()), total != null ? total : 0);
+        return new PageImpl<>(
+                content,
+                PageRequest.of(request.offset() / request.size(), request.size()),
+                total != null ? total : 0);
     }
 
     public List<ExtensionVersion> findAllActiveByExtensionName(String targetPlatform, String extensionName) {
         var query = findAllActive();
         query.addConditions(EXTENSION.NAME.equalIgnoreCase(extensionName));
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             query.addConditions(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
@@ -417,14 +430,19 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.QNA,
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
         query.addFrom(EXTENSION_VERSION);
         query.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
         query.addJoin(NAMESPACE, NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
         query.addConditions(EXTENSION_VERSION.ACTIVE.eq(true));
         return query;
     }
@@ -442,7 +460,7 @@ public class ExtensionVersionJooqRepository {
             Extension extension,
             FieldMapper extensionVersionMapper
     ) {
-        if(extensionVersionMapper == null) {
+        if (extensionVersionMapper == null) {
             extensionVersionMapper = new DefaultFieldMapper();
         }
 
@@ -453,7 +471,7 @@ public class ExtensionVersionJooqRepository {
         extVersion.setMarkdown(row.get(extensionVersionMapper.map(EXTENSION_VERSION.MARKDOWN)));
         extVersion.setQna(row.get(extensionVersionMapper.map(EXTENSION_VERSION.QNA)));
 
-        if(extension == null) {
+        if (extension == null) {
             var newExtension = extVersion.getExtension();
             newExtension.setPublicId(row.get(EXTENSION.PUBLIC_ID));
             newExtension.setAverageRating(row.get(EXTENSION.AVERAGE_RATING));
@@ -508,15 +526,20 @@ public class ExtensionVersionJooqRepository {
         extVersion.setEngines(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.ENGINES)), converter));
         extVersion.setCategories(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.CATEGORIES)), converter));
         extVersion.setTags(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.TAGS)), converter));
-        extVersion.setExtensionKind(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.EXTENSION_KIND)), converter));
+        extVersion.setExtensionKind(
+                toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.EXTENSION_KIND)), converter));
         extVersion.setRepository(row.get(extensionVersionMapper.map(EXTENSION_VERSION.REPOSITORY)));
         extVersion.setGalleryColor(row.get(extensionVersionMapper.map(EXTENSION_VERSION.GALLERY_COLOR)));
         extVersion.setGalleryTheme(row.get(extensionVersionMapper.map(EXTENSION_VERSION.GALLERY_THEME)));
-        extVersion.setLocalizedLanguages(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.LOCALIZED_LANGUAGES)), converter));
-        extVersion.setDependencies(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.DEPENDENCIES)), converter));
-        extVersion.setBundledExtensions(toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.BUNDLED_EXTENSIONS)), converter));
+        extVersion.setLocalizedLanguages(
+                toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.LOCALIZED_LANGUAGES)), converter));
+        extVersion.setDependencies(
+                toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.DEPENDENCIES)), converter));
+        extVersion.setBundledExtensions(
+                toList(row.get(extensionVersionMapper.map(EXTENSION_VERSION.BUNDLED_EXTENSIONS)), converter));
         extVersion.setSponsorLink(row.get(extensionVersionMapper.map(EXTENSION_VERSION.SPONSOR_LINK)));
-        extVersion.setPotentiallyMalicious(row.get(extensionVersionMapper.map(EXTENSION_VERSION.POTENTIALLY_MALICIOUS)));
+        extVersion
+                .setPotentiallyMalicious(row.get(extensionVersionMapper.map(EXTENSION_VERSION.POTENTIALLY_MALICIOUS)));
 
         if (extension == null) {
             var namespace = new Namespace();
@@ -545,23 +568,20 @@ public class ExtensionVersionJooqRepository {
         var targetPlatforms = DSL.arrayAgg(EXTENSION_VERSION.TARGET_PLATFORM)
                 .orderBy(
                         EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
-                        EXTENSION_VERSION.TARGET_PLATFORM.asc()
-                );
+                        EXTENSION_VERSION.TARGET_PLATFORM.asc());
         var targetPlatformsActive = DSL.arrayAgg(EXTENSION_VERSION.ACTIVE)
                 .orderBy(
                         EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
-                        EXTENSION_VERSION.TARGET_PLATFORM.asc()
-                );
+                        EXTENSION_VERSION.TARGET_PLATFORM.asc());
 
         return dsl.select(
-                    EXTENSION_VERSION.SEMVER_MAJOR,
-                    EXTENSION_VERSION.SEMVER_MINOR,
-                    EXTENSION_VERSION.SEMVER_PATCH,
-                    EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
-                    EXTENSION_VERSION.VERSION,
-                    targetPlatforms,
-                    targetPlatformsActive
-                )
+                EXTENSION_VERSION.SEMVER_MAJOR,
+                EXTENSION_VERSION.SEMVER_MINOR,
+                EXTENSION_VERSION.SEMVER_PATCH,
+                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
+                EXTENSION_VERSION.VERSION,
+                targetPlatforms,
+                targetPlatformsActive)
                 .from(EXTENSION_VERSION)
                 .where(EXTENSION_VERSION.EXTENSION_ID.eq(extension.getId()))
                 .groupBy(
@@ -569,44 +589,39 @@ public class ExtensionVersionJooqRepository {
                         EXTENSION_VERSION.SEMVER_MINOR,
                         EXTENSION_VERSION.SEMVER_PATCH,
                         EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
-                        EXTENSION_VERSION.VERSION
-                )
+                        EXTENSION_VERSION.VERSION)
                 .orderBy(
                         EXTENSION_VERSION.SEMVER_MAJOR.desc(),
                         EXTENSION_VERSION.SEMVER_MINOR.desc(),
                         EXTENSION_VERSION.SEMVER_PATCH.desc(),
                         EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
-                        EXTENSION_VERSION.VERSION.asc()
-                )
+                        EXTENSION_VERSION.VERSION.asc())
                 .fetch()
-                .map(row -> toVersionTargetPlatformsJson(
-                        row.get(EXTENSION_VERSION.VERSION),
-                        row.get(targetPlatforms),
-                        row.get(targetPlatformsActive)
-                ));
+                .map(
+                        row -> toVersionTargetPlatformsJson(
+                                row.get(EXTENSION_VERSION.VERSION),
+                                row.get(targetPlatforms),
+                                row.get(targetPlatformsActive)));
     }
 
     public List<VersionTargetPlatformsJson> findTargetPlatformsGroupedByVersion(Extension extension, UserData user) {
         var targetPlatforms = DSL.arrayAgg(EXTENSION_VERSION.TARGET_PLATFORM)
                 .orderBy(
                         EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
-                        EXTENSION_VERSION.TARGET_PLATFORM.asc()
-                );
+                        EXTENSION_VERSION.TARGET_PLATFORM.asc());
         var targetPlatformsActive = DSL.arrayAgg(EXTENSION_VERSION.ACTIVE)
                 .orderBy(
                         EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
-                        EXTENSION_VERSION.TARGET_PLATFORM.asc()
-                );
+                        EXTENSION_VERSION.TARGET_PLATFORM.asc());
 
         return dsl.select(
-                        EXTENSION_VERSION.SEMVER_MAJOR,
-                        EXTENSION_VERSION.SEMVER_MINOR,
-                        EXTENSION_VERSION.SEMVER_PATCH,
-                        EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
-                        EXTENSION_VERSION.VERSION,
-                        targetPlatforms,
-                        targetPlatformsActive
-                )
+                EXTENSION_VERSION.SEMVER_MAJOR,
+                EXTENSION_VERSION.SEMVER_MINOR,
+                EXTENSION_VERSION.SEMVER_PATCH,
+                EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
+                EXTENSION_VERSION.VERSION,
+                targetPlatforms,
+                targetPlatformsActive)
                 .from(EXTENSION_VERSION)
                 .join(PERSONAL_ACCESS_TOKEN).on(PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID))
                 .where(EXTENSION_VERSION.EXTENSION_ID.eq(extension.getId()))
@@ -616,24 +631,26 @@ public class ExtensionVersionJooqRepository {
                         EXTENSION_VERSION.SEMVER_MINOR,
                         EXTENSION_VERSION.SEMVER_PATCH,
                         EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE,
-                        EXTENSION_VERSION.VERSION
-                )
+                        EXTENSION_VERSION.VERSION)
                 .orderBy(
                         EXTENSION_VERSION.SEMVER_MAJOR.desc(),
                         EXTENSION_VERSION.SEMVER_MINOR.desc(),
                         EXTENSION_VERSION.SEMVER_PATCH.desc(),
                         EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
-                        EXTENSION_VERSION.VERSION.asc()
-                )
+                        EXTENSION_VERSION.VERSION.asc())
                 .fetch()
-                .map(row -> toVersionTargetPlatformsJson(
-                        row.get(EXTENSION_VERSION.VERSION),
-                        row.get(targetPlatforms),
-                        row.get(targetPlatformsActive)
-                ));
+                .map(
+                        row -> toVersionTargetPlatformsJson(
+                                row.get(EXTENSION_VERSION.VERSION),
+                                row.get(targetPlatforms),
+                                row.get(targetPlatformsActive)));
     }
 
-    private VersionTargetPlatformsJson toVersionTargetPlatformsJson(String version, String[] targetPlatforms, Boolean[] active) {
+    private VersionTargetPlatformsJson toVersionTargetPlatformsJson(
+            String version,
+            String[] targetPlatforms,
+            Boolean[] active
+    ) {
         var platforms = new ArrayList<TargetPlatformActiveJson>(targetPlatforms.length);
         for (int i = 0; i < targetPlatforms.length; i++) {
             platforms.add(new TargetPlatformActiveJson(targetPlatforms[i], active[i]));
@@ -647,25 +664,23 @@ public class ExtensionVersionJooqRepository {
         query.addSelect(
                 EXTENSION_VERSION.ID,
                 EXTENSION_VERSION.VERSION,
-                EXTENSION_VERSION.TARGET_PLATFORM
-        );
+                EXTENSION_VERSION.TARGET_PLATFORM);
         query.addFrom(EXTENSION_VERSION);
         query.addConditions(
                 EXTENSION_VERSION.EXTENSION_ID.eq(extension.getId()),
-                EXTENSION_VERSION.VERSION.eq(version)
-        );
-        if(targetPlatform != null) {
+                EXTENSION_VERSION.VERSION.eq(version));
+        if (targetPlatform != null) {
             query.addConditions(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
 
         return query.fetch()
                 .map(row -> {
-                   var extVersion = new ExtensionVersion();
-                   extVersion.setId(row.get(EXTENSION_VERSION.ID));
-                   extVersion.setVersion(row.get(EXTENSION_VERSION.VERSION));
-                   extVersion.setTargetPlatform(row.get(EXTENSION_VERSION.TARGET_PLATFORM));
-                   extVersion.setExtension(extension);
-                   return extVersion;
+                    var extVersion = new ExtensionVersion();
+                    extVersion.setId(row.get(EXTENSION_VERSION.ID));
+                    extVersion.setVersion(row.get(EXTENSION_VERSION.VERSION));
+                    extVersion.setTargetPlatform(row.get(EXTENSION_VERSION.TARGET_PLATFORM));
+                    extVersion.setExtension(extension);
+                    return extVersion;
                 });
     }
 
@@ -682,8 +697,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION.NAME,
                 EXTENSION.ACTIVE,
                 EXTENSION_VERSION.ID,
-                EXTENSION_VERSION.DISPLAY_NAME
-        );
+                EXTENSION_VERSION.DISPLAY_NAME);
         query.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
         query.addJoin(NAMESPACE, NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
         query.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(extensionId));
@@ -746,11 +760,16 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.QNA,
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
         query.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(extension.getId()));
         return query.fetchOne(row -> toExtensionVersionFull(row, extension, null));
     }
@@ -810,17 +829,21 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.QNA,
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
         query.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
         query.addJoin(NAMESPACE, NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
         query.addConditions(
                 NAMESPACE.NAME.equalIgnoreCase(namespaceName),
-                EXTENSION.NAME.equalIgnoreCase(extensionName)
-        );
+                EXTENSION.NAME.equalIgnoreCase(extensionName));
         return query.fetchOne(row -> {
             var extVersion = toExtensionVersionFull(row);
             extVersion.getExtension().setActive(row.get(EXTENSION.ACTIVE));
@@ -839,8 +862,7 @@ public class ExtensionVersionJooqRepository {
         var query = dsl.selectQuery();
         query.addSelect(
                 EXTENSION.ID,
-                latest.field(EXTENSION_VERSION.PREVIEW)
-        );
+                latest.field(EXTENSION_VERSION.PREVIEW));
         query.addFrom(EXTENSION, DSL.lateral(latest));
         query.addConditions(EXTENSION.ID.in(extensionIds));
 
@@ -849,8 +871,8 @@ public class ExtensionVersionJooqRepository {
             var preview = row.get(latest.field(EXTENSION_VERSION.PREVIEW));
             return Map.entry(id, preview);
         })
-        .stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public List<ExtensionVersion> findLatest(Collection<Long> extensionIds) {
@@ -882,8 +904,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
                 EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID,
-                EXTENSION_VERSION.PUBLISHED_WITH_ID
-        );
+                EXTENSION_VERSION.PUBLISHED_WITH_ID);
         latestQuery.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(EXTENSION.ID));
         var latest = latestQuery.asTable();
 
@@ -933,13 +954,18 @@ public class ExtensionVersionJooqRepository {
                 USER_DATA.FULL_NAME,
                 USER_DATA.AVATAR_URL,
                 USER_DATA.PROVIDER_URL,
-                USER_DATA.PROVIDER
-        );
+                USER_DATA.PROVIDER);
         query.addFrom(NAMESPACE);
         query.addJoin(EXTENSION, EXTENSION.NAMESPACE_ID.eq(NAMESPACE.ID));
         query.addJoin(latest, JoinType.CROSS_APPLY, DSL.condition(true));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
         query.addConditions(EXTENSION.ID.in(extensionIds));
         return query.fetch(row -> {
@@ -958,10 +984,12 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.TIMESTAMP,
                 EXTENSION_VERSION.DISPLAY_NAME,
                 EXTENSION_VERSION.DESCRIPTION,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
         latestQuery.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(EXTENSION.ID));
-        latestQuery.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        latestQuery.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
         var latest = latestQuery.asTable();
 
         var query = dsl.selectQuery();
@@ -978,13 +1006,11 @@ public class ExtensionVersionJooqRepository {
                 latest.field(EXTENSION_VERSION.TIMESTAMP),
                 latest.field(EXTENSION_VERSION.DISPLAY_NAME),
                 latest.field(EXTENSION_VERSION.DESCRIPTION),
-                latest.field(SIGNATURE_KEY_PAIR.PUBLIC_ID)
-        );
+                latest.field(SIGNATURE_KEY_PAIR.PUBLIC_ID));
         query.addFrom(EXTENSION, DSL.lateral(latest));
         query.addConditions(
                 EXTENSION.NAMESPACE_ID.eq(namespace.getId()),
-                EXTENSION.ACTIVE.eq(true)
-        );
+                EXTENSION.ACTIVE.eq(true));
         query.addOrderBy(EXTENSION.DOWNLOAD_COUNT.desc());
 
         return query.fetch(row -> {
@@ -1043,8 +1069,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
                 EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID,
-                EXTENSION_VERSION.PUBLISHED_WITH_ID
-        );
+                EXTENSION_VERSION.PUBLISHED_WITH_ID);
         latestQuery.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(EXTENSION.ID));
         var latest = latestQuery.asTable();
 
@@ -1097,13 +1122,18 @@ public class ExtensionVersionJooqRepository {
                 USER_DATA.FULL_NAME,
                 USER_DATA.AVATAR_URL,
                 USER_DATA.PROVIDER_URL,
-                USER_DATA.PROVIDER
-        );
+                USER_DATA.PROVIDER);
         query.addFrom(NAMESPACE);
         query.addJoin(EXTENSION, EXTENSION.NAMESPACE_ID.eq(NAMESPACE.ID));
         query.addJoin(latest, JoinType.CROSS_APPLY, DSL.condition(true));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
         query.addConditions(PERSONAL_ACCESS_TOKEN.USER_DATA.eq(user.getId()));
         return query.fetch(row -> {
@@ -1145,8 +1175,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
                 EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID,
-                EXTENSION_VERSION.PUBLISHED_WITH_ID
-        );
+                EXTENSION_VERSION.PUBLISHED_WITH_ID);
         latestQuery.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(EXTENSION.ID));
         var latest = latestQuery.asTable();
 
@@ -1199,19 +1228,23 @@ public class ExtensionVersionJooqRepository {
                 USER_DATA.FULL_NAME,
                 USER_DATA.AVATAR_URL,
                 USER_DATA.PROVIDER_URL,
-                USER_DATA.PROVIDER
-        );
+                USER_DATA.PROVIDER);
         query.addFrom(NAMESPACE);
         query.addJoin(EXTENSION, EXTENSION.NAMESPACE_ID.eq(NAMESPACE.ID));
         query.addJoin(latest, JoinType.CROSS_APPLY, DSL.condition(true));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(latest.field(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID)));
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(latest.field(EXTENSION_VERSION.PUBLISHED_WITH_ID)));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
         query.addConditions(
                 PERSONAL_ACCESS_TOKEN.USER_DATA.eq(user.getId()),
                 NAMESPACE.NAME.equalIgnoreCase(namespace),
-                EXTENSION.NAME.equalIgnoreCase(extension)
-        );
+                EXTENSION.NAME.equalIgnoreCase(extension));
         return query.fetchOne(row -> {
             var extVersion = toExtensionVersionFull(row, null, new TableFieldMapper(latest));
             extVersion.getExtension().getNamespace().setDisplayName(row.get(NAMESPACE.DISPLAY_NAME));
@@ -1233,7 +1266,10 @@ public class ExtensionVersionJooqRepository {
 
         query.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
         query.addJoin(NAMESPACE, NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
 
         query.addConditions(EXTENSION_VERSION.PRE_RELEASE.eq(preReleases));
 
@@ -1246,8 +1282,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_MAJOR.desc(),
                 EXTENSION_VERSION.SEMVER_MINOR.desc(),
                 EXTENSION_VERSION.SEMVER_PATCH.desc(),
-                EXTENSION_VERSION.TIMESTAMP.desc()
-        );
+                EXTENSION_VERSION.TIMESTAMP.desc());
 
         query.addConditions(EXTENSION_VERSION.EXTENSION_ID.eq(extension.getId()));
 
@@ -1276,8 +1311,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.LOCALIZED_LANGUAGES,
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
 
         return query.fetch().map(this::toExtensionVersion);
     }
@@ -1293,10 +1327,9 @@ public class ExtensionVersionJooqRepository {
         query.addSelect(
                 EXTENSION_VERSION.ID,
                 EXTENSION_VERSION.VERSION,
-                EXTENSION_VERSION.PREVIEW
-        );
+                EXTENSION_VERSION.PREVIEW);
         return query.fetchOne(row -> {
-            if(row == null) {
+            if (row == null) {
                 return null;
             }
 
@@ -1316,13 +1349,13 @@ public class ExtensionVersionJooqRepository {
     ) {
         var query = dsl.selectQuery();
         query.addFrom(EXTENSION_VERSION);
-        if(TargetPlatform.isValid(targetPlatform)) {
+        if (TargetPlatform.isValid(targetPlatform)) {
             query.addConditions(EXTENSION_VERSION.TARGET_PLATFORM.eq(targetPlatform));
         }
-        if(onlyPreRelease) {
+        if (onlyPreRelease) {
             query.addConditions(EXTENSION_VERSION.PRE_RELEASE.eq(true));
         }
-        if(onlyActive) {
+        if (onlyActive) {
             query.addConditions(EXTENSION_VERSION.ACTIVE.eq(true));
         }
 
@@ -1333,8 +1366,7 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.SEMVER_IS_PRE_RELEASE.asc(),
                 EXTENSION_VERSION.UNIVERSAL_TARGET_PLATFORM.desc(),
                 EXTENSION_VERSION.TARGET_PLATFORM.asc(),
-                EXTENSION_VERSION.TIMESTAMP.desc()
-        );
+                EXTENSION_VERSION.TIMESTAMP.desc());
         query.addLimit(1);
         return query;
     }
@@ -1349,14 +1381,24 @@ public class ExtensionVersionJooqRepository {
      * Find an extension version regardless of active status.
      * Use this for admin operations on quarantined/inactive extensions.
      */
-    public ExtensionVersion findIncludingInactive(String namespaceName, String extensionName, String targetPlatform, String version) {
+    public ExtensionVersion findIncludingInactive(
+            String namespaceName,
+            String extensionName,
+            String targetPlatform,
+            String version
+    ) {
         var onlyPreRelease = VersionAlias.PRE_RELEASE.equals(version);
         // Pass false for onlyActive to include inactive (quarantined) extensions
         var query = findLatestQuery(targetPlatform, onlyPreRelease, false);
         return findInternal(query, namespaceName, extensionName, version);
     }
 
-    private ExtensionVersion findInternal(SelectQuery<Record> query, String namespaceName, String extensionName, String version) {
+    private ExtensionVersion findInternal(
+            SelectQuery<Record> query,
+            String namespaceName,
+            String extensionName,
+            String version
+    ) {
         query.addSelect(
                 USER_DATA.ID,
                 USER_DATA.ROLE,
@@ -1405,18 +1447,22 @@ public class ExtensionVersionJooqRepository {
                 EXTENSION_VERSION.QNA,
                 EXTENSION_VERSION.DEPENDENCIES,
                 EXTENSION_VERSION.BUNDLED_EXTENSIONS,
-                SIGNATURE_KEY_PAIR.PUBLIC_ID
-        );
-        query.addJoin(PERSONAL_ACCESS_TOKEN, JoinType.LEFT_OUTER_JOIN, PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
+                SIGNATURE_KEY_PAIR.PUBLIC_ID);
+        query.addJoin(
+                PERSONAL_ACCESS_TOKEN,
+                JoinType.LEFT_OUTER_JOIN,
+                PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
         query.addJoin(USER_DATA, USER_DATA.ID.eq(PERSONAL_ACCESS_TOKEN.USER_DATA));
-        query.addJoin(SIGNATURE_KEY_PAIR, JoinType.LEFT_OUTER_JOIN, SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
+        query.addJoin(
+                SIGNATURE_KEY_PAIR,
+                JoinType.LEFT_OUTER_JOIN,
+                SIGNATURE_KEY_PAIR.ID.eq(EXTENSION_VERSION.SIGNATURE_KEY_PAIR_ID));
         query.addJoin(EXTENSION, EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID));
         query.addJoin(NAMESPACE, NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
         query.addConditions(
                 EXTENSION.NAME.equalIgnoreCase(extensionName),
-                NAMESPACE.NAME.equalIgnoreCase(namespaceName)
-        );
-        if(!VersionAlias.LATEST.equals(version) && !VersionAlias.PRE_RELEASE.equals(version)) {
+                NAMESPACE.NAME.equalIgnoreCase(namespaceName));
+        if (!VersionAlias.LATEST.equals(version) && !VersionAlias.PRE_RELEASE.equals(version)) {
             query.addConditions(EXTENSION_VERSION.VERSION.eq(version));
         }
 
@@ -1427,7 +1473,7 @@ public class ExtensionVersionJooqRepository {
             extVersion.getExtension().getNamespace().setDisplayName(row.get(NAMESPACE.DISPLAY_NAME));
 
             var replacementId = row.get(EXTENSION.REPLACEMENT_ID);
-            if(replacementId != null) {
+            if (replacementId != null) {
                 var replacement = new Extension();
                 replacement.setId(replacementId);
                 extVersion.getExtension().setReplacement(replacement);
@@ -1450,8 +1496,7 @@ public class ExtensionVersionJooqRepository {
                         .from(EXTENSION_VERSION)
                         .where(EXTENSION_VERSION.EXTENSION_ID.eq(extVersion.getExtension().getId()))
                         .and(EXTENSION_VERSION.VERSION.eq(extVersion.getVersion()))
-                        .and(EXTENSION_VERSION.PRE_RELEASE.eq(!extVersion.isPreRelease()))
-        );
+                        .and(EXTENSION_VERSION.PRE_RELEASE.eq(!extVersion.isPreRelease())));
     }
 
     public Integer count(String namespaceName, String extensionName) {
@@ -1466,7 +1511,12 @@ public class ExtensionVersionJooqRepository {
                 .fetchOne("count", Integer.class);
     }
 
-    public boolean isDeleteAllVersions(@Nullable UserData user, String namespaceName, String extensionName, TargetPlatformVersion... targetVersions) {
+    public boolean isDeleteAllVersions(
+            @Nullable UserData user,
+            String namespaceName,
+            String extensionName,
+            TargetPlatformVersion... targetVersions
+    ) {
         if (targetVersions.length == 0) {
             return true;
         }
@@ -1479,18 +1529,21 @@ public class ExtensionVersionJooqRepository {
                 .and(EXTENSION.NAME.equalIgnoreCase(extensionName))
                 .fetchOne("all", Integer.class);
 
-        var rows = Arrays.stream(targetVersions).map((tv) -> DSL.row(tv.version(), tv.targetPlatform())).toArray(Row2[]::new);
+        var rows = Arrays.stream(targetVersions).map((tv) -> DSL.row(tv.version(), tv.targetPlatform()))
+                .toArray(Row2[]::new);
         var versions = DSL.values(rows).as("v", "version", "target");
         var VERSION = versions.field("version", String.class);
         var TARGET = versions.field("target", String.class);
         var actualSelect = dsl.select(DSL.count(EXTENSION_VERSION.ID).as("actual"))
                 .from(versions)
-                .join(EXTENSION_VERSION).on(EXTENSION_VERSION.VERSION.eq(VERSION).and(EXTENSION_VERSION.TARGET_PLATFORM.eq(TARGET)))
+                .join(EXTENSION_VERSION)
+                .on(EXTENSION_VERSION.VERSION.eq(VERSION).and(EXTENSION_VERSION.TARGET_PLATFORM.eq(TARGET)))
                 .join(EXTENSION).on(EXTENSION.ID.eq(EXTENSION_VERSION.EXTENSION_ID))
                 .join(NAMESPACE).on(NAMESPACE.ID.eq(EXTENSION.NAMESPACE_ID));
 
         if (user != null) {
-            actualSelect = actualSelect.join(PERSONAL_ACCESS_TOKEN).on(PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
+            actualSelect = actualSelect.join(PERSONAL_ACCESS_TOKEN)
+                    .on(PERSONAL_ACCESS_TOKEN.ID.eq(EXTENSION_VERSION.PUBLISHED_WITH_ID));
         }
 
         var condition = actualSelect

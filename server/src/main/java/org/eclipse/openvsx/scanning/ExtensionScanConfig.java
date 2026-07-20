@@ -110,17 +110,17 @@ public class ExtensionScanConfig {
     public void validate() {
         if (maxArchiveSizeBytes <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.scanning.max-archive-size-bytes must be positive, got: " + maxArchiveSizeBytes);
+                    "ovsx.scanning.max-archive-size-bytes must be positive, got: " + maxArchiveSizeBytes);
         }
 
         if (maxSingleFileBytes <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.scanning.max-single-file-bytes must be positive, got: " + maxSingleFileBytes);
+                    "ovsx.scanning.max-single-file-bytes must be positive, got: " + maxSingleFileBytes);
         }
 
         if (maxEntryCount <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.scanning.max-entry-count must be positive, got: " + maxEntryCount);
+                    "ovsx.scanning.max-entry-count must be positive, got: " + maxEntryCount);
         }
     }
 }

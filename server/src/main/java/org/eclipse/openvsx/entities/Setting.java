@@ -12,15 +12,16 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Persistent entity for storing key-value settings scoped to any entity
@@ -95,11 +96,21 @@ public class Setting {
     // Getters  (immutable after construction — use service layer to update)
     // -------------------------------------------------------------------------
 
-    public long    getId()          { return id; }
-    public String  getKey()         { return key; }
-    public String  getValue()       { return value; }
-    public LocalDateTime getCreatedAt()   { return createdAt; }
-    public LocalDateTime getUpdatedAt()   { return updatedAt; }
+    public long getId() {
+        return id;
+    }
+    public String getKey() {
+        return key;
+    }
+    public String getValue() {
+        return value;
+    }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 
     /** The only mutable field — values change but keys stay stable. */
     public void setValue(String value) {
@@ -112,8 +123,12 @@ public class Setting {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Setting other)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Setting other)) {
+            return false;
+        }
         return key.equals(other.key);
     }
 

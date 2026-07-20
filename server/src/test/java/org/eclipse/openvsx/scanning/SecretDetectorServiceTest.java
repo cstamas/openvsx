@@ -12,16 +12,17 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.junit.jupiter.api.Test;
-import org.eclipse.openvsx.util.ArchiveUtil;
-
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
+
+import org.junit.jupiter.api.Test;
+
+import org.eclipse.openvsx.util.ArchiveUtil;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,7 +36,8 @@ class SecretDetectorServiceTest {
     void enforceArchiveLimits_throwsWhenEntryCountExceeded() {
         List<ZipEntry> entries = List.of(new ZipEntry("a"), new ZipEntry("b"));
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
                 () -> ArchiveUtil.enforceArchiveLimits(entries, 1, 10_000));
         assertTrue(ex.getMessage().contains("too many entries"));
     }
@@ -47,7 +49,8 @@ class SecretDetectorServiceTest {
         ZipEntry e2 = new ZipEntry("b");
         e2.setSize(6);
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
                 () -> ArchiveUtil.enforceArchiveLimits(List.of(e1, e2), 10, 10));
         assertTrue(ex.getMessage().contains("Uncompressed archive size exceeds"));
     }
@@ -59,13 +62,22 @@ class SecretDetectorServiceTest {
         AtomicInteger count = new AtomicInteger(0);
 
         var first = new SecretDetector.Finding(
-                "a.txt", 1, 4.0, "secretvalue", "rule1");
+                "a.txt",
+                1,
+                4.0,
+                "secretvalue",
+                "rule1");
         var second = new SecretDetector.Finding(
-                "b.txt", 2, 4.0, "secretvalue2", "rule2");
+                "b.txt",
+                2,
+                4.0,
+                "secretvalue2",
+                "rule2");
 
         assertTrue(invokeRecordFinding(service, findings, count, first));
         assertEquals(1, findings.size());
-        assertThrows(SecretCheckService.ScanCancelledException.class,
+        assertThrows(
+                SecretCheckService.ScanCancelledException.class,
                 () -> invokeRecordFinding(service, findings, count, second));
         assertEquals(1, findings.size());
     }
@@ -111,12 +123,17 @@ class SecretDetectorServiceTest {
         f.set(target, value);
     }
 
-    private boolean invokeRecordFinding(SecretCheckService service,
-                                        List<SecretDetector.Finding> findings,
-                                        AtomicInteger count,
-                                        SecretDetector.Finding finding) throws Exception {
+    private boolean invokeRecordFinding(
+            SecretCheckService service,
+            List<SecretDetector.Finding> findings,
+            AtomicInteger count,
+            SecretDetector.Finding finding
+    ) throws Exception {
         Method m = SecretCheckService.class.getDeclaredMethod(
-                "recordFinding", List.class, AtomicInteger.class, SecretDetector.Finding.class);
+                "recordFinding",
+                List.class,
+                AtomicInteger.class,
+                SecretDetector.Finding.class);
         m.setAccessible(true);
         try {
             return (boolean) m.invoke(service, findings, count, finding);

@@ -12,9 +12,8 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.jobs;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.ratelimit.UsageStatsService;
-import org.eclipse.openvsx.settings.SettingsService;
+import java.util.Optional;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jspecify.annotations.Nullable;
@@ -22,7 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.ratelimit.UsageStatsService;
+import org.eclipse.openvsx.settings.SettingsService;
 
 @Component
 public class CollectUsageStatsHandler implements JobRequestHandler<HandlerJobRequest<?>> {

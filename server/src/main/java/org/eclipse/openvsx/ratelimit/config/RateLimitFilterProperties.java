@@ -19,12 +19,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.*;
-
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class RateLimitFilterProperties implements Serializable {
 

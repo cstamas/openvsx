@@ -9,14 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.accesstoken;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.settings.SettingsService;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.settings.SettingsService;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Component
 public class LegacyPersonalAccessTokenExpirationHandler implements JobRequestHandler<HandlerJobRequest<?>> {
@@ -27,7 +28,11 @@ public class LegacyPersonalAccessTokenExpirationHandler implements JobRequestHan
     private final AccessTokenConfig config;
     private final AccessTokenService tokens;
 
-    public LegacyPersonalAccessTokenExpirationHandler(SettingsService settings, AccessTokenConfig config, AccessTokenService tokens) {
+    public LegacyPersonalAccessTokenExpirationHandler(
+            SettingsService settings,
+            AccessTokenConfig config,
+            AccessTokenService tokens
+    ) {
         this.settings = settings;
         this.config = config;
         this.tokens = tokens;

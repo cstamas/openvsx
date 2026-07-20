@@ -9,10 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.SignatureKeyPair;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.SignatureKeyPair;
 
 public interface SignatureKeyPairRepository extends Repository<SignatureKeyPair, Long> {
 

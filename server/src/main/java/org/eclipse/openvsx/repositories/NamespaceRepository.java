@@ -9,13 +9,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Namespace;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.Namespace;
 
 public interface NamespaceRepository extends Repository<Namespace, Long> {
 
@@ -28,7 +29,9 @@ public interface NamespaceRepository extends Repository<Namespace, Long> {
      * @param excludeNamespace the namespace to exclude
      * @return a list of namespaces or an empty list of there are no conflicts
      */
-    @Query("from Namespace n where (lower(n.displayName) = lower(:displayName) or lower(n.name) = lower(:displayName)) and n <> :namespace")
+    @Query(
+        "from Namespace n where (lower(n.displayName) = lower(:displayName) or lower(n.name) = lower(:displayName)) and n <> :namespace"
+    )
     List<Namespace> findConflictingNamespaces(String displayName, @Param("namespace") Namespace excludeNamespace);
 
     Namespace findByPublicId(String publicId);

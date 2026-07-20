@@ -9,23 +9,24 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.storage;
 
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.util.TempFile;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.util.Pair;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,13 +41,12 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.time.Duration;
-import java.util.List;
-
-import org.springframework.data.util.Pair;
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,7 +76,9 @@ class AwsStorageServiceIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("ovsx.storage.aws.service-endpoint", () -> localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
+        registry.add(
+                "ovsx.storage.aws.service-endpoint",
+                () -> localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
         registry.add("ovsx.storage.aws.access-key-id", () -> "test");
         registry.add("ovsx.storage.aws.secret-access-key", () -> "test");
         registry.add("ovsx.storage.aws.region", () -> TEST_REGION);
@@ -94,20 +96,25 @@ class AwsStorageServiceIntegrationTest {
 
         ReflectionTestUtils.setField(storageService, "region", TEST_REGION);
         ReflectionTestUtils.setField(storageService, "bucket", TEST_BUCKET);
-        ReflectionTestUtils.setField(storageService, "serviceEndpoint", localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
+        ReflectionTestUtils.setField(
+                storageService,
+                "serviceEndpoint",
+                localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
         ReflectionTestUtils.setField(storageService, "pathStyleAccess", true);
 
         testS3Client = S3Client.builder()
                 .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create("test", "test")))
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create("test", "test")))
                 .region(Region.of(TEST_REGION))
                 .forcePathStyle(true)
                 .build();
 
-        testS3Client.createBucket(CreateBucketRequest.builder()
-                .bucket(TEST_BUCKET)
-                .build());
+        testS3Client.createBucket(
+                CreateBucketRequest.builder()
+                        .bucket(TEST_BUCKET)
+                        .build());
 
         setupTestEntities();
     }
@@ -349,7 +356,8 @@ class AwsStorageServiceIntegrationTest {
 
     @Test
     void testSessionTokenAuthentication() throws IOException {
-        var sessionTokenService = createStorageServiceWithCredentials("ASIAIOSFODNN7EXAMPLE",
+        var sessionTokenService = createStorageServiceWithCredentials(
+                "ASIAIOSFODNN7EXAMPLE",
                 "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 "AQoDYXdzEJr...<remainder of security token>");
 
@@ -382,13 +390,17 @@ class AwsStorageServiceIntegrationTest {
 
     @Test
     void testAuthenticationMethodDetection() {
-        var permanentCredsService = createStorageServiceWithCredentials("AKIAIOSFODNN7EXAMPLE",
-                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", null);
+        var permanentCredsService = createStorageServiceWithCredentials(
+                "AKIAIOSFODNN7EXAMPLE",
+                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                null);
         assertTrue((Boolean) ReflectionTestUtils.invokeMethod(permanentCredsService, "hasStaticCredentials"));
         assertFalse((Boolean) ReflectionTestUtils.invokeMethod(permanentCredsService, "hasSessionToken"));
 
-        var temporaryCredsService = createStorageServiceWithCredentials("ASIAIOSFODNN7EXAMPLE",
-                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "AQoDYXdzEJr...");
+        var temporaryCredsService = createStorageServiceWithCredentials(
+                "ASIAIOSFODNN7EXAMPLE",
+                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "AQoDYXdzEJr...");
         assertTrue((Boolean) ReflectionTestUtils.invokeMethod(temporaryCredsService, "hasStaticCredentials"));
         assertTrue((Boolean) ReflectionTestUtils.invokeMethod(temporaryCredsService, "hasSessionToken"));
 
@@ -399,8 +411,10 @@ class AwsStorageServiceIntegrationTest {
 
     @Test
     void testCredentialPriorityOrder() {
-        var storageService = createStorageServiceWithCredentials("AKIAIOSFODNN7EXAMPLE",
-                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", null);
+        var storageService = createStorageServiceWithCredentials(
+                "AKIAIOSFODNN7EXAMPLE",
+                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                null);
 
         Boolean hasStaticCreds = ReflectionTestUtils.invokeMethod(storageService, "hasStaticCredentials");
         assertTrue(hasStaticCreds);
@@ -414,8 +428,10 @@ class AwsStorageServiceIntegrationTest {
 
     @Test
     void testInvalidCredentials() {
-        var storageService = createStorageServiceWithCredentials("",
-                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", null);
+        var storageService = createStorageServiceWithCredentials(
+                "",
+                "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                null);
         assertFalse(storageService.isEnabled());
 
         storageService = createStorageServiceWithCredentials("AKIAIOSFODNN7EXAMPLE", "", null);
@@ -431,7 +447,10 @@ class AwsStorageServiceIntegrationTest {
             assertNotNull(s3Client);
         });
 
-        final var storageService2 = createStorageServiceWithCredentials("test-access-key", "test-secret-key", "test-session-token");
+        final var storageService2 = createStorageServiceWithCredentials(
+                "test-access-key",
+                "test-secret-key",
+                "test-session-token");
 
         assertDoesNotThrow(() -> {
             var s3Client = ReflectionTestUtils.invokeMethod(storageService2, "getS3Client");
@@ -448,7 +467,10 @@ class AwsStorageServiceIntegrationTest {
             assertNotNull(presigner);
         });
 
-        final var storageService2 = createStorageServiceWithCredentials("test-access-key", "test-secret-key", "test-session-token");
+        final var storageService2 = createStorageServiceWithCredentials(
+                "test-access-key",
+                "test-secret-key",
+                "test-session-token");
 
         assertDoesNotThrow(() -> {
             var presigner = ReflectionTestUtils.invokeMethod(storageService2, "getS3Presigner");
@@ -491,7 +513,10 @@ class AwsStorageServiceIntegrationTest {
 
         ReflectionTestUtils.setField(restrictedBucketService, "region", TEST_REGION);
         ReflectionTestUtils.setField(restrictedBucketService, "bucket", "unauthorized-bucket-no-access");
-        ReflectionTestUtils.setField(restrictedBucketService, "serviceEndpoint", localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
+        ReflectionTestUtils.setField(
+                restrictedBucketService,
+                "serviceEndpoint",
+                localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
         ReflectionTestUtils.setField(restrictedBucketService, "pathStyleAccess", true);
 
         ReflectionTestUtils.setField(restrictedBucketService, "s3Client", null);
@@ -515,13 +540,20 @@ class AwsStorageServiceIntegrationTest {
         logoFile.close();
     }
 
-    private AwsStorageService createStorageServiceWithCredentials(String accessKeyId, String secretAccessKey, String sessionToken) {
+    private AwsStorageService createStorageServiceWithCredentials(
+            String accessKeyId,
+            String secretAccessKey,
+            String sessionToken
+    ) {
         ReflectionTestUtils.setField(awsStorageService, "accessKeyId", accessKeyId);
         ReflectionTestUtils.setField(awsStorageService, "secretAccessKey", secretAccessKey);
         ReflectionTestUtils.setField(awsStorageService, "sessionToken", sessionToken);
         ReflectionTestUtils.setField(awsStorageService, "region", TEST_REGION);
         ReflectionTestUtils.setField(awsStorageService, "bucket", TEST_BUCKET);
-        ReflectionTestUtils.setField(awsStorageService, "serviceEndpoint", localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
+        ReflectionTestUtils.setField(
+                awsStorageService,
+                "serviceEndpoint",
+                localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString());
         ReflectionTestUtils.setField(awsStorageService, "pathStyleAccess", true);
 
         return awsStorageService;
@@ -554,10 +586,11 @@ class AwsStorageServiceIntegrationTest {
 
     private boolean objectExists(String objectKey) {
         try {
-            testS3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(TEST_BUCKET)
-                    .key(objectKey)
-                    .build());
+            testS3Client.headObject(
+                    HeadObjectRequest.builder()
+                            .bucket(TEST_BUCKET)
+                            .key(objectKey)
+                            .build());
             return true;
         } catch (NoSuchKeyException e) {
             return false;
@@ -580,8 +613,10 @@ class AwsStorageServiceIntegrationTest {
         }
 
         @Bean
-        public AwsStorageService awsStorageService(FileCacheDurationConfig fileCacheDurationConfig,
-                                                   FilesCacheKeyGenerator filesCacheKeyGenerator) {
+        public AwsStorageService awsStorageService(
+                FileCacheDurationConfig fileCacheDurationConfig,
+                FilesCacheKeyGenerator filesCacheKeyGenerator
+        ) {
             return new AwsStorageService(fileCacheDurationConfig, filesCacheKeyGenerator);
         }
     }

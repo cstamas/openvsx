@@ -12,10 +12,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.scanning.PublishCheck;
-import org.eclipse.openvsx.util.TempFile;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +22,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.util.Streamable;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.scanning.PublishCheck;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -96,16 +97,27 @@ class SimilarityCheckServiceTest {
         membership2.setRole(NamespaceMembership.ROLE_CONTRIBUTOR);
 
         when(repositories.findMemberships(user)).thenReturn(Streamable.of(membership1, membership2));
-        when(similarityService.findSimilarExtensions("ext", "ns", "Display", List.of("owned-ns", "contributor-ns"), 0.15, false, 10))
+        when(
+                similarityService.findSimilarExtensions(
+                        "ext",
+                        "ns",
+                        "Display",
+                        List.of("owned-ns", "contributor-ns"),
+                        0.15,
+                        false,
+                        10))
                 .thenReturn(List.of());
 
         var result = similarityCheckService.findSimilarExtensionsForPublishing(
-            "ext", "ns", "Display", user
-        );
+                "ext",
+                "ns",
+                "Display",
+                user);
 
         assertThat(result).isEmpty();
         verify(repositories).findMemberships(user);
-        verify(similarityService).findSimilarExtensions("ext", "ns", "Display", List.of("owned-ns", "contributor-ns"), 0.15, false, 10);
+        verify(similarityService)
+                .findSimilarExtensions("ext", "ns", "Display", List.of("owned-ns", "contributor-ns"), 0.15, false, 10);
     }
 
     @Test
@@ -118,8 +130,10 @@ class SimilarityCheckServiceTest {
                 .thenReturn(List.of());
 
         var result = similarityCheckService.findSimilarExtensionsForPublishing(
-            "ext", "ns", "Display", user
-        );
+                "ext",
+                "ns",
+                "Display",
+                user);
 
         assertThat(result).isEmpty();
         verifyNoInteractions(repositories);
@@ -137,8 +151,10 @@ class SimilarityCheckServiceTest {
                 .thenReturn(expected);
 
         var result = similarityCheckService.findSimilarExtensionsForPublishing(
-            "ext", "ns", "Display", user
-        );
+                "ext",
+                "ns",
+                "Display",
+                user);
 
         assertThat(result).isSameAs(expected);
         verify(similarityService).findSimilarExtensions("ext", "ns", "Display", List.of(), 0.15, false, 10);
@@ -223,8 +239,10 @@ class SimilarityCheckServiceTest {
                 .thenReturn(List.of());
 
         var result = similarityCheckService.findSimilarExtensionsForPublishing(
-            "ext", "ns", "Display", user
-        );
+                "ext",
+                "ns",
+                "Display",
+                user);
 
         assertThat(result).isEmpty();
         verify(similarityService).findSimilarExtensions("ext", "ns", "Display", List.of(), 0.25, true, 10);

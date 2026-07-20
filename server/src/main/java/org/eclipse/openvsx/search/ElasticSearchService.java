@@ -9,6 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.mapping.FieldType;
@@ -16,13 +22,6 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.RelevanceService.SearchStats;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TargetPlatform;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.jobrunr.scheduling.cron.Cron;
 import org.jspecify.annotations.Nullable;
@@ -47,11 +46,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
 
-import java.time.ZoneId;
-import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.RelevanceService.SearchStats;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TargetPlatform;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_AVERAGE_REVIEW_RATING;
 
@@ -109,8 +110,7 @@ public class ElasticSearchService implements ISearchService {
                 "ElasticSearchUpdateIndex",
                 Cron.daily(4),
                 ZoneId.of("UTC"),
-                new HandlerJobRequest<>(ElasticSearchUpdateIndexJobRequestHandler.class)
-        );
+                new HandlerJobRequest<>(ElasticSearchUpdateIndexJobRequestHandler.class));
 
         if (clearOnStart || !searchOperations.indexOps(ExtensionSearch.class).exists()) {
             var stopWatch = new StopWatch();
@@ -246,7 +246,9 @@ public class ElasticSearchService implements ISearchService {
                     .withObject(searchEntry)
                     .build();
         } else {
-            logger.warn("Trying to update search entry for inactive extension '{}'",NamingUtil.toExtensionId(extension));
+            logger.warn(
+                    "Trying to update search entry for inactive extension '{}'",
+                    NamingUtil.toExtensionId(extension));
             return null;
         }
     }
@@ -258,10 +260,14 @@ public class ElasticSearchService implements ISearchService {
         }
 
         var queryBuilder = new NativeQueryBuilder();
-        var query = queryBuilder.withQuery(builder -> builder.ids(idsBuilder -> idsBuilder.values(ids.stream().map(String::valueOf).collect(Collectors.toList())))).build();
+        var query = queryBuilder
+                .withQuery(
+                        builder -> builder.ids(
+                                idsBuilder -> idsBuilder
+                                        .values(ids.stream().map(String::valueOf).collect(Collectors.toList()))))
+                .build();
         searchOperations.delete(DeleteQuery.builder(query).build(), ExtensionSearch.class);
     }
-
 
     @Retryable(includes = DataAccessResourceFailureException.class)
     public void removeSearchEntry(Extension extension) {
@@ -303,7 +309,10 @@ public class ElasticSearchService implements ISearchService {
             queryBuilder.withTrackTotalHits(true);
             try {
                 rwLock.readLock().lock();
-                var searchHits = searchOperations.search(queryBuilder.build(), ExtensionSearch.class, searchOperations.indexOps(ExtensionSearch.class).getIndexCoordinates());
+                var searchHits = searchOperations.search(
+                        queryBuilder.build(),
+                        ExtensionSearch.class,
+                        searchOperations.indexOps(ExtensionSearch.class).getIndexCoordinates());
                 searchHitsList.add(searchHits);
             } finally {
                 rwLock.readLock().unlock();
@@ -332,7 +341,10 @@ public class ElasticSearchService implements ISearchService {
 
         if (!StringUtils.isEmpty(options.namespace())) {
             // Filter by namespace
-            boolQuery.must(QueryBuilders.term(builder -> builder.field("namespace.keyword").value(options.namespace()).caseInsensitive(true)));
+            boolQuery.must(
+                    QueryBuilders.term(
+                            builder -> builder.field("namespace.keyword").value(options.namespace())
+                                    .caseInsensitive(true)));
         }
         if (!StringUtils.isEmpty(options.category())) {
             // Filter by selected category
@@ -340,12 +352,15 @@ public class ElasticSearchService implements ISearchService {
         }
         if (TargetPlatform.isValid(options.targetPlatform())) {
             // Filter by selected target platform
-            boolQuery.must(QueryBuilders.matchPhrase(builder -> builder.field("targetPlatforms").query(options.targetPlatform())));
+            boolQuery.must(
+                    QueryBuilders
+                            .matchPhrase(builder -> builder.field("targetPlatforms").query(options.targetPlatform())));
         }
         if (options.namespacesToExclude() != null) {
             // Exclude namespaces
-            for(var namespaceToExclude : options.namespacesToExclude()) {
-                boolQuery.mustNot(QueryBuilders.term(builder -> builder.field("namespace.keyword").value(namespaceToExclude)));
+            for (var namespaceToExclude : options.namespacesToExclude()) {
+                boolQuery.mustNot(
+                        QueryBuilders.term(builder -> builder.field("namespace.keyword").value(namespaceToExclude)));
             }
         }
 
@@ -353,36 +368,34 @@ public class ElasticSearchService implements ISearchService {
     }
 
     private ObjectBuilder<BoolQuery> createTextSearchQuery(BoolQuery.Builder boolQuery, Options options) {
-        boolQuery.should(QueryBuilders.term(builder ->
-                builder.field("extensionId.keyword")
-                        .value(options.queryString())
-                        .caseInsensitive(true)
-                        .boost(10f)
-        ));
+        boolQuery.should(
+                QueryBuilders.term(
+                        builder -> builder.field("extensionId.keyword")
+                                .value(options.queryString())
+                                .caseInsensitive(true)
+                                .boost(10f)));
 
         // matching of search query in multiple fields with boost
-        var multiMatchQuery = QueryBuilders.multiMatch(builder ->
-                builder.query(options.queryString())
+        var multiMatchQuery = QueryBuilders.multiMatch(
+                builder -> builder.query(options.queryString())
                         .fields("name").boost(5f)
                         .fields("displayName").boost(5f)
                         .fields("tags").boost(3f)
                         .fields("namespace").boost(2f)
-                        .fields("description")
-        );
+                        .fields("description"));
 
         boolQuery.should(multiMatchQuery).boost(5f);
 
         // Fuzzy matching of search query in multiple fields without boost
         // Same as above except does not fuzzy match tags
-        var fuzzyMultiMatchQuery = QueryBuilders.multiMatch(builder ->
-                builder.query(options.queryString())
+        var fuzzyMultiMatchQuery = QueryBuilders.multiMatch(
+                builder -> builder.query(options.queryString())
                         .fields("name")
                         .fields("displayName")
                         .fields("namespace")
                         .fields("description")
                         .fuzziness("AUTO")
-                        .prefixLength(2)
-        );
+                        .prefixLength(2));
 
         boolQuery.should(fuzzyMultiMatchQuery);
 
@@ -397,16 +410,15 @@ public class ElasticSearchService implements ISearchService {
     }
 
     private void createQuery(NativeQueryBuilder queryBuilder, Options options) {
-        if(SortBy.RELEVANCE.equals(options.sortBy())) {
+        if (SortBy.RELEVANCE.equals(options.sortBy())) {
             queryBuilder.withQuery(
                     builder -> builder.functionScore(
                             scoreQuery -> scoreQuery.query(
-                                    sortQueryBuilder -> sortQueryBuilder.bool(boolQuery -> createSearchQuery(boolQuery, options))
-                            ).functions(
-                                    functionBuilder -> functionBuilder.fieldValueFactor(factor -> factor.field("relevance").factor(1.0))
-                            )
-                    )
-            );
+                                    sortQueryBuilder -> sortQueryBuilder
+                                            .bool(boolQuery -> createSearchQuery(boolQuery, options)))
+                                    .functions(
+                                            functionBuilder -> functionBuilder.fieldValueFactor(
+                                                    factor -> factor.field("relevance").factor(1.0)))));
         } else {
             queryBuilder.withQuery(builder -> builder.bool(boolQuery -> createSearchQuery(boolQuery, options)));
         }
@@ -421,11 +433,14 @@ public class ElasticSearchService implements ISearchService {
         }
 
         var types = Map.of(
-                SortBy.RELEVANCE, FieldType.Float,
-                SortBy.RATING, FieldType.Float,
-                SortBy.TIMESTAMP, FieldType.Long,
-                SortBy.DOWNLOADS, FieldType.Integer
-        );
+                SortBy.RELEVANCE,
+                FieldType.Float,
+                SortBy.RATING,
+                FieldType.Float,
+                SortBy.TIMESTAMP,
+                FieldType.Long,
+                SortBy.DOWNLOADS,
+                FieldType.Integer);
 
         var type = types.get(sortBy);
         if (type == null) {
@@ -433,7 +448,8 @@ public class ElasticSearchService implements ISearchService {
         }
 
         var scoreSort = new SortOptions.Builder().score(builder -> builder.order(order)).build();
-        var fieldSort = new SortOptions.Builder().field(builder -> builder.field(sortBy).unmappedType(type).order(order)).build();
+        var fieldSort = new SortOptions.Builder()
+                .field(builder -> builder.field(sortBy).unmappedType(type).order(order)).build();
         var sortOptions = sortBy.equals(SortBy.RELEVANCE) ? List.of(scoreSort) : List.of(fieldSort, scoreSort);
         queryBuilder.withSort(sortOptions);
     }

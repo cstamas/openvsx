@@ -12,6 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +25,6 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Handles authentication for scanner HTTP requests.
@@ -46,9 +46,9 @@ public class HttpAuthHandler {
      * Create an auth handler for a scanner.
      */
     public HttpAuthHandler(
-        String scannerName,
-        RemoteScannerProperties.@Nullable AuthConfig authConfig,
-        RestTemplate restTemplate
+            String scannerName,
+            RemoteScannerProperties.@Nullable AuthConfig authConfig,
+            RestTemplate restTemplate
     ) {
         this.scannerName = scannerName;
         this.authConfig = authConfig;
@@ -77,7 +77,7 @@ public class HttpAuthHandler {
             case "oauth2":
                 applyOAuth2Auth(headers);
                 break;
-            default:
+            default :
                 logger.warn("Unknown auth type '{}' for scanner {}", authType, scannerName);
         }
     }

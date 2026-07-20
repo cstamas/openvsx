@@ -12,11 +12,12 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Tier;
-import org.eclipse.openvsx.entities.TierType;
+import java.util.List;
+
 import org.springframework.data.repository.Repository;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.Tier;
+import org.eclipse.openvsx.entities.TierType;
 
 public interface TierRepository extends Repository<Tier, Long> {
     List<Tier> findAllByOrderByIdAsc();

@@ -12,16 +12,16 @@
  *****************************************************************************/
 package org.eclipse.openvsx.cache.jedis;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.RedisClusterClient;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class JedisClusterChannelListener extends JedisPubSub {
     private final Logger logger = LoggerFactory.getLogger(JedisClusterChannelListener.class);
@@ -60,9 +60,10 @@ public abstract class JedisClusterChannelListener extends JedisPubSub {
 
     private void subscribeLoop() {
         AtomicInteger backoffMs = new AtomicInteger(1000);
-        try (var executor = Executors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory("rate-limit-config-subscriber-reconnect")
-        )) {
+        try (
+                var executor = Executors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("rate-limit-config-subscriber-reconnect"))
+        ) {
             while (running && !Thread.currentThread().isInterrupted()) {
                 ScheduledFuture<?> resetTask = null;
                 try {
@@ -70,12 +71,17 @@ public abstract class JedisClusterChannelListener extends JedisPubSub {
                     logger.debug("Subscribing to redis channel {}", channelName);
                     redisClusterClient.subscribe(this, channelName);
                 } catch (Exception e) {
-                    if (!running) break;
+                    if (!running) {
+                        break;
+                    }
                     logger.warn(
                             "Redis pubsub subscriber for channel {} disconnected, reconnecting in {}s: {}",
-                            channelName, backoffMs.get() / 1000, e.getMessage()
-                    );
-                    if (resetTask != null) resetTask.cancel(true);
+                            channelName,
+                            backoffMs.get() / 1000,
+                            e.getMessage());
+                    if (resetTask != null) {
+                        resetTask.cancel(true);
+                    }
                     try {
                         Thread.sleep(backoffMs.get());
                         backoffMs.set(Math.min(backoffMs.get() * 2, 30000));

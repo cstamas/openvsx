@@ -9,16 +9,17 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.settings.SettingsService;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.settings.SettingsService;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Component
 public class MonthlyAdminStatisticsJobRequestHandler implements JobRequestHandler<HandlerJobRequest<?>> {

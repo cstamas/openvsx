@@ -15,5 +15,6 @@ package org.eclipse.openvsx.storage.log;
 import org.jspecify.annotations.Nullable;
 
 public interface LogFileParser {
-    @Nullable LogRecord parse(String line);
+    @Nullable
+    LogRecord parse(String line);
 }

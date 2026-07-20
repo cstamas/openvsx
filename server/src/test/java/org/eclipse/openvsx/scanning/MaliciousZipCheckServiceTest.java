@@ -12,21 +12,22 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.apache.commons.compress.archivers.zip.ExtraFieldUtils;
-import org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField;
-import org.apache.commons.compress.archivers.zip.ZipExtraField;
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.util.TempFile;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.compress.archivers.zip.ExtraFieldUtils;
+import org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField;
+import org.apache.commons.compress.archivers.zip.ZipExtraField;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -70,8 +71,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_passesForCleanZip() throws Exception {
-        TempFile extensionFile = createZipWithEntries("clean-entries.vsix",
-                "extension/package.json", "extension/README.md");
+        TempFile extensionFile = createZipWithEntries(
+                "clean-entries.vsix",
+                "extension/package.json",
+                "extension/README.md");
 
         var result = service.check(createContext(extensionFile));
 
@@ -81,8 +84,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterBackslashNormalization() throws Exception {
-        TempFile extensionFile = createZipWithEntries("duplicate-backslash.vsix",
-                "extension/package.json", "extension\\package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "duplicate-backslash.vsix",
+                "extension/package.json",
+                "extension\\package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -94,8 +99,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterDoubleBackslashNormalization() throws Exception {
-        TempFile extensionFile = createZipWithEntries("duplicate-backslash.vsix",
-                "extension/package.json", "extension\\\\package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "duplicate-backslash.vsix",
+                "extension/package.json",
+                "extension\\\\package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -107,8 +114,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterDotSegmentNormalization() throws Exception {
-        TempFile extensionFile = createZipWithEntries("dot-segment.vsix",
-                "extension/package.json", "extension/./package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "dot-segment.vsix",
+                "extension/package.json",
+                "extension/./package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -119,8 +128,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterDotDotSegmentNormalization() throws Exception {
-        TempFile extensionFile = createZipWithEntries("dotdot-segment.vsix",
-                "extension/package.json", "extension/sub/../package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "dotdot-segment.vsix",
+                "extension/package.json",
+                "extension/sub/../package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -132,8 +143,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterDotDotSegmentNormalizationMultipleSlashes() throws Exception {
-        TempFile extensionFile = createZipWithEntries("dotdot-segment.vsix",
-            "extension\\/package.json", "extension/package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "dotdot-segment.vsix",
+                "extension\\/package.json",
+                "extension/package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -144,8 +157,10 @@ class MaliciousZipCheckServiceTest {
 
     @Test
     void check_failsWhenEntriesCollideAfterDotDotSegmentNormalizationMultipleSlashes2() throws Exception {
-        TempFile extensionFile = createZipWithEntries("dotdot-segment.vsix",
-            "extension/\\package.json", "extension/package.json");
+        TempFile extensionFile = createZipWithEntries(
+                "dotdot-segment.vsix",
+                "extension/\\package.json",
+                "extension/package.json");
 
         var result = service.check(createContext(extensionFile));
 
@@ -165,7 +180,9 @@ class MaliciousZipCheckServiceTest {
         assertFalse(result.passed());
         assertEquals(1, result.failures().size());
         assertEquals("UNSAFE_PATH_DETECTED", result.failures().getFirst().ruleName());
-        assertTrue(result.failures().getFirst().reason().contains("extension file contains zip entries with a suspicious path"));
+        assertTrue(
+                result.failures().getFirst().reason()
+                        .contains("extension file contains zip entries with a suspicious path"));
     }
 
     @Test
@@ -177,7 +194,9 @@ class MaliciousZipCheckServiceTest {
         assertFalse(result.passed());
         assertEquals(1, result.failures().size());
         assertEquals("UNSAFE_PATH_DETECTED", result.failures().getFirst().ruleName());
-        assertTrue(result.failures().getFirst().reason().contains("extension file contains zip entries with a suspicious path"));
+        assertTrue(
+                result.failures().getFirst().reason()
+                        .contains("extension file contains zip entries with a suspicious path"));
     }
 
     // --- Helper methods ---

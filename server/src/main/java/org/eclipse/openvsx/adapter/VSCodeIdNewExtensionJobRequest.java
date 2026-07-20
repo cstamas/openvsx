@@ -17,7 +17,8 @@ public class VSCodeIdNewExtensionJobRequest implements JobRequest {
     private String namespace;
     private String extension;
 
-    public VSCodeIdNewExtensionJobRequest() {}
+    public VSCodeIdNewExtensionJobRequest() {
+    }
 
     public VSCodeIdNewExtensionJobRequest(String namespace, String extension) {
         this.namespace = namespace;

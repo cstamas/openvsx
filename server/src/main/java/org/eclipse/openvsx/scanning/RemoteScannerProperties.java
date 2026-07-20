@@ -12,6 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -19,9 +22,6 @@ import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Configuration properties for remote scanners (ovsx.scanning.configured.*).
@@ -125,7 +125,7 @@ public class RemoteScannerProperties {
         private boolean enabled = false;
 
         @NotBlank(message = "Scanner type must be specified")
-        private String type;  // Unique scanner type identifier
+        private String type; // Unique scanner type identifier
 
         private boolean required = true;
 
@@ -215,51 +215,111 @@ public class RemoteScannerProperties {
         private HttpOperation result;
 
         // Getters and setters
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        public String getType() {
+            return type;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
 
-        public boolean isRequired() { return required; }
-        public void setRequired(boolean required) { this.required = required; }
+        public boolean isRequired() {
+            return required;
+        }
+        public void setRequired(boolean required) {
+            this.required = required;
+        }
 
-        public boolean isEnforced() { return enforced; }
-        public void setEnforced(boolean enforced) { this.enforced = enforced; }
+        public boolean isEnforced() {
+            return enforced;
+        }
+        public void setEnforced(boolean enforced) {
+            this.enforced = enforced;
+        }
 
-        public int getTimeoutMinutes() { return timeoutMinutes; }
-        public void setTimeoutMinutes(int timeoutMinutes) { this.timeoutMinutes = timeoutMinutes; }
+        public int getTimeoutMinutes() {
+            return timeoutMinutes;
+        }
+        public void setTimeoutMinutes(int timeoutMinutes) {
+            this.timeoutMinutes = timeoutMinutes;
+        }
 
-        public boolean isAsync() { return async; }
-        public void setAsync(boolean async) { this.async = async; }
+        public boolean isAsync() {
+            return async;
+        }
+        public void setAsync(boolean async) {
+            this.async = async;
+        }
 
-        public int getMaxConcurrency() { return maxConcurrency; }
-        public void setMaxConcurrency(int maxConcurrency) { this.maxConcurrency = maxConcurrency; }
+        public int getMaxConcurrency() {
+            return maxConcurrency;
+        }
+        public void setMaxConcurrency(int maxConcurrency) {
+            this.maxConcurrency = maxConcurrency;
+        }
 
-        public int getMaxQueueWaitMinutes() { return maxQueueWaitMinutes; }
-        public void setMaxQueueWaitMinutes(int maxQueueWaitMinutes) { this.maxQueueWaitMinutes = maxQueueWaitMinutes; }
+        public int getMaxQueueWaitMinutes() {
+            return maxQueueWaitMinutes;
+        }
+        public void setMaxQueueWaitMinutes(int maxQueueWaitMinutes) {
+            this.maxQueueWaitMinutes = maxQueueWaitMinutes;
+        }
 
-        public HttpConfig getHttp() { return http; }
-        public void setHttp(HttpConfig http) { this.http = http; }
+        public HttpConfig getHttp() {
+            return http;
+        }
+        public void setHttp(HttpConfig http) {
+            this.http = http;
+        }
 
-        public AuthConfig getAuth() { return auth; }
-        public void setAuth(AuthConfig auth) { this.auth = auth; }
+        public AuthConfig getAuth() {
+            return auth;
+        }
+        public void setAuth(AuthConfig auth) {
+            this.auth = auth;
+        }
 
-        public PollConfig getPolling() { return polling; }
-        public void setPolling(PollConfig polling) { this.polling = polling; }
+        public PollConfig getPolling() {
+            return polling;
+        }
+        public void setPolling(PollConfig polling) {
+            this.polling = polling;
+        }
 
         @Nullable
-        public String getExternalUrlTemplate() { return externalUrlTemplate; }
-        public void setExternalUrlTemplate(@Nullable String externalUrlTemplate) { this.externalUrlTemplate = externalUrlTemplate; }
+        public String getExternalUrlTemplate() {
+            return externalUrlTemplate;
+        }
+        public void setExternalUrlTemplate(@Nullable String externalUrlTemplate) {
+            this.externalUrlTemplate = externalUrlTemplate;
+        }
 
-        public HttpOperation getStart() { return start; }
-        public void setStart(HttpOperation start) { this.start = start; }
+        public HttpOperation getStart() {
+            return start;
+        }
+        public void setStart(HttpOperation start) {
+            this.start = start;
+        }
 
-        public HttpOperation getPoll() { return poll; }
-        public void setPoll(HttpOperation poll) { this.poll = poll; }
+        public HttpOperation getPoll() {
+            return poll;
+        }
+        public void setPoll(HttpOperation poll) {
+            this.poll = poll;
+        }
 
-        public HttpOperation getResult() { return result; }
-        public void setResult(HttpOperation result) { this.result = result; }
+        public HttpOperation getResult() {
+            return result;
+        }
+        public void setResult(HttpOperation result) {
+            this.result = result;
+        }
     }
 
     /**
@@ -268,10 +328,10 @@ public class RemoteScannerProperties {
      * Validated to ensure URL and response config are present.
      */
     public static class HttpOperation {
-        private String method = "GET";  // GET, POST, PUT, etc.
+        private String method = "GET"; // GET, POST, PUT, etc.
 
         @NotBlank(message = "URL must be specified for HTTP operation")
-        private String url;  // URL template with {jobId} placeholder
+        private String url; // URL template with {jobId} placeholder
 
         private Map<String, String> headers = new HashMap<>();
         private Map<String, String> queryParams = new HashMap<>();
@@ -287,26 +347,54 @@ public class RemoteScannerProperties {
         private RetryConfig retry;
 
         // Getters and setters
-        public String getMethod() { return method; }
-        public void setMethod(String method) { this.method = method; }
+        public String getMethod() {
+            return method;
+        }
+        public void setMethod(String method) {
+            this.method = method;
+        }
 
-        public String getUrl() { return url; }
-        public void setUrl(String url) { this.url = url; }
+        public String getUrl() {
+            return url;
+        }
+        public void setUrl(String url) {
+            this.url = url;
+        }
 
-        public Map<String, String> getHeaders() { return headers; }
-        public void setHeaders(Map<String, String> headers) { this.headers = headers; }
+        public Map<String, String> getHeaders() {
+            return headers;
+        }
+        public void setHeaders(Map<String, String> headers) {
+            this.headers = headers;
+        }
 
-        public Map<String, String> getQueryParams() { return queryParams; }
-        public void setQueryParams(Map<String, String> queryParams) { this.queryParams = queryParams; }
+        public Map<String, String> getQueryParams() {
+            return queryParams;
+        }
+        public void setQueryParams(Map<String, String> queryParams) {
+            this.queryParams = queryParams;
+        }
 
-        public BodyConfig getBody() { return body; }
-        public void setBody(BodyConfig body) { this.body = body; }
+        public BodyConfig getBody() {
+            return body;
+        }
+        public void setBody(BodyConfig body) {
+            this.body = body;
+        }
 
-        public ResponseConfig getResponse() { return response; }
-        public void setResponse(ResponseConfig response) { this.response = response; }
+        public ResponseConfig getResponse() {
+            return response;
+        }
+        public void setResponse(ResponseConfig response) {
+            this.response = response;
+        }
 
-        public RetryConfig getRetry() { return retry; }
-        public void setRetry(RetryConfig retry) { this.retry = retry; }
+        public RetryConfig getRetry() {
+            return retry;
+        }
+        public void setRetry(RetryConfig retry) {
+            this.retry = retry;
+        }
 
         /**
          * Create a shallow copy of this operation for thread-safe processing.
@@ -318,9 +406,9 @@ public class RemoteScannerProperties {
             copy.url = this.url;
             copy.headers = new HashMap<>(this.headers);
             copy.queryParams = new HashMap<>(this.queryParams);
-            copy.body = this.body;          // Shared (read-only during execution)
-            copy.response = this.response;  // Shared (read-only during execution)
-            copy.retry = this.retry;        // Shared (read-only during execution)
+            copy.body = this.body; // Shared (read-only during execution)
+            copy.response = this.response; // Shared (read-only during execution)
+            copy.retry = this.retry; // Shared (read-only during execution)
             return copy;
         }
     }
@@ -329,40 +417,56 @@ public class RemoteScannerProperties {
      * Configuration for request body.
      */
     public static class BodyConfig {
-        private String type = "json";  // json, multipart, form-urlencoded, xml, raw
-        private String fileField = "file";  // Field name for file in multipart
-        private Map<String, String> fields = new HashMap<>();  // Additional fields
-        private String template;  // Template for json/xml/raw body
+        private String type = "json"; // json, multipart, form-urlencoded, xml, raw
+        private String fileField = "file"; // Field name for file in multipart
+        private Map<String, String> fields = new HashMap<>(); // Additional fields
+        private String template; // Template for json/xml/raw body
 
         // Getters and setters
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        public String getType() {
+            return type;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
 
-        public String getFileField() { return fileField; }
-        public void setFileField(String fileField) { this.fileField = fileField; }
+        public String getFileField() {
+            return fileField;
+        }
+        public void setFileField(String fileField) {
+            this.fileField = fileField;
+        }
 
-        public Map<String, String> getFields() { return fields; }
-        public void setFields(Map<String, String> fields) { this.fields = fields; }
+        public Map<String, String> getFields() {
+            return fields;
+        }
+        public void setFields(Map<String, String> fields) {
+            this.fields = fields;
+        }
 
-        public String getTemplate() { return template; }
-        public void setTemplate(String template) { this.template = template; }
+        public String getTemplate() {
+            return template;
+        }
+        public void setTemplate(String template) {
+            this.template = template;
+        }
     }
 
     /**
      * Configuration for parsing responses.
      */
     public static class ResponseConfig {
-        private String format = "json";  // json, xml, text
+        private String format = "json"; // json, xml, text
 
         // For extracting job ID (start operation)
-        private String jobIdPath;  // JSONPath or XPath
+        private String jobIdPath; // JSONPath or XPath
 
         // For extracting status (poll operation)
-        private String statusPath;  // JSONPath or XPath
-        private Map<String, String> statusMapping = new HashMap<>();  // Maps scanner status to ScannerProvider.PollStatus
+        private String statusPath; // JSONPath or XPath
+        private Map<String, String> statusMapping = new HashMap<>(); // Maps scanner status to ScannerProvider.PollStatus
 
         // For extracting threats (result operation)
-        private String threatsPath;  // JSONPath to array of threats
+        private String threatsPath; // JSONPath to array of threats
         private ThreatMapping threatMapping;
 
         // For extracting a scanner-provided summary string (result operation).
@@ -370,71 +474,135 @@ public class RemoteScannerProperties {
         private String summaryPath;
 
         // For error detection
-        private String errorPath;  // Path to error message
-        private String errorCondition;  // Expression to detect errors
+        private String errorPath; // Path to error message
+        private String errorCondition; // Expression to detect errors
 
         // Getters and setters
-        public String getFormat() { return format; }
-        public void setFormat(String format) { this.format = format; }
+        public String getFormat() {
+            return format;
+        }
+        public void setFormat(String format) {
+            this.format = format;
+        }
 
-        public String getJobIdPath() { return jobIdPath; }
-        public void setJobIdPath(String jobIdPath) { this.jobIdPath = jobIdPath; }
+        public String getJobIdPath() {
+            return jobIdPath;
+        }
+        public void setJobIdPath(String jobIdPath) {
+            this.jobIdPath = jobIdPath;
+        }
 
-        public String getStatusPath() { return statusPath; }
-        public void setStatusPath(String statusPath) { this.statusPath = statusPath; }
+        public String getStatusPath() {
+            return statusPath;
+        }
+        public void setStatusPath(String statusPath) {
+            this.statusPath = statusPath;
+        }
 
-        public Map<String, String> getStatusMapping() { return statusMapping; }
-        public void setStatusMapping(Map<String, String> statusMapping) { this.statusMapping = statusMapping; }
+        public Map<String, String> getStatusMapping() {
+            return statusMapping;
+        }
+        public void setStatusMapping(Map<String, String> statusMapping) {
+            this.statusMapping = statusMapping;
+        }
 
-        public String getThreatsPath() { return threatsPath; }
-        public void setThreatsPath(String threatsPath) { this.threatsPath = threatsPath; }
+        public String getThreatsPath() {
+            return threatsPath;
+        }
+        public void setThreatsPath(String threatsPath) {
+            this.threatsPath = threatsPath;
+        }
 
-        public ThreatMapping getThreatMapping() { return threatMapping; }
-        public void setThreatMapping(ThreatMapping threatMapping) { this.threatMapping = threatMapping; }
+        public ThreatMapping getThreatMapping() {
+            return threatMapping;
+        }
+        public void setThreatMapping(ThreatMapping threatMapping) {
+            this.threatMapping = threatMapping;
+        }
 
-        public String getSummaryPath() { return summaryPath; }
-        public void setSummaryPath(String summaryPath) { this.summaryPath = summaryPath; }
+        public String getSummaryPath() {
+            return summaryPath;
+        }
+        public void setSummaryPath(String summaryPath) {
+            this.summaryPath = summaryPath;
+        }
 
-        public String getErrorPath() { return errorPath; }
-        public void setErrorPath(String errorPath) { this.errorPath = errorPath; }
+        public String getErrorPath() {
+            return errorPath;
+        }
+        public void setErrorPath(String errorPath) {
+            this.errorPath = errorPath;
+        }
 
-        public String getErrorCondition() { return errorCondition; }
-        public void setErrorCondition(String errorCondition) { this.errorCondition = errorCondition; }
+        public String getErrorCondition() {
+            return errorCondition;
+        }
+        public void setErrorCondition(String errorCondition) {
+            this.errorCondition = errorCondition;
+        }
     }
 
     /**
      * Configuration for mapping scanner threats to ScanResult.Threat.
      */
     public static class ThreatMapping {
-        private String namePath;  // JSONPath to threat name
-        private String descriptionPath;  // JSONPath to threat description
-        private String severityPath;  // JSONPath to severity
-        private String severityExpression;  // Expression to compute severity
-        private String filePathPath;  // JSONPath to file path
-        private String fileHashPath;  // JSONPath to file hash (SHA256)
-        private String condition;  // Expression to filter threats (e.g., "$.detected == true")
+        private String namePath; // JSONPath to threat name
+        private String descriptionPath; // JSONPath to threat description
+        private String severityPath; // JSONPath to severity
+        private String severityExpression; // Expression to compute severity
+        private String filePathPath; // JSONPath to file path
+        private String fileHashPath; // JSONPath to file hash (SHA256)
+        private String condition; // Expression to filter threats (e.g., "$.detected == true")
 
         // Getters and setters
-        public String getNamePath() { return namePath; }
-        public void setNamePath(String namePath) { this.namePath = namePath; }
+        public String getNamePath() {
+            return namePath;
+        }
+        public void setNamePath(String namePath) {
+            this.namePath = namePath;
+        }
 
-        public String getDescriptionPath() { return descriptionPath; }
-        public void setDescriptionPath(String descriptionPath) { this.descriptionPath = descriptionPath; }
+        public String getDescriptionPath() {
+            return descriptionPath;
+        }
+        public void setDescriptionPath(String descriptionPath) {
+            this.descriptionPath = descriptionPath;
+        }
 
-        public String getSeverityPath() { return severityPath; }
-        public void setSeverityPath(String severityPath) { this.severityPath = severityPath; }
+        public String getSeverityPath() {
+            return severityPath;
+        }
+        public void setSeverityPath(String severityPath) {
+            this.severityPath = severityPath;
+        }
 
-        public String getSeverityExpression() { return severityExpression; }
-        public void setSeverityExpression(String severityExpression) { this.severityExpression = severityExpression; }
+        public String getSeverityExpression() {
+            return severityExpression;
+        }
+        public void setSeverityExpression(String severityExpression) {
+            this.severityExpression = severityExpression;
+        }
 
-        public String getFilePathPath() { return filePathPath; }
-        public void setFilePathPath(String filePathPath) { this.filePathPath = filePathPath; }
+        public String getFilePathPath() {
+            return filePathPath;
+        }
+        public void setFilePathPath(String filePathPath) {
+            this.filePathPath = filePathPath;
+        }
 
-        public String getFileHashPath() { return fileHashPath; }
-        public void setFileHashPath(String fileHashPath) { this.fileHashPath = fileHashPath; }
+        public String getFileHashPath() {
+            return fileHashPath;
+        }
+        public void setFileHashPath(String fileHashPath) {
+            this.fileHashPath = fileHashPath;
+        }
 
-        public String getCondition() { return condition; }
-        public void setCondition(String condition) { this.condition = condition; }
+        public String getCondition() {
+            return condition;
+        }
+        public void setCondition(String condition) {
+            this.condition = condition;
+        }
     }
 
     /**
@@ -447,17 +615,33 @@ public class RemoteScannerProperties {
         private long maxDelayMs = 30000;
 
         // Getters and setters
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
 
-        public long getInitialDelayMs() { return initialDelayMs; }
-        public void setInitialDelayMs(long initialDelayMs) { this.initialDelayMs = initialDelayMs; }
+        public long getInitialDelayMs() {
+            return initialDelayMs;
+        }
+        public void setInitialDelayMs(long initialDelayMs) {
+            this.initialDelayMs = initialDelayMs;
+        }
 
-        public double getMultiplier() { return multiplier; }
-        public void setMultiplier(double multiplier) { this.multiplier = multiplier; }
+        public double getMultiplier() {
+            return multiplier;
+        }
+        public void setMultiplier(double multiplier) {
+            this.multiplier = multiplier;
+        }
 
-        public long getMaxDelayMs() { return maxDelayMs; }
-        public void setMaxDelayMs(long maxDelayMs) { this.maxDelayMs = maxDelayMs; }
+        public long getMaxDelayMs() {
+            return maxDelayMs;
+        }
+        public void setMaxDelayMs(long maxDelayMs) {
+            this.maxDelayMs = maxDelayMs;
+        }
     }
 
     /**
@@ -489,20 +673,40 @@ public class RemoteScannerProperties {
         private int socketTimeoutMs = 300000;
 
         // Getters and setters
-        public int getMaxTotal() { return maxTotal; }
-        public void setMaxTotal(int maxTotal) { this.maxTotal = maxTotal; }
+        public int getMaxTotal() {
+            return maxTotal;
+        }
+        public void setMaxTotal(int maxTotal) {
+            this.maxTotal = maxTotal;
+        }
 
-        public int getDefaultMaxPerRoute() { return defaultMaxPerRoute; }
-        public void setDefaultMaxPerRoute(int defaultMaxPerRoute) { this.defaultMaxPerRoute = defaultMaxPerRoute; }
+        public int getDefaultMaxPerRoute() {
+            return defaultMaxPerRoute;
+        }
+        public void setDefaultMaxPerRoute(int defaultMaxPerRoute) {
+            this.defaultMaxPerRoute = defaultMaxPerRoute;
+        }
 
-        public int getConnectionRequestTimeoutMs() { return connectionRequestTimeoutMs; }
-        public void setConnectionRequestTimeoutMs(int connectionRequestTimeoutMs) { this.connectionRequestTimeoutMs = connectionRequestTimeoutMs; }
+        public int getConnectionRequestTimeoutMs() {
+            return connectionRequestTimeoutMs;
+        }
+        public void setConnectionRequestTimeoutMs(int connectionRequestTimeoutMs) {
+            this.connectionRequestTimeoutMs = connectionRequestTimeoutMs;
+        }
 
-        public int getConnectTimeoutMs() { return connectTimeoutMs; }
-        public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
 
-        public int getSocketTimeoutMs() { return socketTimeoutMs; }
-        public void setSocketTimeoutMs(int socketTimeoutMs) { this.socketTimeoutMs = socketTimeoutMs; }
+        public int getSocketTimeoutMs() {
+            return socketTimeoutMs;
+        }
+        public void setSocketTimeoutMs(int socketTimeoutMs) {
+            this.socketTimeoutMs = socketTimeoutMs;
+        }
     }
 
     /**
@@ -569,20 +773,40 @@ public class RemoteScannerProperties {
         private OAuth2Auth oauth2;
 
         // Getters and setters
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        public String getType() {
+            return type;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
 
-        public ApiKeyAuth getApiKey() { return apiKey; }
-        public void setApiKey(ApiKeyAuth apiKey) { this.apiKey = apiKey; }
+        public ApiKeyAuth getApiKey() {
+            return apiKey;
+        }
+        public void setApiKey(ApiKeyAuth apiKey) {
+            this.apiKey = apiKey;
+        }
 
-        public BearerAuth getBearer() { return bearer; }
-        public void setBearer(BearerAuth bearer) { this.bearer = bearer; }
+        public BearerAuth getBearer() {
+            return bearer;
+        }
+        public void setBearer(BearerAuth bearer) {
+            this.bearer = bearer;
+        }
 
-        public BasicAuth getBasic() { return basic; }
-        public void setBasic(BasicAuth basic) { this.basic = basic; }
+        public BasicAuth getBasic() {
+            return basic;
+        }
+        public void setBasic(BasicAuth basic) {
+            this.basic = basic;
+        }
 
-        public OAuth2Auth getOauth2() { return oauth2; }
-        public void setOauth2(OAuth2Auth oauth2) { this.oauth2 = oauth2; }
+        public OAuth2Auth getOauth2() {
+            return oauth2;
+        }
+        public void setOauth2(OAuth2Auth oauth2) {
+            this.oauth2 = oauth2;
+        }
     }
 
     /**
@@ -602,17 +826,33 @@ public class RemoteScannerProperties {
         private String prefix = "";
 
         // Getters and setters
-        public String getKey() { return key; }
-        public void setKey(String key) { this.key = key; }
+        public String getKey() {
+            return key;
+        }
+        public void setKey(String key) {
+            this.key = key;
+        }
 
-        public String getHeaderName() { return headerName; }
-        public void setHeaderName(String headerName) { this.headerName = headerName; }
+        public String getHeaderName() {
+            return headerName;
+        }
+        public void setHeaderName(String headerName) {
+            this.headerName = headerName;
+        }
 
-        public String getQueryParam() { return queryParam; }
-        public void setQueryParam(String queryParam) { this.queryParam = queryParam; }
+        public String getQueryParam() {
+            return queryParam;
+        }
+        public void setQueryParam(String queryParam) {
+            this.queryParam = queryParam;
+        }
 
-        public String getPrefix() { return prefix; }
-        public void setPrefix(String prefix) { this.prefix = prefix; }
+        public String getPrefix() {
+            return prefix;
+        }
+        public void setPrefix(String prefix) {
+            this.prefix = prefix;
+        }
     }
 
     /**
@@ -623,8 +863,12 @@ public class RemoteScannerProperties {
         private String token;
 
         // Getters and setters
-        public String getToken() { return token; }
-        public void setToken(String token) { this.token = token; }
+        public String getToken() {
+            return token;
+        }
+        public void setToken(String token) {
+            this.token = token;
+        }
     }
 
     /**
@@ -638,11 +882,19 @@ public class RemoteScannerProperties {
         private String password;
 
         // Getters and setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+        public String getUsername() {
+            return username;
+        }
+        public void setUsername(String username) {
+            this.username = username;
+        }
 
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
+        public String getPassword() {
+            return password;
+        }
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
 
     /**
@@ -667,20 +919,40 @@ public class RemoteScannerProperties {
         private int refreshBeforeExpiry = 60;
 
         // Getters and setters
-        public String getTokenUrl() { return tokenUrl; }
-        public void setTokenUrl(String tokenUrl) { this.tokenUrl = tokenUrl; }
+        public String getTokenUrl() {
+            return tokenUrl;
+        }
+        public void setTokenUrl(String tokenUrl) {
+            this.tokenUrl = tokenUrl;
+        }
 
-        public String getClientId() { return clientId; }
-        public void setClientId(String clientId) { this.clientId = clientId; }
+        public String getClientId() {
+            return clientId;
+        }
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
+        }
 
-        public String getClientSecret() { return clientSecret; }
-        public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
+        public String getClientSecret() {
+            return clientSecret;
+        }
+        public void setClientSecret(String clientSecret) {
+            this.clientSecret = clientSecret;
+        }
 
-        public String getScope() { return scope; }
-        public void setScope(String scope) { this.scope = scope; }
+        public String getScope() {
+            return scope;
+        }
+        public void setScope(String scope) {
+            this.scope = scope;
+        }
 
-        public int getRefreshBeforeExpiry() { return refreshBeforeExpiry; }
-        public void setRefreshBeforeExpiry(int refreshBeforeExpiry) { this.refreshBeforeExpiry = refreshBeforeExpiry; }
+        public int getRefreshBeforeExpiry() {
+            return refreshBeforeExpiry;
+        }
+        public void setRefreshBeforeExpiry(int refreshBeforeExpiry) {
+            this.refreshBeforeExpiry = refreshBeforeExpiry;
+        }
     }
 
     /**
@@ -736,22 +1008,46 @@ public class RemoteScannerProperties {
         private double backoffMultiplier = 2.0;
 
         // Getters and setters
-        public int getInitialDelaySeconds() { return initialDelaySeconds; }
-        public void setInitialDelaySeconds(int initialDelaySeconds) { this.initialDelaySeconds = initialDelaySeconds; }
+        public int getInitialDelaySeconds() {
+            return initialDelaySeconds;
+        }
+        public void setInitialDelaySeconds(int initialDelaySeconds) {
+            this.initialDelaySeconds = initialDelaySeconds;
+        }
 
-        public int getIntervalSeconds() { return intervalSeconds; }
-        public void setIntervalSeconds(int intervalSeconds) { this.intervalSeconds = intervalSeconds; }
+        public int getIntervalSeconds() {
+            return intervalSeconds;
+        }
+        public void setIntervalSeconds(int intervalSeconds) {
+            this.intervalSeconds = intervalSeconds;
+        }
 
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
 
-        public boolean isExponentialBackoff() { return exponentialBackoff; }
-        public void setExponentialBackoff(boolean exponentialBackoff) { this.exponentialBackoff = exponentialBackoff; }
+        public boolean isExponentialBackoff() {
+            return exponentialBackoff;
+        }
+        public void setExponentialBackoff(boolean exponentialBackoff) {
+            this.exponentialBackoff = exponentialBackoff;
+        }
 
-        public int getMaxIntervalSeconds() { return maxIntervalSeconds; }
-        public void setMaxIntervalSeconds(int maxIntervalSeconds) { this.maxIntervalSeconds = maxIntervalSeconds; }
+        public int getMaxIntervalSeconds() {
+            return maxIntervalSeconds;
+        }
+        public void setMaxIntervalSeconds(int maxIntervalSeconds) {
+            this.maxIntervalSeconds = maxIntervalSeconds;
+        }
 
-        public double getBackoffMultiplier() { return backoffMultiplier; }
-        public void setBackoffMultiplier(double backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
+        public double getBackoffMultiplier() {
+            return backoffMultiplier;
+        }
+        public void setBackoffMultiplier(double backoffMultiplier) {
+            this.backoffMultiplier = backoffMultiplier;
+        }
     }
 }

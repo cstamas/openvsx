@@ -12,11 +12,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.ScanStatus;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.util.ErrorResultException;
+import java.util.List;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +23,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.ScanStatus;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.ErrorResultException;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,7 +56,13 @@ class ExtensionScanServiceTest {
 
     @BeforeEach
     void setUp() {
-        svc = new ExtensionScanService(config, checkRunner, persistenceService, scannerRegistry, jobScheduler, scanJobRepository);
+        svc = new ExtensionScanService(
+                config,
+                checkRunner,
+                persistenceService,
+                scannerRegistry,
+                jobScheduler,
+                scanJobRepository);
     }
 
     @Test
@@ -64,8 +71,9 @@ class ExtensionScanServiceTest {
 
         assertThatThrownBy(() -> svc.retryFailedJobs(scan))
                 .isInstanceOf(ErrorResultException.class)
-                .satisfies(e -> assertThat(((ErrorResultException) e).getStatus())
-                        .isEqualTo(HttpStatus.BAD_REQUEST));
+                .satisfies(
+                        e -> assertThat(((ErrorResultException) e).getStatus())
+                                .isEqualTo(HttpStatus.BAD_REQUEST));
 
         verifyNoInteractions(scanJobRepository);
     }
@@ -77,8 +85,9 @@ class ExtensionScanServiceTest {
 
         assertThatThrownBy(() -> svc.retryFailedJobs(scan))
                 .isInstanceOf(ErrorResultException.class)
-                .satisfies(e -> assertThat(((ErrorResultException) e).getStatus())
-                        .isEqualTo(HttpStatus.NOT_FOUND));
+                .satisfies(
+                        e -> assertThat(((ErrorResultException) e).getStatus())
+                                .isEqualTo(HttpStatus.NOT_FOUND));
 
         verifyNoInteractions(persistenceService, jobScheduler);
     }
@@ -109,15 +118,17 @@ class ExtensionScanServiceTest {
         // COMPLETE and REMOVED jobs exist but are not eligible for retry
         var scan = scanWithStatus(42L, ScanStatus.ERRORED);
         when(scanJobRepository.findByScanId("42"))
-                .thenReturn(List
-                        .of(
-                                job("42", ScannerJob.JobStatus.COMPLETE),
-                                job("42", ScannerJob.JobStatus.REMOVED)));
+                .thenReturn(
+                        List
+                                .of(
+                                        job("42", ScannerJob.JobStatus.COMPLETE),
+                                        job("42", ScannerJob.JobStatus.REMOVED)));
 
         assertThatThrownBy(() -> svc.retryFailedJobs(scan))
                 .isInstanceOf(ErrorResultException.class)
-                .satisfies(e -> assertThat(((ErrorResultException) e).getStatus())
-                        .isEqualTo(HttpStatus.BAD_REQUEST));
+                .satisfies(
+                        e -> assertThat(((ErrorResultException) e).getStatus())
+                                .isEqualTo(HttpStatus.BAD_REQUEST));
 
         verifyNoInteractions(persistenceService, jobScheduler);
     }
@@ -130,8 +141,9 @@ class ExtensionScanServiceTest {
         var failedJob1 = job("10", ScannerJob.JobStatus.FAILED);
         var failedJob2 = job("10", ScannerJob.JobStatus.FAILED);
         when(scanJobRepository.findByScanId("10"))
-                .thenReturn(List
-                        .of(failedJob1, failedJob2, job("10", ScannerJob.JobStatus.COMPLETE)));
+                .thenReturn(
+                        List
+                                .of(failedJob1, failedJob2, job("10", ScannerJob.JobStatus.COMPLETE)));
 
         doAnswer(invocation -> {
             ExtensionScan s = invocation.getArgument(0);
@@ -171,7 +183,8 @@ class ExtensionScanServiceTest {
         // If JobRunr fails to enqueue after the DB reset was committed, we should not surface the error
         var scan = scanWithStatus(8L, ScanStatus.ERRORED);
         var failedJob = job("8", ScannerJob.JobStatus.FAILED);
-        doThrow(new RuntimeException("JobRunr unavailable")).when(jobScheduler).enqueue(any(ScannerInvocationRequest.class));
+        doThrow(new RuntimeException("JobRunr unavailable")).when(jobScheduler)
+                .enqueue(any(ScannerInvocationRequest.class));
 
         when(scannerRegistry.getScanner("CLAMAV_REST")).thenReturn(remoteScanner);
         when(remoteScanner.getMaxConcurrency()).thenReturn(0);

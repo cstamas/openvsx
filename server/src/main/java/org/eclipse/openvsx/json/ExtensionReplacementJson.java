@@ -13,8 +13,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
-        name = "ExtensionReplacement",
-        description = "Metadata of an extension replacement"
+    name = "ExtensionReplacement",
+    description = "Metadata of an extension replacement"
 )
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExtensionReplacementJson {

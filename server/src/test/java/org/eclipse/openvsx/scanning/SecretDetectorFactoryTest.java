@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.junit.jupiter.api.Test;
-
 import java.lang.reflect.Field;
 import java.util.List;
+
+import org.jspecify.annotations.NonNull;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,8 +30,8 @@ class SecretDetectorFactoryTest {
     void initialize_buildsEvenWhenDisabled() throws Exception {
         // Factory initializes if rule paths are configured, even when publishing-time scanning is disabled
         TrackingRuleLoader loader = new TrackingRuleLoader();
-        SecretDetectorConfig config = buildConfig(false);  // disabled
-        setField(config, "rulesPath", "classpath:org/eclipse/openvsx/scanning/secret-rules-a.yaml");  // Use test resource
+        SecretDetectorConfig config = buildConfig(false); // disabled
+        setField(config, "rulesPath", "classpath:org/eclipse/openvsx/scanning/secret-rules-a.yaml"); // Use test resource
         ExtensionScanConfig scanConfig = buildScanConfig();
         MockGitleaksRulesService gitleaksService = new MockGitleaksRulesService(null);
         SecretDetectorFactory factory = new SecretDetectorFactory(loader, config, scanConfig, gitleaksService);
@@ -49,9 +49,9 @@ class SecretDetectorFactoryTest {
         // Factory skips initialization when enabled but no rule paths are configured
         // Note: With @ConditionalOnProperty, factory is only created when enabled=true
         TrackingRuleLoader loader = new TrackingRuleLoader();
-        SecretDetectorConfig config = buildConfig(true);  // enabled but no rules paths
+        SecretDetectorConfig config = buildConfig(true); // enabled but no rules paths
         ExtensionScanConfig scanConfig = buildScanConfig();
-        MockGitleaksRulesService gitleaksService = new MockGitleaksRulesService(null);  // no generated rules either
+        MockGitleaksRulesService gitleaksService = new MockGitleaksRulesService(null); // no generated rules either
         SecretDetectorFactory factory = new SecretDetectorFactory(loader, config, scanConfig, gitleaksService);
 
         factory.initialize();
@@ -66,7 +66,9 @@ class SecretDetectorFactoryTest {
     void initialize_buildsMatchersAndIndexes() throws Exception {
         TrackingRuleLoader loader = new TrackingRuleLoader();
         SecretDetectorConfig config = buildConfig(true);
-        setField(config, "rulesPath",
+        setField(
+                config,
+                "rulesPath",
                 "classpath:org/eclipse/openvsx/scanning/secret-rules-a.yaml," +
                         "classpath:org/eclipse/openvsx/scanning/secret-rules-b.yaml");
         ExtensionScanConfig scanConfig = buildScanConfig();
@@ -157,7 +159,7 @@ class SecretDetectorFactoryTest {
         private final String mockPath;
 
         MockGitleaksRulesService(String mockPath) {
-            super(null, null, null);  // Don't need real dependencies for mock
+            super(null, null, null); // Don't need real dependencies for mock
             this.mockPath = mockPath;
         }
 

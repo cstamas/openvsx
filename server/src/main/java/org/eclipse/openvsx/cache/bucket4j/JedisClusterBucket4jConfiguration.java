@@ -60,13 +60,14 @@ public class JedisClusterBucket4jConfiguration {
 
     @Bean
     @ConditionalOnFilterConfigCacheEnabled
-    public JedisClusterCacheListener<String, Bucket4JConfiguration> configCacheListener(ApplicationEventPublisher eventPublisher) {
+    public JedisClusterCacheListener<String, Bucket4JConfiguration> configCacheListener(
+            ApplicationEventPublisher eventPublisher
+    ) {
         return new JedisClusterCacheListener<>(
                 redisClusterClient,
                 configCacheName,
                 String.class,
                 Bucket4JConfiguration.class,
-                eventPublisher
-        );
+                eventPublisher);
     }
 }

@@ -9,13 +9,14 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.accesstoken;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.settings.SettingsService;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.settings.SettingsService;
 
 @Component
 public class ExpirePersonalAccessTokensHandler implements JobRequestHandler<HandlerJobRequest<?>> {

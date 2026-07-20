@@ -53,16 +53,16 @@ public class FileResource {
     }
 
     public void setId(long id) {
-		this.id = id;
-	}
+        this.id = id;
+    }
 
-	public ExtensionVersion getExtension() {
-		return extension;
-	}
+    public ExtensionVersion getExtension() {
+        return extension;
+    }
 
-	public void setExtension(ExtensionVersion extension) {
-		this.extension = extension;
-	}
+    public void setExtension(ExtensionVersion extension) {
+        this.extension = extension;
+    }
 
     public String getName() {
         return name;

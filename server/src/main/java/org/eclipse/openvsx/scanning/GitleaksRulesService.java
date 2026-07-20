@@ -12,24 +12,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.jobrunr.jobs.annotations.Job;
-import org.jobrunr.jobs.lambdas.JobRequestHandler;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Service;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import redis.clients.jedis.RedisClusterClient;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.toml.TomlMapper;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -42,6 +24,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import org.jobrunr.jobs.annotations.Job;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import redis.clients.jedis.RedisClusterClient;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.toml.TomlMapper;
+
+import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 /**
  * Manages gitleaks secret detection rules: generation, scheduled refresh, and Redis sync.
@@ -59,8 +59,7 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
 
     private static final Logger logger = LoggerFactory.getLogger(GitleaksRulesService.class);
 
-    private static final String GITLEAKS_URL =
-        "https://raw.githubusercontent.com/gitleaks/gitleaks/master/config/gitleaks.toml";
+    private static final String GITLEAKS_URL = "https://raw.githubusercontent.com/gitleaks/gitleaks/master/config/gitleaks.toml";
 
     // Redis keys for sync
     private static final String RULES_KEY = "openvsx:gitleaks:rules";
@@ -146,13 +145,16 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
                 throw new IllegalStateException("Failed to generate rules: " + outputFile.getAbsolutePath());
             }
 
-            logger.info("Generated secret detection rules: {} ({} bytes)",
-                outputFile.getName(), outputFile.length());
+            logger.info(
+                    "Generated secret detection rules: {} ({} bytes)",
+                    outputFile.getName(),
+                    outputFile.length());
 
         } catch (Exception e) {
             logger.error("Failed to generate secret detection rules", e);
             throw new IllegalStateException(
-                "Secret detection rule generation failed. Disable auto-generation or fix the issue.", e);
+                    "Secret detection rule generation failed. Disable auto-generation or fix the issue.",
+                    e);
         }
     }
 
@@ -242,15 +244,19 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
      * Store rules in Redis and notify other pods.
      */
     public boolean storeAndPublishRules(String rulesContent) {
-        if (redisClusterClient == null) return false;
+        if (redisClusterClient == null) {
+            return false;
+        }
 
         try {
             String version = String.valueOf(System.currentTimeMillis());
             redisClusterClient.set(RULES_KEY, rulesContent);
             redisClusterClient.set(RULES_VERSION_KEY, version);
             redisClusterClient.publish(RULES_UPDATE_CHANNEL, version);
-            logger.debug("Stored gitleaks rules in Redis (version: {}, size: {} bytes)",
-                version, rulesContent.length());
+            logger.debug(
+                    "Stored gitleaks rules in Redis (version: {}, size: {} bytes)",
+                    version,
+                    rulesContent.length());
             return true;
         } catch (Exception e) {
             logger.error("Failed to store gitleaks rules in Redis", e);
@@ -259,7 +265,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     }
 
     private void loadRulesFromRedisIfNewer() {
-        if (redisClusterClient == null) return;
+        if (redisClusterClient == null) {
+            return;
+        }
 
         try {
             String redisVersion = redisClusterClient.get(RULES_VERSION_KEY);
@@ -287,7 +295,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     }
 
     private void loadRulesFromRedis() {
-        if (redisClusterClient == null) return;
+        if (redisClusterClient == null) {
+            return;
+        }
 
         try {
             String rulesContent = redisClusterClient.get(RULES_KEY);
@@ -357,7 +367,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     }
 
     private List<Rule> buildRules(List<RawRule> rawRules) {
-        if (rawRules == null) return new ArrayList<>();
+        if (rawRules == null) {
+            return new ArrayList<>();
+        }
 
         Set<String> skipRuleIds = config.getGitleaksSkipRuleIds();
         List<Rule> result = new ArrayList<>();
@@ -369,7 +381,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
                 continue;
             }
             Rule normalized = normalizeRule(raw);
-            if (normalized != null) result.add(normalized);
+            if (normalized != null) {
+                result.add(normalized);
+            }
         }
 
         logger.info("Parsed {} rules (skipped {} via skip-rule-ids config)", result.size(), skipped);
@@ -388,7 +402,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     }
 
     private Rule normalizeRule(RawRule raw) {
-        if (raw == null || raw.id == null || raw.regex == null) return null;
+        if (raw == null || raw.id == null || raw.regex == null) {
+            return null;
+        }
 
         Rule rule = new Rule();
         rule.id = raw.id;
@@ -397,8 +413,8 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
         rule.entropy = raw.entropy;
         rule.secretGroup = raw.secretGroup;
         rule.keywords = raw.keywords != null
-            ? raw.keywords.stream().map(String::toLowerCase).collect(Collectors.toList())
-            : new ArrayList<>();
+                ? raw.keywords.stream().map(String::toLowerCase).collect(Collectors.toList())
+                : new ArrayList<>();
 
         List<RawAllowlist> rawAllowlists = raw.getAllowlists();
         if (!rawAllowlists.isEmpty()) {
@@ -428,21 +444,29 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
             yaml.append("  - id: ").append(rule.id).append("\n");
             yaml.append("    description: ").append(quote(rule.description)).append("\n");
             yaml.append("    regex: ").append(quote(rule.regex)).append("\n");
-            if (rule.entropy != null) yaml.append("    entropy: ").append(rule.entropy).append("\n");
-            if (rule.secretGroup != null) yaml.append("    secretGroup: ").append(rule.secretGroup).append("\n");
+            if (rule.entropy != null) {
+                yaml.append("    entropy: ").append(rule.entropy).append("\n");
+            }
+            if (rule.secretGroup != null) {
+                yaml.append("    secretGroup: ").append(rule.secretGroup).append("\n");
+            }
             yaml.append("    keywords: ");
             if (rule.keywords.isEmpty()) {
                 yaml.append("[]\n");
             } else {
                 yaml.append("\n");
-                for (String kw : rule.keywords) yaml.append("      - ").append(quote(kw)).append("\n");
+                for (String kw : rule.keywords) {
+                    yaml.append("      - ").append(quote(kw)).append("\n");
+                }
             }
             if (rule.allowlists != null && !rule.allowlists.isEmpty()) {
                 yaml.append("    allowlists:\n");
                 for (RuleAllowlist al : rule.allowlists) {
                     if (al.regexes != null && !al.regexes.isEmpty()) {
                         yaml.append("      - regexes:\n");
-                        for (String r : al.regexes) yaml.append("          - ").append(quote(r)).append("\n");
+                        for (String r : al.regexes) {
+                            yaml.append("          - ").append(quote(r)).append("\n");
+                        }
                     }
                 }
             }
@@ -462,7 +486,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     }
 
     private String quote(String value) {
-        if (value == null) return "\"\"";
+        if (value == null) {
+            return "\"\"";
+        }
         try {
             return jsonMapper.writeValueAsString(value);
         } catch (Exception e) {
@@ -474,7 +500,7 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
         String path = config.getGitleaksOutputPath();
         if (path == null || path.trim().isEmpty()) {
             throw new IllegalStateException(
-                "gitleaks.auto-fetch enabled but 'gitleaks.output-path' not configured");
+                    "gitleaks.auto-fetch enabled but 'gitleaks.output-path' not configured");
         }
 
         File outputFile = new File(path);
@@ -492,7 +518,9 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
     @Nullable
     private String readRulesFile() {
         String outputPath = config.getGitleaksOutputPath();
-        if (outputPath == null) return null;
+        if (outputPath == null) {
+            return null;
+        }
         try {
             return Files.readString(Path.of(outputPath));
         } catch (IOException e) {
@@ -519,8 +547,12 @@ public class GitleaksRulesService implements JobRequestHandler<HandlerJobRequest
         public List<RawAllowlist> allowlists;
 
         List<RawAllowlist> getAllowlists() {
-            if (allowlists != null && !allowlists.isEmpty()) return allowlists;
-            if (allowlist != null && !allowlist.isEmpty()) return allowlist;
+            if (allowlists != null && !allowlists.isEmpty()) {
+                return allowlists;
+            }
+            if (allowlist != null && !allowlist.isEmpty()) {
+                return allowlist;
+            }
             return new ArrayList<>();
         }
     }

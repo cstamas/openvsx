@@ -13,10 +13,10 @@
 
 package org.eclipse.openvsx.publish;
 
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 @ConfigurationProperties("ovsx.publishing")

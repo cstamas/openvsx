@@ -17,7 +17,8 @@ public class MigrationJobRequest<T extends JobRequestHandler<MigrationJobRequest
     private Class<T> handler;
     private long entityId;
 
-    public MigrationJobRequest() {}
+    public MigrationJobRequest() {
+    }
 
     public MigrationJobRequest(Class<T> handler, long entityId) {
         this.handler = handler;

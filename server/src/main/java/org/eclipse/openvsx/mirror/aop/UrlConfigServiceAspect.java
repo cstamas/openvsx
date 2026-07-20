@@ -12,9 +12,10 @@ package org.eclipse.openvsx.mirror.aop;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.eclipse.openvsx.UrlConfigService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.UrlConfigService;
 
 @Aspect
 @Component

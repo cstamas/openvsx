@@ -12,9 +12,8 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.config;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.ratelimit.jobs.CalculateDailyUsageStatsHandler;
-import org.eclipse.openvsx.ratelimit.jobs.CollectUsageStatsHandler;
+import java.util.Optional;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +21,9 @@ import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.ratelimit.jobs.CalculateDailyUsageStatsHandler;
+import org.eclipse.openvsx.ratelimit.jobs.CollectUsageStatsHandler;
 
 @Component
 public class ScheduleRateLimitJobs {
@@ -42,15 +43,17 @@ public class ScheduleRateLimitJobs {
         if (rateLimitProperties != null) {
             var schedule = rateLimitProperties.getUsageStats().getJobSchedule();
             logger.info("Scheduling collect usage stats job with schedule '{}'", schedule);
-            scheduler.scheduleRecurrently("collect-usage-stats", schedule, new HandlerJobRequest<>(CollectUsageStatsHandler.class));
+            scheduler.scheduleRecurrently(
+                    "collect-usage-stats",
+                    schedule,
+                    new HandlerJobRequest<>(CollectUsageStatsHandler.class));
 
             var dailyUsageStatsSchedule = rateLimitProperties.getUsageStats().getDailyJobSchedule();
             logger.info("Scheduling calculate daily usage stats job with schedule '{}'", dailyUsageStatsSchedule);
             scheduler.scheduleRecurrently(
                     "calculate-daily-usage-stats",
                     dailyUsageStatsSchedule,
-                    new HandlerJobRequest<>(CalculateDailyUsageStatsHandler.class)
-            );
+                    new HandlerJobRequest<>(CalculateDailyUsageStatsHandler.class));
         } else {
             scheduler.deleteRecurringJob("collect-usage-stats");
             scheduler.deleteRecurringJob("calculate-daily-usage-stats");

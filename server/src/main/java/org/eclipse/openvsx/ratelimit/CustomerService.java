@@ -12,11 +12,21 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.ipv4.IPv4AddressAssociativeTrie;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
+
 import org.eclipse.openvsx.entities.*;
 import org.eclipse.openvsx.json.RateLimitTokenJson;
 import org.eclipse.openvsx.json.ResultJson;
@@ -26,16 +36,6 @@ import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.ErrorResultException;
 import org.eclipse.openvsx.util.TimeUtil;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
-import java.util.UUID;
-
 
 @Service
 public class CustomerService {
@@ -111,7 +111,8 @@ public class CustomerService {
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    public ResultJson addCustomerMember(String customerName, String userName, String provider) throws ErrorResultException {
+    public ResultJson addCustomerMember(String customerName, String userName, String provider)
+            throws ErrorResultException {
         var customer = repositories.findCustomer(customerName);
         if (customer == null) {
             throw new ErrorResultException("Customer not found: " + customerName);
@@ -123,18 +124,21 @@ public class CustomerService {
 
         var membership = repositories.findCustomerMembership(user, customer);
         if (membership != null) {
-            throw new ErrorResultException("User " + user.getLoginName() + " is already member of customer " + customer.getName() + ".");
+            throw new ErrorResultException(
+                    "User " + user.getLoginName() + " is already member of customer " + customer.getName() + ".");
         }
 
         membership = new CustomerMembership();
         membership.setCustomer(customer);
         membership.setUser(user);
         entityManager.persist(membership);
-        return ResultJson.success("Added " + user.getLoginName() + " as member of customer " + customer.getName() + ".");
+        return ResultJson
+                .success("Added " + user.getLoginName() + " as member of customer " + customer.getName() + ".");
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    public ResultJson removeCustomerMember(String customerName, String userName, String provider) throws ErrorResultException {
+    public ResultJson removeCustomerMember(String customerName, String userName, String provider)
+            throws ErrorResultException {
         var customer = repositories.findCustomer(customerName);
         if (customer == null) {
             throw new ErrorResultException("Customer not found: " + customerName);
@@ -146,11 +150,13 @@ public class CustomerService {
 
         var membership = repositories.findCustomerMembership(user, customer);
         if (membership == null) {
-            throw new ErrorResultException("User " + user.getLoginName() + " is not a member of customer " + customer.getName() + ".");
+            throw new ErrorResultException(
+                    "User " + user.getLoginName() + " is not a member of customer " + customer.getName() + ".");
         }
 
         entityManager.remove(membership);
-        return ResultJson.success("Removed " + user.getLoginName() + " as member of customer " + customer.getName() + ".");
+        return ResultJson
+                .success("Removed " + user.getLoginName() + " as member of customer " + customer.getName() + ".");
     }
 
     @Transactional

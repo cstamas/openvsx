@@ -12,13 +12,14 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.json.TierJson;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.TierJson;
 
 @Entity
 public class Tier implements Serializable {
@@ -137,16 +138,20 @@ public class Tier implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Tier that = (Tier) o;
         return id == that.id
-            && Objects.equals(name, that.name)
-            && Objects.equals(description, that.description)
-            && Objects.equals(tierType, that.tierType)
-            && Objects.equals(capacity, that.capacity)
-            && Objects.equals(duration, that.duration)
-            && Objects.equals(refillStrategy, that.refillStrategy);
+                && Objects.equals(name, that.name)
+                && Objects.equals(description, that.description)
+                && Objects.equals(tierType, that.tierType)
+                && Objects.equals(capacity, that.capacity)
+                && Objects.equals(duration, that.duration)
+                && Objects.equals(refillStrategy, that.refillStrategy);
     }
 
     @Override

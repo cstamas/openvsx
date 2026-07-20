@@ -28,30 +28,30 @@ public class RegistryObservationConvention implements ObservationConvention<Obse
 
     @Override
     public KeyValues getHighCardinalityKeyValues(ObservedAspect.@NonNull ObservedAspectContext context) {
-//        var joinPoint = context.getProceedingJoinPoint();
-//        var args = joinPoint.getArgs();
-//        var methodSignature = (MethodSignature) joinPoint.getSignature();
-//        var parameterNames = methodSignature.getParameterNames();
-//        var argKeyValues = new KeyValue[args.length];
-//        for(var i = 0; i < args.length; i++) {
-//            var key = "args." + parameterNames[i];
-//            var value = convertObjectToString(args[i]);
-//            argKeyValues[i] = KeyValue.of(key, value);
-//        }
+        //        var joinPoint = context.getProceedingJoinPoint();
+        //        var args = joinPoint.getArgs();
+        //        var methodSignature = (MethodSignature) joinPoint.getSignature();
+        //        var parameterNames = methodSignature.getParameterNames();
+        //        var argKeyValues = new KeyValue[args.length];
+        //        for(var i = 0; i < args.length; i++) {
+        //            var key = "args." + parameterNames[i];
+        //            var value = convertObjectToString(args[i]);
+        //            argKeyValues[i] = KeyValue.of(key, value);
+        //        }
 
         return ObservationConvention.super.getHighCardinalityKeyValues(context);//.and(argKeyValues);
     }
 
     private String convertObjectToString(Object arg) {
-        if(arg instanceof String) {
+        if (arg instanceof String) {
             return (String) arg;
-        } else if(arg instanceof Number || arg instanceof Boolean) {
+        } else if (arg instanceof Number || arg instanceof Boolean) {
             return String.valueOf(arg);
         } else {
             try {
                 return mapper.writeValueAsString(arg);
             } catch (JacksonException e) {
-                return  "";
+                return "";
             }
         }
     }

@@ -12,16 +12,20 @@
  ********************************************************************************/
 package org.eclipse.openvsx.publish;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import jakarta.persistence.EntityManager;
+import org.jobrunr.scheduling.JobRequestScheduler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.eclipse.openvsx.ExtensionProcessor;
 import org.eclipse.openvsx.ExtensionValidator;
@@ -31,15 +35,11 @@ import org.eclipse.openvsx.extension_control.ExtensionControlService;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.scanning.ExtensionScanService;
 import org.eclipse.openvsx.util.ErrorResultException;
-import org.jobrunr.scheduling.JobRequestScheduler;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import jakarta.persistence.EntityManager;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PublishExtensionVersionHandlerTest {
@@ -89,8 +89,7 @@ class PublishExtensionVersionHandlerTest {
                 users,
                 validator,
                 extensionControl,
-                scanService
-        );
+                scanService);
 
         // Lenient: not all tests need this mock
         org.mockito.Mockito.lenient()
@@ -111,9 +110,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher",
                             "demo",
                             "2.0.0",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             var namespace = buildNamespace("publisher");
             var user = new UserData();
@@ -168,9 +165,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher",
                             "demo",
                             "2.0.0",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             var namespace = buildNamespace("publisher");
             var user = new UserData();
@@ -201,9 +196,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher",
                             "demo",
                             "2.0.0",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             var namespace = buildNamespace("publisher");
             var user = new UserData();
@@ -242,9 +235,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher1",
                             "demo",
                             "2.0.0",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             assertThatThrownBy(() -> handler.createExtensionVersion(processor, token, LocalDateTime.now(), false))
                     .isInstanceOf(ErrorResultException.class)
@@ -255,9 +246,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher",
                             "DemO1",
                             "2.0.0",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             assertThatThrownBy(() -> handler.createExtensionVersion(processor, token, LocalDateTime.now(), false))
                     .isInstanceOf(ErrorResultException.class)
@@ -268,9 +257,7 @@ class PublishExtensionVersionHandlerTest {
                             "publisher",
                             "demo",
                             "9.9.9",
-                            "Demo OK"
-                    )
-            );
+                            "Demo OK"));
 
             assertThatThrownBy(() -> handler.createExtensionVersion(processor, token, LocalDateTime.now(), false))
                     .isInstanceOf(ErrorResultException.class)
@@ -278,7 +265,13 @@ class PublishExtensionVersionHandlerTest {
         }
     }
 
-    private ExtensionVersion mockExtensionVersion(String namespace, String name, String version, String iconPath, ExtensionProcessor processor) throws IOException {
+    private ExtensionVersion mockExtensionVersion(
+            String namespace,
+            String name,
+            String version,
+            String iconPath,
+            ExtensionProcessor processor
+    ) throws IOException {
         when(processor.getNamespace()).thenReturn(namespace);
         when(processor.getExtensionName()).thenReturn(name);
         when(processor.getVersion()).thenReturn(version);

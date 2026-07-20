@@ -9,14 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.storage;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.entities.Namespace;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -177,12 +178,14 @@ class AwsStorageServiceTest {
         resource.setName("complex/path/extension.vsix");
 
         var objectKey = (String) ReflectionTestUtils.invokeMethod(storageService, "getObjectKey", resource);
-        assertEquals("my-complex-namespace/my.complex.extension-name/2.1.0-beta.1/complex/path/extension.vsix", objectKey);
+        assertEquals(
+                "my-complex-namespace/my.complex.extension-name/2.1.0-beta.1/complex/path/extension.vsix",
+                objectKey);
     }
 
     @Test
     void testObjectKeyGenerationWithDifferentTargetPlatforms() {
-        String[] platforms = {"universal", "win32-x64", "linux-x64", "darwin-x64", "darwin-arm64"};
+        String[] platforms = { "universal", "win32-x64", "linux-x64", "darwin-x64", "darwin-arm64" };
 
         for (String platform : platforms) {
             extVersion.setTargetPlatform(platform);
@@ -199,7 +202,7 @@ class AwsStorageServiceTest {
     @Test
     void testNamespaceLogoObjectKeyGeneration() {
         // Test different logo file types
-        String[] logoNames = {"logo.png", "logo.jpg", "logo.svg", "namespace-logo.webp"};
+        String[] logoNames = { "logo.png", "logo.jpg", "logo.svg", "namespace-logo.webp" };
 
         for (String logoName : logoNames) {
             namespace.setLogoName(logoName);
@@ -225,7 +228,9 @@ class AwsStorageServiceTest {
         assertEquals("test-session-token", ReflectionTestUtils.getField(storageService, "sessionToken"));
         assertEquals("us-west-2", ReflectionTestUtils.getField(storageService, "region"));
         assertEquals("my-test-bucket", ReflectionTestUtils.getField(storageService, "bucket"));
-        assertEquals("https://s3.us-west-2.amazonaws.com", ReflectionTestUtils.getField(storageService, "serviceEndpoint"));
+        assertEquals(
+                "https://s3.us-west-2.amazonaws.com",
+                ReflectionTestUtils.getField(storageService, "serviceEndpoint"));
         assertTrue((Boolean) ReflectionTestUtils.getField(storageService, "pathStyleAccess"));
     }
 
@@ -264,14 +269,17 @@ class AwsStorageServiceTest {
         var presigner2 = ReflectionTestUtils.invokeMethod(storageService, "getS3Presigner");
 
         assertNotNull(presigner1);
-        assertSame(presigner1, presigner2,
+        assertSame(
+                presigner1,
+                presigner2,
                 "S3Presigner must be cached as a singleton; recreating it on each call " +
-                "destroys the HTTP connection pool needed for IRSA credential refresh");
+                        "destroys the HTTP connection pool needed for IRSA credential refresh");
     }
 
     @Test
     void testPresignerFieldInitiallyNull() {
-        assertNull(ReflectionTestUtils.getField(storageService, "s3Presigner"),
+        assertNull(
+                ReflectionTestUtils.getField(storageService, "s3Presigner"),
                 "S3Presigner should be lazily initialized");
     }
 }

@@ -12,16 +12,17 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.repositories.RepositoryService;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -70,10 +71,19 @@ class SimilarityServiceTest {
     @Test
     void shouldWrapRepositoryErrorsWhenCheckingExtensions() {
         // Repository failures should be wrapped with a user-friendly runtime error.
-        when(repositories.findSimilarExtensionsByLevenshtein(any(), any(), any(), any(), anyDouble(), anyBoolean(), anyInt()))
+        when(
+                repositories.findSimilarExtensionsByLevenshtein(
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyDouble(),
+                        anyBoolean(),
+                        anyInt()))
                 .thenThrow(new RuntimeException("db down"));
 
-        assertThatThrownBy(() -> similarityService.findSimilarExtensions("ext", "ns", "Display", List.of(), 0.15, false, 10))
+        assertThatThrownBy(
+                () -> similarityService.findSimilarExtensions("ext", "ns", "Display", List.of(), 0.15, false, 10))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Unable to verify extension name uniqueness");
     }

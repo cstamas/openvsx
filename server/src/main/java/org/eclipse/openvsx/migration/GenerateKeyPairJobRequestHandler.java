@@ -9,11 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.io.IOException;
+
 import io.micrometer.common.util.StringUtils;
-import org.eclipse.openvsx.admin.RemoveFileJobRequest;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.repositories.RepositoryService;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -24,7 +22,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import org.eclipse.openvsx.admin.RemoveFileJobRequest;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD_SIG;
 import static org.eclipse.openvsx.entities.SignatureKeyPair.*;
@@ -60,7 +61,7 @@ public class GenerateKeyPairJobRequestHandler implements JobRequestHandler<Handl
         switch (keyPairMode) {
             case KEYPAIR_MODE_CREATE:
                 var activeKeyPair = repositories.findActiveKeyPair();
-                if(activeKeyPair == null) {
+                if (activeKeyPair == null) {
                     renewKeyPair(true);
                 } else {
                     repositories.findVersionsWithout(activeKeyPair).forEach(this::enqueueCreateSignatureJob);
@@ -73,10 +74,12 @@ public class GenerateKeyPairJobRequestHandler implements JobRequestHandler<Handl
                 deleteKeyPairs();
                 logger.info("Existing signature key-pairs have been deleted");
                 break;
-            default:
-                if(StringUtils.isNotEmpty(keyPairMode)) {
+            default :
+                if (StringUtils.isNotEmpty(keyPairMode)) {
                     var values = String.join(",", KEYPAIR_MODE_CREATE, KEYPAIR_MODE_RENEW, KEYPAIR_MODE_DELETE);
-                    throw new IllegalArgumentException("Unsupported value '" + keyPairMode + "' for 'ovsx.integrity.key-pair' defined. Supported values are: " + values);
+                    throw new IllegalArgumentException(
+                            "Unsupported value '" + keyPairMode
+                                    + "' for 'ovsx.integrity.key-pair' defined. Supported values are: " + values);
                 }
         }
 

@@ -12,10 +12,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ScanCheckResult;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -23,9 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Map;
+import org.eclipse.openvsx.entities.ScanCheckResult;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * JobRunr handler that invokes a single scanner.
@@ -55,7 +56,6 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
         this.jobScheduler = jobScheduler;
         this.completionService = completionService;
     }
-
 
     /**
      * Invoke a single scanner and persist the result.
@@ -102,15 +102,17 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
     @Override
     @Job(
         name = "Invoke scanner for extension scan",
-        retries = 2    // Retry 2 times on failure
+        retries = 2 // Retry 2 times on failure
     )
     public void run(ScannerInvocationRequest jobRequest) throws Exception {
         String scannerType = jobRequest.getScannerType();
         long extensionVersionId = jobRequest.getExtensionVersionId();
         String scanId = jobRequest.getScanId();
 
-        logger.debug("Invoking scanner: {} for extension version {}",
-            scannerType, extensionVersionId);
+        logger.debug(
+                "Invoking scanner: {} for extension version {}",
+                scannerType,
+                extensionVersionId);
 
         // Phase 1: Prepare job (find-or-create, get scanner)
         // Returns null if job already terminal or scanner not found
@@ -128,8 +130,11 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
         // For concurrency-limited scanners, the periodic dispatcher handles promotion.
         // If the job is still QUEUED, it hasn't been dispatched yet — return early.
         if (maxConcurrency > 0 && job.getStatus() == ScannerJob.JobStatus.QUEUED) {
-            logger.debug("Job {} deferred to dispatcher for scanner {} (max-concurrency: {})",
-                jobId, scannerType, maxConcurrency);
+            logger.debug(
+                    "Job {} deferred to dispatcher for scanner {} (max-concurrency: {})",
+                    jobId,
+                    scannerType,
+                    maxConcurrency);
             return;
         }
 
@@ -151,8 +156,11 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
             invocation = scanner.startScan(command);
         } catch (Exception e) {
             // Mark FAILED immediately so the concurrency slot is freed.
-            logger.error("Scanner {} failed for extension version {}: {}",
-                scannerType, extensionVersionId, e.getMessage());
+            logger.error(
+                    "Scanner {} failed for extension version {}: {}",
+                    scannerType,
+                    extensionVersionId,
+                    e.getMessage());
             markJobFailed(jobId, e);
             completionService.checkCompletionSafely(scanId);
             return;
@@ -172,26 +180,28 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
         // 1. CREATE OR FIND EXISTING SCANJOB FIRST
         // This handles JobRunr retries - we update the same job, not create duplicates
         ScannerJob job = scanJobRepository
-            .findByScanIdAndScannerType(scanId, scannerType)
-            .orElseGet(() -> {
-                ScannerJob newJob = new ScannerJob();
-                newJob.setScanId(scanId);
-                newJob.setScannerType(scannerType);
-                newJob.setExtensionVersionId(extensionVersionId);
-                newJob.setStatus(ScannerJob.JobStatus.QUEUED);  // Queued, waiting to invoke scanner
-                newJob.setCreatedAt(TimeUtil.getCurrentUTC());
-                newJob.setUpdatedAt(TimeUtil.getCurrentUTC());
-                newJob.setPollLeaseUntil(null);  // No lease yet
-                newJob.setPollAttempts(0);  // No poll attempts yet
-                newJob.setRecoveryInProgress(false);
-                return scanJobRepository.save(newJob);
-            });
+                .findByScanIdAndScannerType(scanId, scannerType)
+                .orElseGet(() -> {
+                    ScannerJob newJob = new ScannerJob();
+                    newJob.setScanId(scanId);
+                    newJob.setScannerType(scannerType);
+                    newJob.setExtensionVersionId(extensionVersionId);
+                    newJob.setStatus(ScannerJob.JobStatus.QUEUED); // Queued, waiting to invoke scanner
+                    newJob.setCreatedAt(TimeUtil.getCurrentUTC());
+                    newJob.setUpdatedAt(TimeUtil.getCurrentUTC());
+                    newJob.setPollLeaseUntil(null); // No lease yet
+                    newJob.setPollAttempts(0); // No poll attempts yet
+                    newJob.setRecoveryInProgress(false);
+                    return scanJobRepository.save(newJob);
+                });
 
         // Skip if job is already in terminal state
         // This can happen if this is a duplicate enqueue or recovery attempt
         if (job.getStatus().isTerminal()) {
-            logger.debug("Scan job for scanner {} already in terminal state {}, skipping invocation",
-                scannerType, job.getStatus());
+            logger.debug(
+                    "Scan job for scanner {} already in terminal state {}, skipping invocation",
+                    scannerType,
+                    job.getStatus());
             return null;
         }
 
@@ -204,7 +214,7 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
             job.setUpdatedAt(TimeUtil.getCurrentUTC());
             scanJobRepository.save(job);
             logger.error("Scanner not found: {}", scannerType);
-            return null;  // Don't retry - scanner will never exist
+            return null; // Don't retry - scanner will never exist
         }
 
         return new PreparedJob(scanner, job);
@@ -213,10 +223,15 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
     /**
      * Save the scanner invocation results.
      */
-    private void saveResults(Long jobId, Scanner.Invocation invocation, Scanner scanner,
-                             String scannerType, long extensionVersionId) {
+    private void saveResults(
+            Long jobId,
+            Scanner.Invocation invocation,
+            Scanner scanner,
+            String scannerType,
+            long extensionVersionId
+    ) {
         ScannerJob job = scanJobRepository.findById(jobId)
-            .orElseThrow(() -> new IllegalStateException("Job not found: " + jobId));
+                .orElseThrow(() -> new IllegalStateException("Job not found: " + jobId));
 
         // Determine the scan ID before processing (needed for completion check)
         String scanId = job.getScanId();
@@ -278,21 +293,30 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
 
         // Mark job as complete
         job.setStatus(ScannerJob.JobStatus.COMPLETE);
-        job.setExternalJobId(null);  // No external job for sync scanners
+        job.setExternalJobId(null); // No external job for sync scanners
         job.setUpdatedAt(TimeUtil.getCurrentUTC());
 
         // Process result: save threats, determine check result, record audit
         var processed = persistenceService.processCompletedScan(
-            job, completed.result(), scanner.enforcesThreats(), startedAt);
+                job,
+                completed.result(),
+                scanner.enforcesThreats(),
+                startedAt);
 
         // Only log when threats were found
         if (processed.checkResult() == ScanCheckResult.CheckResult.QUARANTINE) {
-            logger.warn("Scanner {} found threats: {} (extension version: {})",
-                scannerType, processed.summary(), extensionVersionId);
+            logger.warn(
+                    "Scanner {} found threats: {} (extension version: {})",
+                    scannerType,
+                    processed.summary(),
+                    extensionVersionId);
         } else if (processed.threatCount() > 0) {
             // Threats found but not enforced (warnings only)
-            logger.debug("Scanner {} found issues: {} (extension version: {})",
-                scannerType, processed.summary(), extensionVersionId);
+            logger.debug(
+                    "Scanner {} found issues: {} (extension version: {})",
+                    scannerType,
+                    processed.summary(),
+                    extensionVersionId);
         }
     }
 
@@ -322,13 +346,18 @@ public class ScannerInvocationHandler implements JobRequestHandler<ScannerInvoca
             String fileHashesJson = persistenceService.serializeFileHashes(fileHashes);
             if (fileHashesJson != null) {
                 job.setFileHashesJson(fileHashesJson);
-                logger.debug("Stored {} file hashes for async scan job {}",
-                    fileHashes.size(), externalJobId);
+                logger.debug(
+                        "Stored {} file hashes for async scan job {}",
+                        fileHashes.size(),
+                        externalJobId);
             }
         }
 
-        logger.debug("Scanner {} submitted to external service. Job ID: {} (extension version: {})",
-            scannerType, externalJobId, extensionVersionId);
+        logger.debug(
+                "Scanner {} submitted to external service. Job ID: {} (extension version: {})",
+                scannerType,
+                externalJobId,
+                extensionVersionId);
 
         // Schedule first poll using scanner's poll configuration
         // No need for a separate polling monitor - polls chain themselves

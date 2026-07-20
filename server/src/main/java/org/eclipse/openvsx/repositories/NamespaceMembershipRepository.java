@@ -9,11 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
+import org.springframework.data.repository.Repository;
+import org.springframework.data.util.Streamable;
+
 import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.entities.NamespaceMembership;
 import org.eclipse.openvsx.entities.UserData;
-import org.springframework.data.repository.Repository;
-import org.springframework.data.util.Streamable;
 
 public interface NamespaceMembershipRepository extends Repository<NamespaceMembership, Long> {
 

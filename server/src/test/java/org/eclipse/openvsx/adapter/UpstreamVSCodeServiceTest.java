@@ -12,16 +12,17 @@
  *****************************************************************************/
 package org.eclipse.openvsx.adapter;
 
-import org.eclipse.openvsx.ExtensionValidator;
-import org.eclipse.openvsx.UrlConfigService;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Objects;
-import java.util.Optional;
+import org.eclipse.openvsx.ExtensionValidator;
+import org.eclipse.openvsx.UrlConfigService;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -47,19 +48,28 @@ public class UpstreamVSCodeServiceTest {
         Mockito.when(urlConfig.getUpstreamUrl()).thenReturn("http://upstream.example");
 
         var service = new UpstreamVSCodeService(
-                new RestTemplate(), Optional.empty(), nonRedirecting, urlConfig, Mockito.mock(ExtensionValidator.class)
-        );
+                new RestTemplate(),
+                Optional.empty(),
+                nonRedirecting,
+                urlConfig,
+                Mockito.mock(ExtensionValidator.class));
 
         var response = service.browse("foo", "bar", "1.0.0", "extension/readme.md");
 
-        assertEquals("text/plain;charset=UTF-8", Objects.requireNonNull(response.getHeaders().getContentType()).toString());
-        assertNotNull(response.getHeaders().getFirst("Content-Security-Policy"),
+        assertEquals(
+                "text/plain;charset=UTF-8",
+                Objects.requireNonNull(response.getHeaders().getContentType()).toString());
+        assertNotNull(
+                response.getHeaders().getFirst("Content-Security-Policy"),
                 "proxied files must carry a Content-Security-Policy");
 
         response = service.browse("foo", "bar", "1.0.0", "extension/readme.html");
 
-        assertEquals("text/plain;charset=UTF-8", Objects.requireNonNull(response.getHeaders().getContentType()).toString());
-        assertNotNull(response.getHeaders().getFirst("Content-Security-Policy"),
+        assertEquals(
+                "text/plain;charset=UTF-8",
+                Objects.requireNonNull(response.getHeaders().getContentType()).toString());
+        assertNotNull(
+                response.getHeaders().getFirst("Content-Security-Policy"),
                 "proxied files must carry a Content-Security-Policy");
     }
 }

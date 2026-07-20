@@ -9,16 +9,17 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.PersonalAccessToken;
-import org.eclipse.openvsx.entities.UserData;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.util.Streamable;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import org.eclipse.openvsx.entities.PersonalAccessToken;
+import org.eclipse.openvsx.entities.UserData;
 
 public interface PersonalAccessTokenRepository extends Repository<PersonalAccessToken, Long> {
 
@@ -41,12 +42,20 @@ public interface PersonalAccessTokenRepository extends Repository<PersonalAccess
     int updateActiveSetFalse(UserData user);
 
     @Modifying
-    @Query("update PersonalAccessToken t set t.expiresTimestamp = ?1 where t.active = true and t.expiresTimestamp is null")
+    @Query(
+        "update PersonalAccessToken t set t.expiresTimestamp = ?1 where t.active = true and t.expiresTimestamp is null"
+    )
     int updateExpiresTimeForLegacyAccessTokens(LocalDateTime timestamp);
 
-    List<PersonalAccessToken> findByExpiresTimestampLessThanEqualAndActiveTrueAndNotifiedFalseOrderById(LocalDateTime timestamp, Pageable pageable);
+    List<PersonalAccessToken> findByExpiresTimestampLessThanEqualAndActiveTrueAndNotifiedFalseOrderById(
+            LocalDateTime timestamp,
+            Pageable pageable
+    );
 
     @Modifying
-    @Query(value = "update personal_access_token set active = false where expires_timestamp <= ?1 and active = true returning *", nativeQuery = true)
+    @Query(
+        value = "update personal_access_token set active = false where expires_timestamp <= ?1 and active = true returning *",
+        nativeQuery = true
+    )
     List<PersonalAccessToken> expireAccessTokens(LocalDateTime timestamp);
 }

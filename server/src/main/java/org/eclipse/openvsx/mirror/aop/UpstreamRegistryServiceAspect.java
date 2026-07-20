@@ -24,8 +24,10 @@ public class UpstreamRegistryServiceAspect {
 
     private RateLimiter rateLimiter;
 
-    public UpstreamRegistryServiceAspect(@Value("${ovsx.data.mirror.requests-per-second:-1}") double requestsPerSecond) {
-        if(requestsPerSecond == -1) {
+    public UpstreamRegistryServiceAspect(
+            @Value("${ovsx.data.mirror.requests-per-second:-1}") double requestsPerSecond
+    ) {
+        if (requestsPerSecond == -1) {
             requestsPerSecond = Double.MAX_VALUE;
         }
 

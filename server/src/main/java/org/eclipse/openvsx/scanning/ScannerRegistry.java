@@ -12,14 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Component;
 
 /**
  * Registry that maps scanner types to scanner implementations.
@@ -40,9 +40,8 @@ public class ScannerRegistry {
         Scanner existing = scanners.putIfAbsent(type, scanner);
         if (existing != null) {
             throw new IllegalArgumentException(
-                "Scanner type '" + type + "' is already registered by " +
-                existing.getClass().getName()
-            );
+                    "Scanner type '" + type + "' is already registered by " +
+                            existing.getClass().getName());
         }
     }
 
@@ -100,7 +99,7 @@ public class ScannerRegistry {
     @NonNull
     public List<Scanner> getAsyncScanners() {
         return scanners.values().stream()
-            .filter(Scanner::isAsync)
-            .toList();
+                .filter(Scanner::isAsync)
+                .toList();
     }
 }

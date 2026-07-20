@@ -9,11 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.MigrationItem;
+import java.util.List;
+
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.MigrationItem;
 
 import static org.eclipse.openvsx.jooq.Tables.FILE_RESOURCE;
 import static org.eclipse.openvsx.jooq.Tables.MIGRATION_ITEM;

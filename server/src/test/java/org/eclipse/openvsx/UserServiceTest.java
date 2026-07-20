@@ -12,23 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
 import java.util.List;
 
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.json.NamespaceDetailsJson;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.security.OAuth2AttributesConfig;
-import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.util.ErrorResultException;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -40,12 +26,31 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import jakarta.persistence.EntityManager;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.json.NamespaceDetailsJson;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.security.OAuth2AttributesConfig;
+import org.eclipse.openvsx.storage.StorageUtilService;
+import org.eclipse.openvsx.util.ErrorResultException;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(SpringExtension.class)
-@MockitoBean(types = {
-    EntityManager.class, StorageUtilService.class, CacheService.class, OAuth2AttributesConfig.class
-})
+@MockitoBean(
+    types = {
+        EntityManager.class,
+        StorageUtilService.class,
+        CacheService.class,
+        OAuth2AttributesConfig.class
+    }
+)
 class UserServiceTest {
 
     @MockitoBean
@@ -72,9 +77,12 @@ class UserServiceTest {
         Mockito.when(repositories.findUserByLoginName(anyString(), anyString())).thenReturn(mockUser(testAuthId));
 
         var updated = mockUser("some-other-id");
-        var exception = assertThrows(AuthenticationServiceException.class, () -> users.upsertUser(updated),
+        var exception = assertThrows(
+                AuthenticationServiceException.class,
+                () -> users.upsertUser(updated),
                 "Should succeed as there were no changes to the entity");
-        assertTrue(exception.getMessage().startsWith("Could not login due to an existing"),
+        assertTrue(
+                exception.getMessage().startsWith("Could not login due to an existing"),
                 "Exception should pertain to mismatch of GitHub ID");
     }
 
@@ -175,7 +183,14 @@ class UserServiceTest {
                 @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository,
                 OAuth2AttributesConfig attributesConfig
         ) {
-            return new UserService(entityManager, repositories, storageUtil, cache, validator, clientRegistrationRepository, attributesConfig);
+            return new UserService(
+                    entityManager,
+                    repositories,
+                    storageUtil,
+                    cache,
+                    validator,
+                    clientRegistrationRepository,
+                    attributesConfig);
         }
     }
 }

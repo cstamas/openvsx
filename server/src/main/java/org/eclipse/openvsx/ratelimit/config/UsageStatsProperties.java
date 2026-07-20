@@ -12,10 +12,10 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.config;
 
-import jakarta.validation.constraints.NotBlank;
-
 import java.io.Serial;
 import java.io.Serializable;
+
+import jakarta.validation.constraints.NotBlank;
 
 public class UsageStatsProperties implements Serializable {
 

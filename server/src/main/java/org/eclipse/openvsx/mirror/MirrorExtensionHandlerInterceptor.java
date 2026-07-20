@@ -9,17 +9,18 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.eclipse.openvsx.util.NamingUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
+import org.eclipse.openvsx.util.NamingUtil;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "true")
@@ -32,7 +33,8 @@ public class MirrorExtensionHandlerInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
         var params = request.getRequestURI().equals("/vscode/item")
                 ? extractQueryParams(request)
                 : extractPathParams(request);
@@ -55,6 +57,7 @@ public class MirrorExtensionHandlerInterceptor implements HandlerInterceptor {
     }
 
     private Map<String, String> extractPathParams(HttpServletRequest request) {
-        return new TreeMap<>((Map<String, String>) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
+        return new TreeMap<>(
+                (Map<String, String>) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
     }
 }

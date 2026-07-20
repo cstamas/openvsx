@@ -12,12 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.UsageStats;
-import org.springframework.data.repository.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
+
+import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.UsageStats;
 
 public interface UsageStatsRepository extends Repository<UsageStats, Long> {
     List<UsageStats> findUsageStatsByCustomerAndWindowStartBetween(

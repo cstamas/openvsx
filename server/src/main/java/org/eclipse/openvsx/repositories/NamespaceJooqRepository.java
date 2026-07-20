@@ -9,14 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Namespace;
+import java.util.List;
+import java.util.Map;
+
 import org.jooq.DSLContext;
 import org.jooq.Row2;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
+import org.eclipse.openvsx.entities.Namespace;
 
 import static org.eclipse.openvsx.jooq.Tables.NAMESPACE;
 import static org.eclipse.openvsx.jooq.Tables.NAMESPACE_MEMBERSHIP;
@@ -31,7 +32,7 @@ public class NamespaceJooqRepository {
     }
 
     public void updatePublicIds(Map<Long, String> publicIds) {
-        if(publicIds.isEmpty()) {
+        if (publicIds.isEmpty()) {
             return;
         }
 
@@ -84,8 +85,7 @@ public class NamespaceJooqRepository {
                 NAMESPACE.ID,
                 NAMESPACE.PUBLIC_ID,
                 NAMESPACE.NAME,
-                NAMESPACE.DISPLAY_NAME
-        );
+                NAMESPACE.DISPLAY_NAME);
 
         query.addFrom(NAMESPACE);
 
@@ -112,18 +112,18 @@ public class NamespaceJooqRepository {
 
         var maxLength = DSL.greatest(
                 DSL.val(lowerNamespaceName.length()),
-                DSL.length(NAMESPACE.NAME)
-        );
+                DSL.length(NAMESPACE.NAME));
         var maxDistance = maxLength.mul(levenshteinThreshold);
 
-        var levenshteinDist = DSL.function("levenshtein_less_equal", Integer.class,
+        var levenshteinDist = DSL.function(
+                "levenshtein_less_equal",
+                Integer.class,
                 DSL.val(lowerNamespaceName),
                 DSL.lower(NAMESPACE.NAME),
                 DSL.val(1), // insertion cost
                 DSL.val(1), // deletion cost
                 DSL.val(1), // substitution cost
-                maxDistance.cast(Integer.class)
-        );
+                maxDistance.cast(Integer.class));
 
         query.addConditions(levenshteinDist.le(maxDistance));
 

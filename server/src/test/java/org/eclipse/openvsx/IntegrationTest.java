@@ -9,30 +9,31 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import org.eclipse.openvsx.json.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.JsonNode;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import org.eclipse.openvsx.json.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
-@ActiveProfiles({"test", "test_db", "test_search"})
+@ActiveProfiles({ "test", "test_db", "test_search" })
 class IntegrationTest {
 
     protected final Logger logger = LoggerFactory.getLogger(IntegrationTest.class);
@@ -90,7 +91,8 @@ class IntegrationTest {
         getFile("/api/editorconfig/editorconfig/0.16.6/file/editorconfig.editorconfig-0.16.6.vsix");
         getFile("/api/editorconfig/editorconfig/universal/0.16.6/file/editorconfig.editorconfig-0.16.6.vsix");
         getFile("/vscode/asset/editorconfig/editorconfig/0.16.6/Microsoft.VisualStudio.Services.VSIXPackage");
-        getFile("/vscode/asset/editorconfig/editorconfig/0.16.6/Microsoft.VisualStudio.Services.VSIXPackage?targetPlatform=universal");
+        getFile(
+                "/vscode/asset/editorconfig/editorconfig/0.16.6/Microsoft.VisualStudio.Services.VSIXPackage?targetPlatform=universal");
         getFile("/vscode/unpkg/editorconfig/editorconfig/0.16.6");
         getFile("/vscode/unpkg/editorconfig/editorconfig/0.16.6/extension.vsixmanifest");
 
@@ -105,8 +107,11 @@ class IntegrationTest {
     private void createNamespace() {
         var requestBody = new NamespaceJson();
         requestBody.setName("EditorConfig");
-        var response = restTemplate.postForEntity(apiCall("/api/-/namespace/create?token={token}"), requestBody,
-                ResultJson.class, "test_token");
+        var response = restTemplate.postForEntity(
+                apiCall("/api/-/namespace/create?token={token}"),
+                requestBody,
+                ResultJson.class,
+                "test_token");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody().getError()).isNull();
         assertThat(response.getBody().getSuccess()).isEqualTo("Created namespace " + requestBody.getName());
@@ -115,8 +120,11 @@ class IntegrationTest {
     private void duplicateNamespaceLowercase() {
         var requestBody = new NamespaceJson();
         requestBody.setName("editorconfig");
-        var response = restTemplate.postForEntity(apiCall("/api/-/namespace/create?token={token}"), requestBody,
-                ResultJson.class, "test_token");
+        var response = restTemplate.postForEntity(
+                apiCall("/api/-/namespace/create?token={token}"),
+                requestBody,
+                ResultJson.class,
+                "test_token");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getSuccess()).isNull();
         assertThat(response.getBody().getError()).isEqualTo("Namespace already exists: EditorConfig");
@@ -131,7 +139,8 @@ class IntegrationTest {
     }
 
     private void verifyToken() {
-        var response = restTemplate.getForEntity(apiCall("/api/editorconfig/verify-pat?token=test_token"), ResultJson.class);
+        var response = restTemplate
+                .getForEntity(apiCall("/api/editorconfig/verify-pat?token=test_token"), ResultJson.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         var json = response.getBody();
         assertThat(json.getError()).isNull();
@@ -141,8 +150,11 @@ class IntegrationTest {
     private void publishExtension() throws IOException {
         try (var stream = getClass().getResourceAsStream("EditorConfig.EditorConfig-0.16.6.vsix")) {
             var bytes = stream.readAllBytes();
-            var response = restTemplate.postForEntity(apiCall("/api/-/publish?token={token}"),
-                    bytes, ExtensionJson.class, "test_token");
+            var response = restTemplate.postForEntity(
+                    apiCall("/api/-/publish?token={token}"),
+                    bytes,
+                    ExtensionJson.class,
+                    "test_token");
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(response.getBody().getError()).isNull();
             assertThat(response.getBody().getName()).isEqualTo("EditorConfig");
@@ -152,10 +164,14 @@ class IntegrationTest {
     private void publishDuplicateExtensionLowercase() throws IOException {
         try (var stream = getClass().getResourceAsStream("editorconfig.editorconfig-0.16.6-2.vsix")) {
             var bytes = stream.readAllBytes();
-            var response = restTemplate.postForEntity(apiCall("/api/-/publish?token={token}"),
-                    bytes, ExtensionJson.class, "test_token");
+            var response = restTemplate.postForEntity(
+                    apiCall("/api/-/publish?token={token}"),
+                    bytes,
+                    ExtensionJson.class,
+                    "test_token");
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody().getError()).isEqualTo("Extension editorconfig.editorconfig 0.16.6 is already published.");
+            assertThat(response.getBody().getError())
+                    .isEqualTo("Extension editorconfig.editorconfig 0.16.6 is already published.");
         }
     }
 
@@ -167,7 +183,7 @@ class IntegrationTest {
 
     private void getVersionsMetadata(String namespace, String extension, String target) {
         var path = "/api/" + namespace + "/" + extension;
-        if(target != null) {
+        if (target != null) {
             path += "/" + target;
         }
 
@@ -195,7 +211,8 @@ class IntegrationTest {
     }
 
     private void getReviews() {
-        var response = restTemplate.getForEntity(apiCall("/api/editorconfig/editorconfig/reviews"), ReviewListJson.class);
+        var response = restTemplate
+                .getForEntity(apiCall("/api/editorconfig/editorconfig/reviews"), ReviewListJson.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getError()).isNull();
         assertThat(response.getBody().getReviews().size()).isZero();

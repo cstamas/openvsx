@@ -12,11 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.util;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.apache.commons.io.FileUtils;
 
 /**
  * InputStream wrapper that enforces a hard byte limit.

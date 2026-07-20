@@ -9,20 +9,21 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.SemanticVersion;
-import org.eclipse.openvsx.json.NamespaceDetailsJson;
-import org.eclipse.openvsx.util.TargetPlatform;
-import org.eclipse.openvsx.util.VersionAlias;
-import org.springframework.stereotype.Component;
-
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.SemanticVersion;
+import org.eclipse.openvsx.json.NamespaceDetailsJson;
+import org.eclipse.openvsx.util.TargetPlatform;
+import org.eclipse.openvsx.util.VersionAlias;
 
 @Component
 public class ExtensionValidator {
@@ -73,15 +74,16 @@ public class ExtensionValidator {
         checkURL(json.getSupportLink(), "supportLink", issues);
 
         var githubLink = json.getSocialLinks().get("github");
-        if(githubLink != null && !githubLink.matches("https:\\/\\/github\\.com\\/[^\\/]+")) {
+        if (githubLink != null && !githubLink.matches("https:\\/\\/github\\.com\\/[^\\/]+")) {
             issues.add(new Issue("Invalid GitHub URL"));
         }
         var linkedinLink = json.getSocialLinks().get("linkedin");
-        if(linkedinLink != null && !linkedinLink.matches("https:\\/\\/www\\.linkedin\\.com\\/(company|in)\\/[^\\/]+")) {
+        if (linkedinLink != null
+                && !linkedinLink.matches("https:\\/\\/www\\.linkedin\\.com\\/(company|in)\\/[^\\/]+")) {
             issues.add(new Issue("Invalid LinkedIn URL"));
         }
         var twitterLink = json.getSocialLinks().get("twitter");
-        if(twitterLink != null && !twitterLink.matches("https:\\/\\/twitter\\.com\\/[^\\/]+")) {
+        if (twitterLink != null && !twitterLink.matches("https:\\/\\/twitter\\.com\\/[^\\/]+")) {
             issues.add(new Issue("Invalid Twitter URL"));
         }
 
@@ -127,14 +129,26 @@ public class ExtensionValidator {
         checkFieldSize(extVersion.getRepository(), DEFAULT_STRING_SIZE, "repository", issues);
         checkURL(extVersion.getBugs(), "bugs", issues);
         checkFieldSize(extVersion.getBugs(), DEFAULT_STRING_SIZE, "bugs", issues);
-        checkInvalid(extVersion.getMarkdown(), s -> !MARKDOWN_VALUES.contains(s), "markdown", issues,
+        checkInvalid(
+                extVersion.getMarkdown(),
+                s -> !MARKDOWN_VALUES.contains(s),
+                "markdown",
+                issues,
                 MARKDOWN_VALUES.toString());
         checkCharacters(extVersion.getGalleryColor(), "galleryBanner.color", issues);
         checkFieldSize(extVersion.getGalleryColor(), GALLERY_COLOR_SIZE, "galleryBanner.color", issues);
-        checkInvalid(extVersion.getGalleryTheme(), s -> !GALLERY_THEME_VALUES.contains(s), "galleryBanner.theme", issues,
+        checkInvalid(
+                extVersion.getGalleryTheme(),
+                s -> !GALLERY_THEME_VALUES.contains(s),
+                "galleryBanner.theme",
+                issues,
                 GALLERY_THEME_VALUES.toString());
         checkFieldSize(extVersion.getLocalizedLanguages(), DEFAULT_STRING_SIZE, "localizedLanguages", issues);
-        checkInvalid(extVersion.getQna(), s -> !QNA_VALUES.contains(s) && isInvalidURL(s), "qna", issues,
+        checkInvalid(
+                extVersion.getQna(),
+                s -> !QNA_VALUES.contains(s) && isInvalidURL(s),
+                "qna",
+                issues,
                 QNA_VALUES.toString() + " or a URL");
         checkFieldSize(extVersion.getQna(), DEFAULT_STRING_SIZE, "qna", issues);
         return issues;
@@ -145,7 +159,8 @@ public class ExtensionValidator {
             issues.add(new Issue("Version must not be empty."));
             return;
         }
-        if (version.equals(VersionAlias.LATEST) || version.equals(VersionAlias.PRE_RELEASE) || version.equals("reviews")) {
+        if (version.equals(VersionAlias.LATEST) || version.equals(VersionAlias.PRE_RELEASE)
+                || version.equals("reviews")) {
             issues.add(new Issue("The version string '" + version + "' is reserved."));
         }
 
@@ -157,7 +172,7 @@ public class ExtensionValidator {
     }
 
     private void checkTargetPlatform(String targetPlatform, List<Issue> issues) {
-        if(!TargetPlatform.isValid(targetPlatform)) {
+        if (!TargetPlatform.isValid(targetPlatform)) {
             issues.add(new Issue("Unsupported target platform '" + targetPlatform + "'"));
         }
     }
@@ -173,7 +188,7 @@ public class ExtensionValidator {
 
         for (var i = 0; i < value.length(); i++) {
             var character = value.charAt(i);
-            if(allowedChars.contains(character)) {
+            if (allowedChars.contains(character)) {
                 continue;
             }
 
@@ -181,7 +196,8 @@ public class ExtensionValidator {
             if (type == Character.CONTROL || type == Character.FORMAT
                     || type == Character.UNASSIGNED || type == Character.PRIVATE_USE
                     || type == Character.LINE_SEPARATOR || type == Character.PARAGRAPH_SEPARATOR) {
-                issues.add(new Issue("Invalid character found in field '" + field + "': " + value + " (index " + i + ")"));
+                issues.add(
+                        new Issue("Invalid character found in field '" + field + "': " + value + " (index " + i + ")"));
                 return;
             }
         }
@@ -215,13 +231,21 @@ public class ExtensionValidator {
         }
     }
 
-    private void checkInvalid(String value, Predicate<String> isInvalid, String field, List<Issue> issues, String allowedValues) {
+    private void checkInvalid(
+            String value,
+            Predicate<String> isInvalid,
+            String field,
+            List<Issue> issues,
+            String allowedValues
+    ) {
         if (StringUtils.isEmpty(value)) {
             return;
         }
         if (isInvalid.test(value)) {
-            issues.add(new Issue("Invalid value in field '" + field + "': " + value
-                    + ". Allowed values: " + allowedValues));
+            issues.add(
+                    new Issue(
+                            "Invalid value in field '" + field + "': " + value
+                                    + ". Allowed values: " + allowedValues));
         }
     }
 
@@ -235,10 +259,12 @@ public class ExtensionValidator {
     }
 
     private boolean isInvalidURL(String value) {
-        if (StringUtils.isEmpty(value))
+        if (StringUtils.isEmpty(value)) {
             return true;
-        if (value.startsWith("git+") && value.length() > 4)
+        }
+        if (value.startsWith("git+") && value.length() > 4) {
             value = value.substring(4);
+        }
 
         try {
             var url = new URI(value).toURL();
@@ -258,8 +284,12 @@ public class ExtensionValidator {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             Issue issue = (Issue) o;
             return Objects.equals(message, issue.message);
         }

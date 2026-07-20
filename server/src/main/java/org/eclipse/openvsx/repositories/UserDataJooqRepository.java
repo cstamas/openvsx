@@ -9,14 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import static org.eclipse.openvsx.jooq.Tables.USER_DATA;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.UserData;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -26,6 +23,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.UserData;
+
+import static org.eclipse.openvsx.jooq.Tables.USER_DATA;
 
 @Component
 public class UserDataJooqRepository {
@@ -63,8 +64,7 @@ public class UserDataJooqRepository {
                 USER_DATA.AVATAR_URL,
                 USER_DATA.PROVIDER,
                 USER_DATA.PROVIDER_URL,
-                USER_DATA.ROLE
-        );
+                USER_DATA.ROLE);
         query.addFrom(USER_DATA);
         return query;
     }

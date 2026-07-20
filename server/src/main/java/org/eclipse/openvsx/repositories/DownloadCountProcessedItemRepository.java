@@ -9,17 +9,25 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.DownloadCountProcessedItem;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.DownloadCountProcessedItem;
 
 public interface DownloadCountProcessedItemRepository extends Repository<DownloadCountProcessedItem, Long> {
 
-    @Query("select dc.name from DownloadCountProcessedItem dc where dc.success = true and dc.storageType = ?1 and dc.name in(?2)")
-    List<String> findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(String storageType, List<String> names);
+    @Query(
+        "select dc.name from DownloadCountProcessedItem dc where dc.success = true and dc.storageType = ?1 and dc.name in(?2)"
+    )
+    List<String> findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(
+            String storageType,
+            List<String> names
+    );
 
-    @Query("select dc.name from DownloadCountProcessedItem dc where dc.success = false and dc.storageType = ?1 and dc.name in(?2)")
+    @Query(
+        "select dc.name from DownloadCountProcessedItem dc where dc.success = false and dc.storageType = ?1 and dc.name in(?2)"
+    )
     List<String> findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(String storageType, List<String> names);
 }

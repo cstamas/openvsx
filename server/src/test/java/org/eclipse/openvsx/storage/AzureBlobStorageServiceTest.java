@@ -9,11 +9,8 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.storage;
 
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
+import java.net.URI;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +19,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.net.URI;
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -54,7 +55,8 @@ class AzureBlobStorageServiceTest {
         resource.setExtension(extVersion);
 
         var uri = service.getLocation(resource);
-        var expected = URI.create("http://azure.blob.storage/blob-container/abelfubu/abelfubu-dark/1.3.4/extension/themes/abelFubu%20Dark+-color-theme.json");
+        var expected = URI.create(
+                "http://azure.blob.storage/blob-container/abelfubu/abelfubu-dark/1.3.4/extension/themes/abelFubu%20Dark+-color-theme.json");
         assertEquals(expected, uri);
     }
 

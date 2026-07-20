@@ -12,13 +12,14 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.filter;
 
-import org.eclipse.openvsx.ratelimit.RateLimitService;
-import org.eclipse.openvsx.ratelimit.UsageStatsService;
-import org.eclipse.openvsx.ratelimit.IdentityService;
-import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
-import org.eclipse.openvsx.ratelimit.config.RateLimitFilterProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.ratelimit.IdentityService;
+import org.eclipse.openvsx.ratelimit.RateLimitService;
+import org.eclipse.openvsx.ratelimit.UsageStatsService;
+import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
+import org.eclipse.openvsx.ratelimit.config.RateLimitFilterProperties;
 
 @Component
 @ConditionalOnBean(RateLimitConfig.class)
@@ -29,9 +30,9 @@ public class RateLimitServletFilterFactory {
     private final RateLimitService rateLimitService;
 
     public RateLimitServletFilterFactory(
-        UsageStatsService usageStatsService,
-        IdentityService identityService,
-        RateLimitService rateLimitService
+            UsageStatsService usageStatsService,
+            IdentityService identityService,
+            RateLimitService rateLimitService
     ) {
         this.usageStatsService = usageStatsService;
         this.identityService = identityService;

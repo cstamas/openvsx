@@ -9,13 +9,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.security;
 
+import java.util.Collection;
+
 import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.UserService;
-import org.eclipse.openvsx.eclipse.EclipseService;
-import org.eclipse.openvsx.eclipse.EclipseTokenService;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.util.ErrorResultException;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
@@ -31,7 +28,11 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
+import org.eclipse.openvsx.UserService;
+import org.eclipse.openvsx.eclipse.EclipseService;
+import org.eclipse.openvsx.eclipse.EclipseTokenService;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.util.ErrorResultException;
 
 import static java.util.Collections.emptyList;
 import static org.eclipse.openvsx.security.CodedAuthException.*;
@@ -64,8 +65,12 @@ public class OAuth2UserServices {
         springOidcUserService = new OidcUserService();
     }
 
-    public OAuth2UserService<OAuth2UserRequest, OAuth2User> getOauth2() { return this::loadUser; }
-    public OAuth2UserService<OidcUserRequest, OidcUser> getOidc() { return this::loadUser; }
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> getOauth2() {
+        return this::loadUser;
+    }
+    public OAuth2UserService<OidcUserRequest, OidcUser> getOidc() {
+        return this::loadUser;
+    }
 
     @EventListener
     public void authenticationSucceeded(AuthenticationSuccessEvent event) {
@@ -74,7 +79,7 @@ public class OAuth2UserServices {
         if (event.getSource() instanceof OAuth2LoginAuthenticationToken) {
             var auth = (OAuth2LoginAuthenticationToken) event.getSource();
             var registrationId = auth.getClientRegistration().getRegistrationId();
-            if(registrationId.equals("eclipse")) {
+            if (registrationId.equals("eclipse")) {
                 var idPrincipal = (IdPrincipal) auth.getPrincipal();
                 tokens.updateEclipseToken(idPrincipal.getId(), auth.getAccessToken(), auth.getRefreshToken());
             }
@@ -95,7 +100,7 @@ public class OAuth2UserServices {
     private IdPrincipal loadGenericUser(OAuth2UserRequest userRequest) {
         var registrationId = userRequest.getClientRegistration().getRegistrationId();
         var mapping = attributesConfig.getAttributeMapping(registrationId);
-        if(mapping == null) {
+        if (mapping == null) {
             throw new CodedAuthException("Unsupported registration: " + registrationId, UNSUPPORTED_REGISTRATION);
         }
 
@@ -114,27 +119,35 @@ public class OAuth2UserServices {
 
     private IdPrincipal loadEclipseUser(OAuth2UserRequest userRequest) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null)
-            throw new CodedAuthException("Please log in with GitHub before connecting your Eclipse account.",
+        if (authentication == null) {
+            throw new CodedAuthException(
+                    "Please log in with GitHub before connecting your Eclipse account.",
                     NEED_MAIN_LOGIN);
-        if (!(authentication.getPrincipal() instanceof IdPrincipal))
+        }
+        if (!(authentication.getPrincipal() instanceof IdPrincipal)) {
             throw new CodedAuthException("The current authentication is invalid.", NEED_MAIN_LOGIN);
+        }
         var principal = (IdPrincipal) authentication.getPrincipal();
         var userData = entityManager.find(UserData.class, principal.getId());
-        if (userData == null)
+        if (userData == null) {
             throw new CodedAuthException("The current authentication has no backing data.", NEED_MAIN_LOGIN);
+        }
         try {
             var accessToken = userRequest.getAccessToken().getTokenValue();
             var profile = eclipse.getUserProfile(accessToken);
-            if (StringUtils.isEmpty(profile.getGithubHandle()))
-                throw new CodedAuthException("Your Eclipse profile is missing a GitHub username.",
+            if (StringUtils.isEmpty(profile.getGithubHandle())) {
+                throw new CodedAuthException(
+                        "Your Eclipse profile is missing a GitHub username.",
                         ECLIPSE_MISSING_GITHUB_ID);
-            if (!profile.getGithubHandle().equalsIgnoreCase(userData.getLoginName()))
-                throw new CodedAuthException("The GitHub username setting in your Eclipse profile ("
-                        + profile.getGithubHandle()
-                        + ") does not match your GitHub authentication ("
-                        + userData.getLoginName() + ").",
+            }
+            if (!profile.getGithubHandle().equalsIgnoreCase(userData.getLoginName())) {
+                throw new CodedAuthException(
+                        "The GitHub username setting in your Eclipse profile ("
+                                + profile.getGithubHandle()
+                                + ") does not match your GitHub authentication ("
+                                + userData.getLoginName() + ").",
                         ECLIPSE_MISMATCH_GITHUB_ID);
+            }
 
             eclipse.updateUserData(userData, profile);
             return principal;

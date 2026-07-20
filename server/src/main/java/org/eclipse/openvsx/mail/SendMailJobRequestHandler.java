@@ -9,6 +9,8 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mail;
 
+import java.nio.charset.StandardCharsets;
+
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,15 +20,16 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.nio.charset.StandardCharsets;
-
 @Component
 public class SendMailJobRequestHandler implements JobRequestHandler<SendMailJobRequest> {
 
     private final JavaMailSender sender;
     private final TemplateEngine templateEngine;
 
-    public SendMailJobRequestHandler(@Autowired(required = false) JavaMailSender sender, TemplateEngine templateEngine) {
+    public SendMailJobRequestHandler(
+            @Autowired(required = false) JavaMailSender sender,
+            TemplateEngine templateEngine
+    ) {
         this.sender = sender;
         this.templateEngine = templateEngine;
     }

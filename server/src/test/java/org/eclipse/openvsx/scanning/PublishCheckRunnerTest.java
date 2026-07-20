@@ -12,22 +12,23 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
+
 import org.eclipse.openvsx.entities.ExtensionScan;
 import org.eclipse.openvsx.entities.ScanCheckResult;
 import org.eclipse.openvsx.entities.UserData;
 import org.eclipse.openvsx.util.TempFile;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import org.mockito.Mockito;
-import org.mockito.quality.Strictness;
 
 /**
  * Tests for {@link PublishCheckRunner} orchestration logic.
@@ -35,9 +36,12 @@ import org.mockito.quality.Strictness;
 @ExtendWith(MockitoExtension.class)
 class PublishCheckRunnerTest {
 
-    @Mock ExtensionScan scan;
-    @Mock TempFile extensionFile;
-    @Mock UserData user;
+    @Mock
+    ExtensionScan scan;
+    @Mock
+    TempFile extensionFile;
+    @Mock
+    UserData user;
 
     @Test
     void runChecks_passesWhenAllChecksPass() {
@@ -164,8 +168,7 @@ class PublishCheckRunnerTest {
                 List.of(),
                 List.of(),
                 true,
-                false
-        );
+                false);
 
         var enforced = result.getEnforcedFindings();
         var warnings = result.getWarningFindings();

@@ -9,11 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.springframework.stereotype.Service;
-
 import java.util.Collection;
 import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import org.eclipse.openvsx.entities.Extension;
 
 /**
  * Wrap all available implementations and redirect to the implementation pickup
@@ -81,7 +82,9 @@ public class SearchUtilService implements ISearchService {
     }
 
     @Override
-    public void removeSearchEntries(Collection<Long> ids) { getImplementation().removeSearchEntries(ids); }
+    public void removeSearchEntries(Collection<Long> ids) {
+        getImplementation().removeSearchEntries(ids);
+    }
 
     @Override
     public void removeSearchEntry(Extension extension) {

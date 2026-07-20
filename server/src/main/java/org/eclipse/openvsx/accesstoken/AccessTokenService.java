@@ -12,8 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.accesstoken;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
+
 import org.eclipse.openvsx.entities.PersonalAccessToken;
 import org.eclipse.openvsx.entities.UserData;
 import org.eclipse.openvsx.json.AccessTokenJson;
@@ -23,10 +28,6 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.NotFoundException;
 import org.eclipse.openvsx.util.TimeUtil;
 import org.eclipse.openvsx.util.UrlUtil;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.eclipse.openvsx.util.UrlUtil.createApiUrl;
 
@@ -68,7 +69,8 @@ public class AccessTokenService {
         var json = token.toAccessTokenJson();
         // Include the token value after creation so the user can copy it
         json.setValue(token.getValue());
-        json.setDeleteTokenUrl(createApiUrl(UrlUtil.getBaseUrl(), "user", "token", "delete", Long.toString(token.getId())));
+        json.setDeleteTokenUrl(
+                createApiUrl(UrlUtil.getBaseUrl(), "user", "token", "delete", Long.toString(token.getId())));
 
         return json;
     }
@@ -90,7 +92,7 @@ public class AccessTokenService {
         }
 
         user = entityManager.merge(user);
-        if(!token.getUser().equals(user)) {
+        if (!token.getUser().equals(user)) {
             throw new NotFoundException();
         }
 

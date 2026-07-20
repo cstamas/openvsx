@@ -12,13 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.accesstoken;
 
+import java.time.Duration;
+
 import jakarta.annotation.PostConstruct;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
-
-import java.time.Duration;
 
 @Configuration
 public class AccessTokenConfig {
@@ -158,7 +158,8 @@ public class AccessTokenConfig {
 
         if (maxTokenNotifications < 0) {
             throw new IllegalArgumentException(
-                    "ovsx.access-token.max-token-notifications must be a non-negative number, got: " + maxTokenNotifications);
+                    "ovsx.access-token.max-token-notifications must be a non-negative number, got: "
+                            + maxTokenNotifications);
         }
     }
 }

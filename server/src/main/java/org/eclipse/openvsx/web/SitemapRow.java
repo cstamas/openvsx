@@ -9,4 +9,4 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.web;
 
-public record SitemapRow(String namespace, String extension, String lastUpdated){}
+public record SitemapRow(String namespace, String extension, String lastUpdated) {}

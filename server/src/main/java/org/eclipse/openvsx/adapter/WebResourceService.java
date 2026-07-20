@@ -9,7 +9,23 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.adapter;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
 import io.micrometer.observation.annotation.Observed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
 import org.eclipse.openvsx.entities.FileResource;
@@ -19,21 +35,6 @@ import org.eclipse.openvsx.util.ErrorResultException;
 import org.eclipse.openvsx.util.FileUtil;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.UrlUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import static org.eclipse.openvsx.cache.CacheService.*;
 
@@ -61,7 +62,8 @@ public class WebResourceService {
     }
 
     public Path getExtensionDownload(String namespace, String extension, String targetPlatform, String version) {
-        var download = repositories.findFileByType(namespace, extension, targetPlatform, version, FileResource.DOWNLOAD);
+        var download = repositories
+                .findFileByType(namespace, extension, targetPlatform, version, FileResource.DOWNLOAD);
         if (download == null) {
             return null;
         }
@@ -77,13 +79,26 @@ public class WebResourceService {
     }
 
     @Observed
-    @Cacheable(value = CACHE_WEB_RESOURCE_FILES, keyGenerator = GENERATOR_FILES, cacheManager = "fileCacheManager", sync = true)
-    public Path getWebResource(String namespace, String extension, String targetPlatform, String version, String name, Path extensionDownloadPath) {
+    @Cacheable(
+        value = CACHE_WEB_RESOURCE_FILES,
+        keyGenerator = GENERATOR_FILES,
+        cacheManager = "fileCacheManager",
+        sync = true
+    )
+    public Path getWebResource(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version,
+            String name,
+            Path extensionDownloadPath
+    ) {
         try (var zip = new ZipFile(extensionDownloadPath.toFile())) {
             var fileEntry = zip.getEntry(name);
             if (fileEntry != null) {
                 var fileExt = getFileExtension(fileEntry);
-                var file = filesCacheKeyGenerator.generateCachedWebResourcePath(namespace, extension, targetPlatform, version, name, fileExt);
+                var file = filesCacheKeyGenerator
+                        .generateCachedWebResourcePath(namespace, extension, targetPlatform, version, name, fileExt);
                 writeBinaryFile(file, zip, fileEntry);
                 return file;
             } else {
@@ -92,14 +107,21 @@ public class WebResourceService {
         } catch (IOException | UncheckedIOException e) {
             throw new ErrorResultException(
                     "Failed to read extension files for " +
-                    NamingUtil.toLogFormat(namespace, extension, targetPlatform, version) + ": " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+                            NamingUtil.toLogFormat(namespace, extension, targetPlatform, version) + ": "
+                            + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @Cacheable(value = CACHE_BROWSE_EXTENSION_FILES, keyGenerator = GENERATOR_FILES, cacheManager = "fileCacheManager")
-    public ArrayNode browseExtensionPackage(String namespace, String extension, String targetPlatform, String version, String name, Path extensionDownloadPath) {
+    public ArrayNode browseExtensionPackage(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version,
+            String name,
+            Path extensionDownloadPath
+    ) {
         try (var zip = new ZipFile(extensionDownloadPath.toFile())) {
             var dirName = getDirectoryName(name);
             var dirEntries = zip.stream()
@@ -120,9 +142,9 @@ public class WebResourceService {
         } catch (IOException | UncheckedIOException e) {
             throw new ErrorResultException(
                     "Failed to read extension files for " +
-                    NamingUtil.toLogFormat(namespace, extension, targetPlatform, version) + ": " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+                            NamingUtil.toLogFormat(namespace, extension, targetPlatform, version) + ": "
+                            + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

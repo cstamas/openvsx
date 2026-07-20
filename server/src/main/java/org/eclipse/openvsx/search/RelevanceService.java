@@ -9,11 +9,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +21,11 @@ import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Provides relevance for a given extension
@@ -76,7 +77,12 @@ public class RelevanceService {
         return (averageRating * reviews + stats.averageReviewRating * padding) / (reviews + padding);
     }
 
-    private double calculateRelevance(Extension extension, ExtensionVersion latest, SearchStats stats, ExtensionSearch entry) {
+    private double calculateRelevance(
+            Extension extension,
+            ExtensionVersion latest,
+            SearchStats stats,
+            ExtensionSearch entry
+    ) {
         var extensionId = NamingUtil.toExtensionId(extension);
         logger.debug(">> [{}] CALCULATE RELEVANCE", extensionId);
         var ratingValue = calculateRating(extension, stats) / 5.0;
@@ -85,7 +91,16 @@ public class RelevanceService {
         var timestampValue = Duration.between(stats.oldest, timestamp).toSeconds() / stats.timestampRef;
         var relevance = ratingRelevance * limit(ratingValue) + downloadsRelevance * limit(downloadsValue)
                 + timestampRelevance * limit(timestampValue);
-        logger.debug("[{}] RELEVANCE: {} = {} * {} + {} * {} + {} * {}", extensionId, relevance, ratingRelevance, limit(ratingValue), downloadsRelevance, limit(downloadsValue), timestampRelevance, limit(timestampValue));
+        logger.debug(
+                "[{}] RELEVANCE: {} = {} * {} + {} * {} + {} * {}",
+                extensionId,
+                relevance,
+                ratingRelevance,
+                limit(ratingValue),
+                downloadsRelevance,
+                limit(downloadsValue),
+                timestampRelevance,
+                limit(timestampValue));
         logger.debug("[{}] VALUES: {} | {} | {}", extensionId, ratingValue, downloadsValue, timestampValue);
 
         // Reduce the relevance value of unverified extensions
@@ -121,8 +136,9 @@ public class RelevanceService {
     }
 
     private boolean isVerified(ExtensionVersion extVersion) {
-        if (extVersion.getPublishedWith() == null)
+        if (extVersion.getPublishedWith() == null) {
             return false;
+        }
         var user = extVersion.getPublishedWith().getUser();
         var namespace = extVersion.getExtension().getNamespace();
         return repositories.isVerified(namespace, user);

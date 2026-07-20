@@ -12,12 +12,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Component;
 
 /**
  * Template engine for runtime placeholder substitution in HTTP templates.

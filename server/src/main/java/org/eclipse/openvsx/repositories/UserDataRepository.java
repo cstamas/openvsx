@@ -9,10 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.UserData;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.UserData;
 
 public interface UserDataRepository extends Repository<UserData, Long> {
 

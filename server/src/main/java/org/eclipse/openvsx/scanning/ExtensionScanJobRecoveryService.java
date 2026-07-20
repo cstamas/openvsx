@@ -12,17 +12,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.ScanCheckResult;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.entities.ScanStatus;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.publish.PublishExtensionVersionService;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.jobrunr.scheduling.JobRequestScheduler;
@@ -33,10 +27,17 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.ScanCheckResult;
+import org.eclipse.openvsx.entities.ScanStatus;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.publish.PublishExtensionVersionService;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Handles scan job recovery: startup recovery and runtime watchdog.
@@ -108,12 +109,10 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
      */
     private void recoverPendingJobs() {
         List<ScannerJob> pendingJobs = scanJobRepository.findByStatusIn(
-            List.of(
-                ScannerJob.JobStatus.QUEUED,
-                ScannerJob.JobStatus.PROCESSING,
-                ScannerJob.JobStatus.SUBMITTED
-            )
-        );
+                List.of(
+                        ScannerJob.JobStatus.QUEUED,
+                        ScannerJob.JobStatus.PROCESSING,
+                        ScannerJob.JobStatus.SUBMITTED));
 
         if (pendingJobs.isEmpty()) {
             logger.debug("No pending scan jobs found");
@@ -148,8 +147,8 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
 
             // --- Async jobs: schedule a recovery poll ---
             if (scanner.isAsync() &&
-                (job.getStatus() == ScannerJob.JobStatus.SUBMITTED ||
-                 job.getStatus() == ScannerJob.JobStatus.PROCESSING)) {
+                    (job.getStatus() == ScannerJob.JobStatus.SUBMITTED ||
+                            job.getStatus() == ScannerJob.JobStatus.PROCESSING)) {
                 try {
                     Instant pollTime = Instant.now().plusSeconds(10);
                     jobScheduler.schedule(pollTime, new ScannerPollRequest(job.getId()));
@@ -181,8 +180,11 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
                     continue;
                 }
                 try {
-                    jobScheduler.enqueue(new ScannerInvocationRequest(
-                        scannerType, job.getExtensionVersionId(), job.getScanId()));
+                    jobScheduler.enqueue(
+                            new ScannerInvocationRequest(
+                                    scannerType,
+                                    job.getExtensionVersionId(),
+                                    job.getScanId()));
                     syncJobsRequeued++;
                     logger.info("Re-enqueued QUEUED sync job {} (scanner: {})", job.getId(), scannerType);
                 } catch (Exception e) {
@@ -233,35 +235,52 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
                     case SKIPPED -> skipped++;
                 }
             } catch (Exception e) {
-                logger.error("Failed to recover VALIDATING scan {} ({}.{}.{}): {}",
-                    scan.getId(), scan.getNamespaceName(), scan.getExtensionName(), scan.getExtensionVersion(), e.getMessage());
+                logger.error(
+                        "Failed to recover VALIDATING scan {} ({}.{}.{}): {}",
+                        scan.getId(),
+                        scan.getNamespaceName(),
+                        scan.getExtensionName(),
+                        scan.getExtensionVersion(),
+                        e.getMessage());
                 try {
                     persistenceService.markAsErrored(scan, "Recovery failed: " + e.getMessage());
                     errored++;
                 } catch (Exception ex) {
-                    logger.error("Failed to mark scan {} ({}.{}.{}) as ERRORED",
-                        scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                        scan.getExtensionVersion());
+                    logger.error(
+                            "Failed to mark scan {} ({}.{}.{}) as ERRORED",
+                            scan.getId(),
+                            scan.getNamespaceName(),
+                            scan.getExtensionName(),
+                            scan.getExtensionVersion());
                 }
             }
         }
 
-        logger.info("VALIDATING recovery: {} recovered, {} rejected, {} errored, {} skipped",
-            recovered, rejected, errored, skipped);
+        logger.info(
+                "VALIDATING recovery: {} recovered, {} rejected, {} errored, {} skipped",
+                recovered,
+                rejected,
+                errored,
+                skipped);
     }
 
-    private enum RecoveryResult { RECOVERED, ERRORED, REJECTED, SKIPPED }
+    private enum RecoveryResult {
+        RECOVERED, ERRORED, REJECTED, SKIPPED
+    }
 
     private RecoveryResult recoverValidatingScan(ExtensionScan scan) {
         var checkResults = repositories.findScanCheckResultsByScanId(scan.getId());
         var publishCheckResults = checkResults.stream()
-            .filter(r -> r.getCategory() == ScanCheckResult.CheckCategory.PUBLISH_CHECK)
-            .toList();
+                .filter(r -> r.getCategory() == ScanCheckResult.CheckCategory.PUBLISH_CHECK)
+                .toList();
 
         if (publishCheckResults.isEmpty()) {
-            logger.warn("Scan {} ({}.{}.{}) stuck in VALIDATING with no check results",
-                scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                scan.getExtensionVersion());
+            logger.warn(
+                    "Scan {} ({}.{}.{}) stuck in VALIDATING with no check results",
+                    scan.getId(),
+                    scan.getNamespaceName(),
+                    scan.getExtensionName(),
+                    scan.getExtensionVersion());
             persistenceService.markAsErrored(scan, "No publish check results found");
             return RecoveryResult.ERRORED;
         }
@@ -269,25 +288,31 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
         // Verify all expected checks completed
         var expectedCheckTypes = publishCheckRunner.getExpectedCheckTypes();
         var recordedCheckTypes = publishCheckResults.stream()
-            .map(ScanCheckResult::getCheckType)
-            .toList();
+                .map(ScanCheckResult::getCheckType)
+                .toList();
         var missingChecks = expectedCheckTypes.stream()
-            .filter(type -> !recordedCheckTypes.contains(type))
-            .toList();
+                .filter(type -> !recordedCheckTypes.contains(type))
+                .toList();
 
         if (!missingChecks.isEmpty()) {
-            logger.info("Scan {} has {} of {} checks complete, skipping (may still be running)",
-                scan.getId(), recordedCheckTypes.size(), expectedCheckTypes.size());
+            logger.info(
+                    "Scan {} has {} of {} checks complete, skipping (may still be running)",
+                    scan.getId(),
+                    recordedCheckTypes.size(),
+                    expectedCheckTypes.size());
             return RecoveryResult.SKIPPED;
         }
 
         // Check outcomes
         boolean hasRejection = publishCheckResults.stream()
-            .anyMatch(r -> r.getResult() == ScanCheckResult.CheckResult.REJECT);
+                .anyMatch(r -> r.getResult() == ScanCheckResult.CheckResult.REJECT);
         if (hasRejection) {
-            logger.warn("Scan {} ({}.{}.{}) with REJECT result, completing as REJECTED",
-                scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                scan.getExtensionVersion());
+            logger.warn(
+                    "Scan {} ({}.{}.{}) with REJECT result, completing as REJECTED",
+                    scan.getId(),
+                    scan.getNamespaceName(),
+                    scan.getExtensionName(),
+                    scan.getExtensionVersion());
             scan.setStatus(ScanStatus.REJECTED);
             scan.setCompletedAt(TimeUtil.getCurrentUTC());
             repositories.saveExtensionScan(scan);
@@ -295,16 +320,20 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
         }
 
         boolean hasError = publishCheckResults.stream()
-            .anyMatch(r -> r.getResult() == ScanCheckResult.CheckResult.ERROR);
+                .anyMatch(r -> r.getResult() == ScanCheckResult.CheckResult.ERROR);
         if (hasError) {
             persistenceService.markAsErrored(scan, "Publish check had error");
             return RecoveryResult.ERRORED;
         }
 
         // All checks passed - resume scan
-        logger.info("Scan {} ({}.{}.{}) has all {} checks passed, resuming",
-            scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-            scan.getExtensionVersion(), publishCheckResults.size());
+        logger.info(
+                "Scan {} ({}.{}.{}) has all {} checks passed, resuming",
+                scan.getId(),
+                scan.getNamespaceName(),
+                scan.getExtensionName(),
+                scan.getExtensionVersion(),
+                publishCheckResults.size());
 
         var extVersion = findExtensionVersion(scan);
         if (extVersion == null) {
@@ -316,18 +345,25 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
             boolean submitted = scanService.submitScannerJobs(scan, extVersion);
             if (!submitted) {
                 // No scanners configured — safe to activate
-                logger.info("Scan {} ({}.{}.{}) has no scanners, activating extension",
-                    scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                    scan.getExtensionVersion());
+                logger.info(
+                        "Scan {} ({}.{}.{}) has no scanners, activating extension",
+                        scan.getId(),
+                        scan.getNamespaceName(),
+                        scan.getExtensionName(),
+                        scan.getExtensionVersion());
                 publishService.activateExtension(extVersion, extensionService);
                 scanService.markScanPassed(scan);
             }
             return RecoveryResult.RECOVERED;
         } catch (Exception e) {
             // Enqueue attempts failed — do NOT activate. Mark as errored.
-            logger.error("Scan {} ({}.{}.{}) failed to submit scanner jobs during recovery",
-                scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                scan.getExtensionVersion(), e);
+            logger.error(
+                    "Scan {} ({}.{}.{}) failed to submit scanner jobs during recovery",
+                    scan.getId(),
+                    scan.getNamespaceName(),
+                    scan.getExtensionName(),
+                    scan.getExtensionVersion(),
+                    e);
             persistenceService.markAsErrored(scan, "Recovery failed to submit scanner jobs: " + e.getMessage());
             return RecoveryResult.ERRORED;
         }
@@ -336,7 +372,9 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
     private ExtensionVersion findExtensionVersion(ExtensionScan scan) {
         try {
             var extension = repositories.findExtension(scan.getExtensionName(), scan.getNamespaceName());
-            if (extension == null) return null;
+            if (extension == null) {
+                return null;
+            }
             return repositories.findVersion(scan.getExtensionVersion(), scan.getTargetPlatform(), extension);
         } catch (Exception e) {
             return null;
@@ -365,36 +403,47 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
             for (var scan : staleScans) {
                 String scanIdStr = String.valueOf(scan.getId());
                 List<ScannerJob> jobs = scanJobRepository.findByScanId(scanIdStr);
-                boolean hasRecoverableJobs = jobs.stream().anyMatch(job ->
-                    job.getStatus() == ScannerJob.JobStatus.QUEUED ||
-                    job.getStatus() == ScannerJob.JobStatus.PROCESSING ||
-                    job.getStatus() == ScannerJob.JobStatus.SUBMITTED
-                );
+                boolean hasRecoverableJobs = jobs.stream().anyMatch(
+                        job -> job.getStatus() == ScannerJob.JobStatus.QUEUED ||
+                                job.getStatus() == ScannerJob.JobStatus.PROCESSING ||
+                                job.getStatus() == ScannerJob.JobStatus.SUBMITTED);
 
                 if (hasRecoverableJobs) {
-                    logger.info("Scan {} ({}.{}.{}) has recoverable jobs, leaving in {} status",
-                        scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                        scan.getExtensionVersion(), status);
+                    logger.info(
+                            "Scan {} ({}.{}.{}) has recoverable jobs, leaving in {} status",
+                            scan.getId(),
+                            scan.getNamespaceName(),
+                            scan.getExtensionName(),
+                            scan.getExtensionVersion(),
+                            status);
                     recoverableCount++;
                     continue;
                 }
 
                 // Check if all jobs are complete (no failures)
                 boolean allJobsComplete = !jobs.isEmpty() && jobs.stream()
-                    .allMatch(j -> j.getStatus() == ScannerJob.JobStatus.COMPLETE);
+                        .allMatch(j -> j.getStatus() == ScannerJob.JobStatus.COMPLETE);
 
                 if (allJobsComplete) {
                     // All jobs complete - retry completion check
-                    logger.info("Retrying completion for scan {} ({}.{}.{}) - all {} jobs complete",
-                        scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                        scan.getExtensionVersion(), jobs.size());
+                    logger.info(
+                            "Retrying completion for scan {} ({}.{}.{}) - all {} jobs complete",
+                            scan.getId(),
+                            scan.getNamespaceName(),
+                            scan.getExtensionName(),
+                            scan.getExtensionVersion(),
+                            jobs.size());
                     try {
                         completionService.checkSingleScanCompletion(scanIdStr);
                         completedCount++;
                     } catch (Exception e) {
-                        logger.error("Failed to complete scan {} ({}.{}.{}): {}",
-                            scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                            scan.getExtensionVersion(), e.getMessage());
+                        logger.error(
+                                "Failed to complete scan {} ({}.{}.{}): {}",
+                                scan.getId(),
+                                scan.getNamespaceName(),
+                                scan.getExtensionName(),
+                                scan.getExtensionVersion(),
+                                e.getMessage());
                         persistenceService.markAsErrored(scan, "Completion retry failed: " + e.getMessage());
                         erroredCount++;
                     }
@@ -407,32 +456,48 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
                     reason = String.format("Scan stuck in %s with no scanner jobs created", status);
                 } else {
                     long completedJobs = jobs.stream()
-                        .filter(j -> j.getStatus() == ScannerJob.JobStatus.COMPLETE)
-                        .count();
+                            .filter(j -> j.getStatus() == ScannerJob.JobStatus.COMPLETE)
+                            .count();
                     long failedJobs = jobs.stream()
-                        .filter(j -> j.getStatus() == ScannerJob.JobStatus.FAILED)
-                        .count();
-                    reason = String.format("Scan stuck in %s with %d complete, %d failed jobs",
-                        status, completedJobs, failedJobs);
+                            .filter(j -> j.getStatus() == ScannerJob.JobStatus.FAILED)
+                            .count();
+                    reason = String.format(
+                            "Scan stuck in %s with %d complete, %d failed jobs",
+                            status,
+                            completedJobs,
+                            failedJobs);
                 }
 
                 try {
-                    logger.warn("Marking stale scan {} ({}.{}.{}) as ERRORED: {}",
-                        scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                        scan.getExtensionVersion(), reason);
+                    logger.warn(
+                            "Marking stale scan {} ({}.{}.{}) as ERRORED: {}",
+                            scan.getId(),
+                            scan.getNamespaceName(),
+                            scan.getExtensionName(),
+                            scan.getExtensionVersion(),
+                            reason);
                     persistenceService.markAsErrored(scan, reason);
                     erroredCount++;
                 } catch (Exception e) {
-                    logger.error("Failed to recover stale scan {} ({}.{}.{})",
-                        scan.getId(), scan.getNamespaceName(), scan.getExtensionName(),
-                        scan.getExtensionVersion());
+                    logger.error(
+                            "Failed to recover stale scan {} ({}.{}.{})",
+                            scan.getId(),
+                            scan.getNamespaceName(),
+                            scan.getExtensionName(),
+                            scan.getExtensionVersion());
                 }
             }
         }
 
-        if (recoverableCount > 0) logger.info("Left {} scan(s) for recovery", recoverableCount);
-        if (completedCount > 0) logger.info("Completed {} scan(s) via recovery", completedCount);
-        if (erroredCount > 0) logger.info("Marked {} scan(s) as ERRORED", erroredCount);
+        if (recoverableCount > 0) {
+            logger.info("Left {} scan(s) for recovery", recoverableCount);
+        }
+        if (completedCount > 0) {
+            logger.info("Completed {} scan(s) via recovery", completedCount);
+        }
+        if (erroredCount > 0) {
+            logger.info("Marked {} scan(s) as ERRORED", erroredCount);
+        }
     }
 
     /**
@@ -454,15 +519,20 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
         LocalDateTime oneHourAgo = TimeUtil.getCurrentUTC().minusMinutes(60);
 
         List<ScannerJob> stuckJobs = scanJobRepository.findByStatusAndCreatedAtBeforeAndRecoveryInProgressFalse(
-            ScannerJob.JobStatus.QUEUED, fiveMinutesAgo);
+                ScannerJob.JobStatus.QUEUED,
+                fiveMinutesAgo);
 
-        if (stuckJobs.isEmpty()) return;
+        if (stuckJobs.isEmpty()) {
+            return;
+        }
 
         logger.warn("Found {} jobs stuck in QUEUED", stuckJobs.size());
 
         int processed = 0;
         for (ScannerJob job : stuckJobs) {
-            if (processed >= MAX_PER_CYCLE) break;
+            if (processed >= MAX_PER_CYCLE) {
+                break;
+            }
 
             // Skip concurrency-limited scanners — their QUEUED state is intentional
             // and managed by the ScannerConcurrencyDispatcher, not recovery.
@@ -482,8 +552,11 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
                     job.setUpdatedAt(TimeUtil.getCurrentUTC());
                     scanJobRepository.save(job);
 
-                    jobScheduler.enqueue(new ScannerInvocationRequest(
-                        job.getScannerType(), job.getExtensionVersionId(), job.getScanId()));
+                    jobScheduler.enqueue(
+                            new ScannerInvocationRequest(
+                                    job.getScannerType(),
+                                    job.getExtensionVersionId(),
+                                    job.getScanId()));
                     logger.info("Re-enqueued stuck job: scanId={}, scanner={}", job.getScanId(), job.getScannerType());
                 } catch (Exception e) {
                     logger.error("Failed to re-enqueue job {}", job.getScanId());
@@ -502,24 +575,35 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
         LocalDateTime now = TimeUtil.getCurrentUTC();
 
         List<ScannerJob> asyncJobs = scanJobRepository.findByStatusIn(
-            List.of(ScannerJob.JobStatus.SUBMITTED, ScannerJob.JobStatus.PROCESSING));
+                List.of(ScannerJob.JobStatus.SUBMITTED, ScannerJob.JobStatus.PROCESSING));
 
         int timedOut = 0;
         for (ScannerJob job : asyncJobs) {
             Scanner scanner = scannerRegistry.getScanner(job.getScannerType());
-            if (scanner == null) continue;
+            if (scanner == null) {
+                continue;
+            }
 
             int timeoutMinutes = scanner.getTimeoutMinutes();
             LocalDateTime baseline = job.getStatus() == ScannerJob.JobStatus.PROCESSING
-                ? job.getUpdatedAt()
-                : job.getCreatedAt();
+                    ? job.getUpdatedAt()
+                    : job.getCreatedAt();
             long activeMinutes = Duration.between(baseline, now).toMinutes();
 
             if (activeMinutes >= timeoutMinutes) {
-                markFailed(job, String.format("Timeout: exceeded %d min limit (active: %d min)", timeoutMinutes, activeMinutes));
+                markFailed(
+                        job,
+                        String.format(
+                                "Timeout: exceeded %d min limit (active: %d min)",
+                                timeoutMinutes,
+                                activeMinutes));
                 completionService.checkCompletionSafely(job.getScanId());
                 timedOut++;
-                logger.error("Job {} timed out: scanner={}, active={}min", job.getId(), job.getScannerType(), activeMinutes);
+                logger.error(
+                        "Job {} timed out: scanner={}, active={}min",
+                        job.getId(),
+                        job.getScannerType(),
+                        activeMinutes);
             }
         }
 
@@ -528,33 +612,44 @@ public class ExtensionScanJobRecoveryService implements JobRequestHandler<Handle
         // so they need their own safety-net timeout.
         // Only fetch jobs old enough to possibly be expired
         int minQueueWait = scannerRegistry.getAllScanners().stream()
-            .filter(s -> s.getMaxConcurrency() > 0)
-            .mapToInt(Scanner::getMaxQueueWaitMinutes)
-            .min()
-            .orElse(Integer.MAX_VALUE);
+                .filter(s -> s.getMaxConcurrency() > 0)
+                .mapToInt(Scanner::getMaxQueueWaitMinutes)
+                .min()
+                .orElse(Integer.MAX_VALUE);
         if (minQueueWait < Integer.MAX_VALUE) {
             LocalDateTime queueCutoff = now.minusMinutes(minQueueWait);
             List<ScannerJob> queuedJobs = scanJobRepository.findByStatusAndCreatedAtBefore(
-                ScannerJob.JobStatus.QUEUED, queueCutoff);
+                    ScannerJob.JobStatus.QUEUED,
+                    queueCutoff);
             for (ScannerJob job : queuedJobs) {
                 Scanner scanner = scannerRegistry.getScanner(job.getScannerType());
-                if (scanner == null || scanner.getMaxConcurrency() <= 0) continue;
+                if (scanner == null || scanner.getMaxConcurrency() <= 0) {
+                    continue;
+                }
 
                 int maxWait = scanner.getMaxQueueWaitMinutes();
                 long waitMinutes = Duration.between(job.getCreatedAt(), now).toMinutes();
                 if (waitMinutes >= maxWait) {
-                    markFailed(job, String.format(
-                        "Queued too long: waited %d min (limit: %d min)",
-                        waitMinutes, maxWait));
+                    markFailed(
+                            job,
+                            String.format(
+                                    "Queued too long: waited %d min (limit: %d min)",
+                                    waitMinutes,
+                                    maxWait));
                     completionService.checkCompletionSafely(job.getScanId());
                     timedOut++;
-                    logger.warn("QUEUED job {} timed out: scanner={}, waited={}min",
-                        job.getId(), job.getScannerType(), waitMinutes);
+                    logger.warn(
+                            "QUEUED job {} timed out: scanner={}, waited={}min",
+                            job.getId(),
+                            job.getScannerType(),
+                            waitMinutes);
                 }
             }
         }
 
-        if (timedOut > 0) logger.info("Timed out {} jobs", timedOut);
+        if (timedOut > 0) {
+            logger.info("Timed out {} jobs", timedOut);
+        }
     }
 
     private void markFailed(ScannerJob job, String errorMessage) {

@@ -12,16 +12,17 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.json.CustomerJson;
-import org.eclipse.openvsx.json.UsageStatsJson;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.CustomerJson;
+import org.eclipse.openvsx.json.UsageStatsJson;
 
 @Entity
 @Table(name = "usage_stats")
@@ -94,14 +95,18 @@ public class UsageStats implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         UsageStats that = (UsageStats) o;
         return id == that.id
-            && Objects.equals(customer, that.customer)
-            && Objects.equals(windowStart, that.windowStart)
-            && Objects.equals(duration, that.duration)
-            && Objects.equals(count, that.count);
+                && Objects.equals(customer, that.customer)
+                && Objects.equals(windowStart, that.windowStart)
+                && Objects.equals(duration, that.duration)
+                && Objects.equals(count, that.count);
     }
 
     @Override

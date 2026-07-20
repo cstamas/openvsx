@@ -9,16 +9,17 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.accesstoken;
 
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.settings.SettingsService;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.SettingsService;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Component
 public class NotifyPersonalAccessTokenExpirationHandler implements JobRequestHandler<HandlerJobRequest<?>> {
@@ -58,7 +59,9 @@ public class NotifyPersonalAccessTokenExpirationHandler implements JobRequestHan
             }
 
             if (!expiringAccessTokens.isEmpty()) {
-                logger.info("Scheduled {} notification(s) for expiring personal access tokens", expiringAccessTokens.size());
+                logger.info(
+                        "Scheduled {} notification(s) for expiring personal access tokens",
+                        expiringAccessTokens.size());
             }
         }
     }

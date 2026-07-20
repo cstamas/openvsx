@@ -9,6 +9,10 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.UUID;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +20,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.UUID;
 
 @Component
 public class ScheduleMigrationsListener {
@@ -44,7 +44,7 @@ public class ScheduleMigrationsListener {
     @EventListener
     public void applicationStarted(ApplicationStartedEvent event) {
         UUID jobId = null;
-        if(runMigrationsOncePerVersion) {
+        if (runMigrationsOncePerVersion) {
             var jobIdText = "MigrationScheduler::" + registryVersion;
             jobId = UUID.nameUUIDFromBytes(jobIdText.getBytes(StandardCharsets.UTF_8));
         }

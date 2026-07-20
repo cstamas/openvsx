@@ -12,15 +12,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,32 +57,31 @@ class GitleaksRulesServiceTest {
 
     @Test
     void failsWhenAutoGenerateEnabledButPathNotConfigured() {
-        SecretDetectorConfig config = buildConfig(true, true, "");  // Empty path
+        SecretDetectorConfig config = buildConfig(true, true, ""); // Empty path
         GitleaksRulesService service = new GitleaksRulesService(config, null, null);
 
         IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            service::initialize,
-            "Should throw when path is not configured"
-        );
+                IllegalStateException.class,
+                service::initialize,
+                "Should throw when path is not configured");
 
         // Check the cause since resolveOutputFile exceptions are wrapped
         Throwable cause = exception.getCause();
         assertNotNull(cause, "Should have a cause");
-        assertTrue(cause.getMessage().contains("gitleaks.output-path") || cause.getMessage().contains("not configured"),
-            "Error message should mention the missing configuration property");
+        assertTrue(
+                cause.getMessage().contains("gitleaks.output-path") || cause.getMessage().contains("not configured"),
+                "Error message should mention the missing configuration property");
     }
 
     @Test
     void failsWhenAutoGenerateEnabledButPathIsNull() {
-        SecretDetectorConfig config = buildConfig(true, true, null);  // Null path
+        SecretDetectorConfig config = buildConfig(true, true, null); // Null path
         GitleaksRulesService service = new GitleaksRulesService(config, null, null);
 
         IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            service::initialize,
-            "Should throw when path is null"
-        );
+                IllegalStateException.class,
+                service::initialize,
+                "Should throw when path is null");
 
         // Check the cause since resolveOutputFile exceptions are wrapped
         Throwable cause = exception.getCause();
@@ -104,8 +103,9 @@ class GitleaksRulesServiceTest {
         File result = (File) resolveMethod.invoke(service);
 
         assertNotNull(result);
-        assertTrue(Files.exists(result.getParentFile().toPath()),
-            "Parent directory should be created");
+        assertTrue(
+                Files.exists(result.getParentFile().toPath()),
+                "Parent directory should be created");
         assertEquals(outputFile.toString(), result.getAbsolutePath());
     }
 
@@ -125,16 +125,16 @@ class GitleaksRulesServiceTest {
         GitleaksRulesService service = new GitleaksRulesService(config, null, null);
 
         IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            service::initialize
-        );
+                IllegalStateException.class,
+                service::initialize);
 
         // The error will be wrapped, check the cause
         Throwable cause = exception.getCause();
         assertNotNull(cause, "Should have a cause");
-        assertTrue(cause.getMessage().contains("Cannot create directory") ||
-                   cause.getMessage().contains("Cannot write to directory"),
-            "Error message should mention directory issue: " + cause.getMessage());
+        assertTrue(
+                cause.getMessage().contains("Cannot create directory") ||
+                        cause.getMessage().contains("Cannot write to directory"),
+                "Error message should mention directory issue: " + cause.getMessage());
     }
 
     @Test
@@ -160,7 +160,7 @@ class GitleaksRulesServiceTest {
     @Test
     void storesGeneratedPathForLaterRetrieval() throws Exception {
         Path outputFile = tempDir.resolve("rules.yaml");
-        Files.writeString(outputFile, "test");  // Pre-create to skip actual generation
+        Files.writeString(outputFile, "test"); // Pre-create to skip actual generation
 
         SecretDetectorConfig config = buildConfig(true, true, outputFile.toString());
         setField(config, "gitleaksForceRefresh", false);
@@ -190,8 +190,9 @@ class GitleaksRulesServiceTest {
         // Unwrap the InvocationTargetException
         Throwable cause = exception.getCause();
         assertInstanceOf(IllegalStateException.class, cause, "Cause should be IllegalStateException");
-        assertTrue(cause.getMessage().contains("not configured"),
-            "Error message should explain the configuration is missing");
+        assertTrue(
+                cause.getMessage().contains("not configured"),
+                "Error message should explain the configuration is missing");
     }
 
     @Test

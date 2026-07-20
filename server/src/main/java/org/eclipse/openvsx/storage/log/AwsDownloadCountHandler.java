@@ -9,13 +9,19 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage.log;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.settings.SettingsService;
-import org.eclipse.openvsx.storage.AwsStorageService;
-import org.eclipse.openvsx.util.TempFile;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
@@ -28,17 +34,12 @@ import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import jakarta.annotation.PostConstruct;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.settings.SettingsService;
+import org.eclipse.openvsx.storage.AwsStorageService;
+import org.eclipse.openvsx.util.TempFile;
 
 /**
  * Pulls logs from an Amazon S3 bucket, extracts downloads from the logs and updates download counts in the database.
@@ -63,7 +64,7 @@ public class AwsDownloadCountHandler implements JobRequestHandler<HandlerJobRequ
     private static final String LOG_LOCATION_PREFIX = "AWSLogs/";
 
     private final SettingsService settings;
-    private final AwsStorageService  awsStorageService;
+    private final AwsStorageService awsStorageService;
     private final DownloadCountProcessor processor;
 
     @Value("${ovsx.logs.aws.bucket:}")
@@ -83,7 +84,11 @@ public class AwsDownloadCountHandler implements JobRequestHandler<HandlerJobRequ
 
     LogFileParser logFileParser;
 
-    public AwsDownloadCountHandler(SettingsService settings, AwsStorageService awsStorageService, DownloadCountProcessor processor) {
+    public AwsDownloadCountHandler(
+            SettingsService settings,
+            AwsStorageService awsStorageService,
+            DownloadCountProcessor processor
+    ) {
         this.settings = settings;
         this.awsStorageService = awsStorageService;
         this.processor = processor;
@@ -188,7 +193,9 @@ public class AwsDownloadCountHandler implements JobRequestHandler<HandlerJobRequ
                 var processedOn = LocalDateTime.now();
 
                 if (processedOn.isAfter(maxExecutionTime)) {
-                    logger.info("Failed to process all download counts within timeslot, next job run is at {}", nextJobRunTime);
+                    logger.info(
+                            "Failed to process all download counts within timeslot, next job run is at {}",
+                            nextJobRunTime);
                     return false;
                 }
 
@@ -248,7 +255,8 @@ public class AwsDownloadCountHandler implements JobRequestHandler<HandlerJobRequ
                 if (isGetOperation(record) && isStatusOk(record) && isExtensionPackageUri(record)) {
                     var uri = record.url();
                     var uriComponents = uri.split("/");
-                    var vsixFile = UriUtils.decode(uriComponents[uriComponents.length - 1], StandardCharsets.UTF_8).toUpperCase();
+                    var vsixFile = UriUtils.decode(uriComponents[uriComponents.length - 1], StandardCharsets.UTF_8)
+                            .toUpperCase();
                     fileCounts.merge(vsixFile, 1, Integer::sum);
                 }
             }
@@ -270,14 +278,12 @@ public class AwsDownloadCountHandler implements JobRequestHandler<HandlerJobRequ
 
     private TempFile downloadFile(String objectKey) throws IOException {
         var downloadsTempFile = new TempFile("aws-downloads-", ".gz");
-        var inputStream =
-                getS3Client().getObject(
-                        GetObjectRequest.builder()
-                                .bucket(bucket)
-                                .key(objectKey)
-                                .build(),
-                        ResponseTransformer.toInputStream()
-                );
+        var inputStream = getS3Client().getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(objectKey)
+                        .build(),
+                ResponseTransformer.toInputStream());
         Files.copy(inputStream, downloadsTempFile.getPath(), StandardCopyOption.REPLACE_EXISTING);
         return downloadsTempFile;
     }

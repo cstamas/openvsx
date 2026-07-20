@@ -12,9 +12,11 @@
  *****************************************************************************/
 package org.eclipse.openvsx.web;
 
+import java.lang.reflect.Method;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Iterables;
 import jakarta.validation.ConstraintViolationException;
-import org.eclipse.openvsx.json.ResultJson;
 import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -23,8 +25,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.HandlerMethod;
 
-import java.lang.reflect.Method;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.json.ResultJson;
 
 @RestControllerAdvice
 public class ValidationExceptionHandler {
@@ -44,13 +45,16 @@ public class ValidationExceptionHandler {
                 var json = (ResultJson) staticMethod.invoke(null, errors);
                 return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
             }
-        } catch (Exception _) {}
+        } catch (Exception _) {
+        }
 
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problem.setTitle("Validation failed");
-        problem.setProperty("errors", ex.getConstraintViolations().stream()
-                .map(cv -> Iterables.getLast(cv.getPropertyPath()) + ": " + cv.getMessage())
-                .toList());
+        problem.setProperty(
+                "errors",
+                ex.getConstraintViolations().stream()
+                        .map(cv -> Iterables.getLast(cv.getPropertyPath()) + ": " + cv.getMessage())
+                        .toList());
         return new ResponseEntity<>(problem, HttpStatus.BAD_REQUEST);
     }
 }

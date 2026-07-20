@@ -12,9 +12,10 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.*;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.util.Streamable;
+
+import org.eclipse.openvsx.entities.*;
 
 public interface CustomerMembershipRepository extends Repository<CustomerMembership, Long> {
     Streamable<CustomerMembership> findByCustomer(Customer customer);

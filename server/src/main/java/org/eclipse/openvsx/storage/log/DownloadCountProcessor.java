@@ -9,24 +9,25 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage.log;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Lists;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.DownloadCountProcessedItem;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.search.SearchUtilService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class DownloadCountProcessor {
@@ -54,7 +55,13 @@ public class DownloadCountProcessor {
     }
 
     @Transactional
-    public void persistProcessedItem(String name, String storageType, LocalDateTime processedOn, int executionTime, boolean success) {
+    public void persistProcessedItem(
+            String name,
+            String storageType,
+            LocalDateTime processedOn,
+            int executionTime,
+            boolean success
+    ) {
         Observation.createNotStarted("DownloadCountProcessor#persistProcessedItem", observations).observe(() -> {
             var processedItem = new DownloadCountProcessedItem();
             processedItem.setName(name);
@@ -67,34 +74,38 @@ public class DownloadCountProcessor {
     }
 
     public Map<Long, Integer> processDownloadCounts(String storageType, Map<String, Integer> files) {
-        return Observation.createNotStarted("DownloadCountProcessor#processDownloadCounts", observations).observe(() -> repositories.findDownloadsByStorageTypeAndName(storageType, files.keySet()).stream()
-                .map(fileResource -> Map.entry(fileResource, files.get(fileResource.getName().toUpperCase())))
-                .filter(fileResource -> {
-                    var ev = fileResource.getKey().getExtension();
-                    if (ev == null) {
-                        logger.warn("no extension version found for download {}, skipping", fileResource.getKey().getName());
-                        return false;
-                    } else {
-                        return true;
-                    }
-                })
-                .collect(Collectors.groupingBy(
-                        e -> e.getKey().getExtension().getExtension().getId(),
-                        Collectors.summingInt(Map.Entry::getValue)
-                )));
+        return Observation.createNotStarted("DownloadCountProcessor#processDownloadCounts", observations).observe(
+                () -> repositories.findDownloadsByStorageTypeAndName(storageType, files.keySet()).stream()
+                        .map(fileResource -> Map.entry(fileResource, files.get(fileResource.getName().toUpperCase())))
+                        .filter(fileResource -> {
+                            var ev = fileResource.getKey().getExtension();
+                            if (ev == null) {
+                                logger.warn(
+                                        "no extension version found for download {}, skipping",
+                                        fileResource.getKey().getName());
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        })
+                        .collect(
+                                Collectors.groupingBy(
+                                        e -> e.getKey().getExtension().getExtension().getId(),
+                                        Collectors.summingInt(Map.Entry::getValue))));
     }
 
     @Transactional
     public List<Extension> increaseDownloadCounts(Map<Long, Integer> extensionDownloads) {
-        return Observation.createNotStarted("DownloadCountProcessor#increaseDownloadCounts", observations).observe(() -> {
-            var extensions = repositories.findExtensions(extensionDownloads.keySet()).toList();
-            extensions.forEach(extension -> {
-                var downloads = extensionDownloads.get(extension.getId());
-                extension.setDownloadCount(extension.getDownloadCount() + downloads);
-            });
+        return Observation.createNotStarted("DownloadCountProcessor#increaseDownloadCounts", observations)
+                .observe(() -> {
+                    var extensions = repositories.findExtensions(extensionDownloads.keySet()).toList();
+                    extensions.forEach(extension -> {
+                        var downloads = extensionDownloads.get(extension.getId());
+                        extension.setDownloadCount(extension.getDownloadCount() + downloads);
+                    });
 
-            return extensions;
-        });
+                    return extensions;
+                });
     }
 
     @Transactional // needs transaction for lazy-loading versions
@@ -123,14 +134,14 @@ public class DownloadCountProcessor {
     }
 
     public List<String> processedItems(String storageType, List<String> blobNames) {
-        return Observation.createNotStarted("DownloadCountProcessor#processedItems", observations).observe(() ->
-                repositories.findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, blobNames)
-        );
+        return Observation.createNotStarted("DownloadCountProcessor#processedItems", observations).observe(
+                () -> repositories
+                        .findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, blobNames));
     }
 
     public List<String> failedItems(String storageType, List<String> blobNames) {
-        return Observation.createNotStarted("DownloadCountProcessor#failedItems", observations).observe(() ->
-                repositories.findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, blobNames)
-        );
+        return Observation.createNotStarted("DownloadCountProcessor#failedItems", observations).observe(
+                () -> repositories
+                        .findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, blobNames));
     }
 }

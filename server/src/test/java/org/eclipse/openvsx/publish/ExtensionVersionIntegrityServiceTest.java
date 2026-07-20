@@ -9,7 +9,19 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.publish;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.zip.ZipFile;
+
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
@@ -19,17 +31,6 @@ import org.eclipse.openvsx.migration.GenerateKeyPairJobService;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.ArchiveUtil;
 import org.eclipse.openvsx.util.TempFile;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.zip.ZipFile;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -69,29 +70,32 @@ class ExtensionVersionIntegrityServiceTest {
         ) {
             stream.transferTo(out);
             extensionFile.setResource(download);
-            try(
+            try (
                     var signatureFile = integrityService.generateSignature(extensionFile, keyPair);
                     var sigzip = new ZipFile(signatureFile.getPath().toFile());
-                    var expectedSigZip = new ZipFile(getClass().getResource("ms-python.python-2024.7.11511013.sigzip").getPath())
+                    var expectedSigZip = new ZipFile(
+                            getClass().getResource("ms-python.python-2024.7.11511013.sigzip").getPath())
             ) {
                 var iterator = expectedSigZip.stream().iterator();
-                while(iterator.hasNext()) {
+                while (iterator.hasNext()) {
                     var expectedEntry = iterator.next();
                     var entry = sigzip.getEntry(expectedEntry.getName());
                     assertNotNull(entry);
-                    if(expectedEntry.getName().equals(".signature.manifest")) {
+                    if (expectedEntry.getName().equals(".signature.manifest")) {
                         try (
                                 var expectedFile = ArchiveUtil.readEntry(expectedSigZip, expectedEntry);
                                 var actualFile = ArchiveUtil.readEntry(sigzip, entry)
                         ) {
-                            assertEquals(Files.readString(expectedFile.getPath()),Files.readString(actualFile.getPath()));
+                            assertEquals(
+                                    Files.readString(expectedFile.getPath()),
+                                    Files.readString(actualFile.getPath()));
                         }
                     }
                 }
 
                 var entry = sigzip.getEntry(".signature.sig");
                 assertNotNull(entry);
-                try(var entryFile = ArchiveUtil.readEntry(sigzip, entry)) {
+                try (var entryFile = ArchiveUtil.readEntry(sigzip, entry)) {
                     assertTrue(Files.size(entryFile.getPath()) > 0);
                 }
             }
@@ -106,7 +110,10 @@ class ExtensionVersionIntegrityServiceTest {
         }
 
         @Bean
-        GenerateKeyPairJobService generateKeyPairJobService(EntityManager entityManager, RepositoryService repositoryService) {
+        GenerateKeyPairJobService generateKeyPairJobService(
+                EntityManager entityManager,
+                RepositoryService repositoryService
+        ) {
             return new GenerateKeyPairJobService(entityManager, repositoryService);
         }
     }

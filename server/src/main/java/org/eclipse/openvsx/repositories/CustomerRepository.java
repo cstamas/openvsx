@@ -12,12 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.Tier;
-import org.springframework.data.repository.Repository;
-
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.Tier;
 
 public interface CustomerRepository extends Repository<Customer, Long> {
     List<Customer> findAll();

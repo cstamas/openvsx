@@ -12,14 +12,15 @@
  *****************************************************************************/
 package org.eclipse.openvsx.settings;
 
-import org.eclipse.openvsx.entities.Setting;
-import org.eclipse.openvsx.repositories.SettingRepository;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.eclipse.openvsx.entities.Setting;
+import org.eclipse.openvsx.repositories.SettingRepository;
+import org.eclipse.openvsx.util.TimeUtil;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_SETTING;
 
@@ -49,5 +50,6 @@ public class SettingsCache {
     }
 
     @CacheEvict(value = CACHE_SETTING, allEntries = true)
-    public void clear() {}
+    public void clear() {
+    }
 }

@@ -12,13 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.time.*;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import com.github.benmanes.caffeine.cache.Cache;
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.DailyUsageStats;
-import org.eclipse.openvsx.entities.UsageStats;
-import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,20 +30,21 @@ import redis.clients.jedis.RedisClusterClient;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
-import java.time.*;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.DailyUsageStats;
+import org.eclipse.openvsx.entities.UsageStats;
+import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @Service
 @ConditionalOnBean(RateLimitConfig.class)
 public class UsageStatsService {
 
-    private final static String USAGE_DATA_KEY  = "usage.customer";
-    private final static int    WINDOW_MINUTES  = 5;
-    private final static int    WINDOWS_PER_DAY = 288;
-    private final static int    PERCENTILE      = 95;
+    private final static String USAGE_DATA_KEY = "usage.customer";
+    private final static int WINDOW_MINUTES = 5;
+    private final static int WINDOWS_PER_DAY = 288;
+    private final static int PERCENTILE = 95;
 
     private final Logger logger = LoggerFactory.getLogger(UsageStatsService.class);
 
@@ -117,14 +118,18 @@ public class UsageStatsService {
                             UsageStats stats = new UsageStats();
 
                             stats.setCustomer(customer.get());
-                            stats.setWindowStart(LocalDateTime.ofInstant(Instant.ofEpochSecond(window * 60), ZoneOffset.UTC));
+                            stats.setWindowStart(
+                                    LocalDateTime.ofInstant(Instant.ofEpochSecond(window * 60), ZoneOffset.UTC));
                             stats.setCount(Long.parseLong(value));
                             stats.setDuration(Duration.ofMinutes(WINDOW_MINUTES));
 
                             try {
                                 repositories.saveUsageStats(stats);
                             } catch (DataAccessException exc) {
-                                logger.warn("failed to save usage stats for customer {}: {}", customer.get().getName(), exc.getMessage());
+                                logger.warn(
+                                        "failed to save usage stats for customer {}: {}",
+                                        customer.get().getName(),
+                                        exc.getMessage());
                             }
                         }
                     } finally {

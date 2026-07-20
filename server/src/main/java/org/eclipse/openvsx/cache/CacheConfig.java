@@ -9,20 +9,19 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import java.net.URI;
+import java.time.Duration;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.Properties;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.databind.json.JsonMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.github.benmanes.caffeine.jcache.CacheManagerImpl;
 import com.github.benmanes.caffeine.jcache.configuration.CaffeineConfiguration;
 import com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider;
-import org.eclipse.openvsx.adapter.ExtensionQueryResult;
-import org.eclipse.openvsx.cache.jedis.JedisUtil;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.json.ExtensionJson;
-import org.eclipse.openvsx.json.NamespaceDetailsJson;
-import org.eclipse.openvsx.search.SearchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,12 +41,14 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.*;
 import redis.clients.jedis.*;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.net.URI;
-import java.time.Duration;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.Properties;
+import org.eclipse.openvsx.adapter.ExtensionQueryResult;
+import org.eclipse.openvsx.cache.jedis.JedisUtil;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.json.ExtensionJson;
+import org.eclipse.openvsx.json.NamespaceDetailsJson;
+import org.eclipse.openvsx.search.SearchResult;
 
 import static org.eclipse.openvsx.cache.CacheService.*;
 
@@ -176,9 +177,15 @@ public class CacheConfig {
             @Value("${ovsx.caching.latest-extension-version.ttl:PT1H}") Duration latestExtensionVersionTtl,
             @Value("${ovsx.caching.latest-extension-version.max-size:1024}") long latestExtensionVersionMaxSize,
             @Value("${ovsx.caching.latest-extension-version-vscode.ttl:PT1H}") Duration latestExtensionVersionVscodeTtl,
-            @Value("${ovsx.caching.latest-extension-version-vscode.max-size:1024}") long latestExtensionVersionVscodeMaxSize,
-            @Value("${ovsx.caching.latest-extension-versions-by-platform.ttl:PT1H}") Duration latestExtensionVersionsByPlatformTtl,
-            @Value("${ovsx.caching.latest-extension-versions-by-platform.max-size:1024}") long latestExtensionVersionsByPlatformMaxSize,
+            @Value(
+                "${ovsx.caching.latest-extension-version-vscode.max-size:1024}"
+            ) long latestExtensionVersionVscodeMaxSize,
+            @Value(
+                "${ovsx.caching.latest-extension-versions-by-platform.ttl:PT1H}"
+            ) Duration latestExtensionVersionsByPlatformTtl,
+            @Value(
+                "${ovsx.caching.latest-extension-versions-by-platform.max-size:1024}"
+            ) long latestExtensionVersionsByPlatformMaxSize,
             @Value("${ovsx.caching.sitemap.ttl:PT1H}") Duration sitemapTtl,
             @Value("${ovsx.caching.sitemap.max-size:1}") long sitemapMaxSize,
             @Value("${ovsx.caching.malicious-extensions.ttl:P3D}") Duration maliciousExtensionsTtl,
@@ -188,15 +195,33 @@ public class CacheConfig {
             @Value("${ovsx.caching.rate-limiting.max-size:1024}") long rateLimitingMaxSize
     ) {
         logger.info("Configure Caffeine cache manager");
-        var averageReviewRatingCache = createCaffeineConfiguration(averageReviewRatingTtl, averageReviewRatingMaxSize, false);
-        var namespaceDetailsJsonCache = createCaffeineConfiguration(namespaceDetailsJsonTtl, namespaceDetailsJsonMaxSize, false);
+        var averageReviewRatingCache = createCaffeineConfiguration(
+                averageReviewRatingTtl,
+                averageReviewRatingMaxSize,
+                false);
+        var namespaceDetailsJsonCache = createCaffeineConfiguration(
+                namespaceDetailsJsonTtl,
+                namespaceDetailsJsonMaxSize,
+                false);
         var databaseSearchCache = createCaffeineConfiguration(databaseSearchTtl, databaseSearchMaxSize, false);
         var extensionJsonCache = createCaffeineConfiguration(extensionJsonTtl, extensionJsonMaxSize, false);
-        var latestExtensionVersionCache = createCaffeineConfiguration(latestExtensionVersionTtl, latestExtensionVersionMaxSize, false);
-        var latestExtensionVersionVscodeCache = createCaffeineConfiguration(latestExtensionVersionVscodeTtl, latestExtensionVersionVscodeMaxSize, false);
-        var latestExtensionVersionsByPlatformCache = createCaffeineConfiguration(latestExtensionVersionsByPlatformTtl, latestExtensionVersionsByPlatformMaxSize, false);
+        var latestExtensionVersionCache = createCaffeineConfiguration(
+                latestExtensionVersionTtl,
+                latestExtensionVersionMaxSize,
+                false);
+        var latestExtensionVersionVscodeCache = createCaffeineConfiguration(
+                latestExtensionVersionVscodeTtl,
+                latestExtensionVersionVscodeMaxSize,
+                false);
+        var latestExtensionVersionsByPlatformCache = createCaffeineConfiguration(
+                latestExtensionVersionsByPlatformTtl,
+                latestExtensionVersionsByPlatformMaxSize,
+                false);
         var sitemapCache = createCaffeineConfiguration(sitemapTtl, sitemapMaxSize, false);
-        var maliciousExtensionsCache = createCaffeineConfiguration(maliciousExtensionsTtl, maliciousExtensionsMaxSize, false);
+        var maliciousExtensionsCache = createCaffeineConfiguration(
+                maliciousExtensionsTtl,
+                maliciousExtensionsMaxSize,
+                false);
         var rateLimitingCache = createCaffeineConfiguration(rateLimitingTti, rateLimitingMaxSize, true);
 
         var cacheManager = new CacheManagerImpl(
@@ -204,8 +229,7 @@ public class CacheConfig {
                 false,
                 URI.create("com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider"),
                 Thread.currentThread().getContextClassLoader(),
-                new Properties()
-        );
+                new Properties());
 
         cacheManager.createCache(CACHE_AVERAGE_REVIEW_RATING, averageReviewRatingCache);
         cacheManager.createCache(CACHE_NAMESPACE_DETAILS_JSON, namespaceDetailsJsonCache);
@@ -220,10 +244,14 @@ public class CacheConfig {
         return new JCacheCacheManager(cacheManager);
     }
 
-    private CaffeineConfiguration<Object, Object> createCaffeineConfiguration(Duration duration, long maxSize, boolean tti) {
+    private CaffeineConfiguration<Object, Object> createCaffeineConfiguration(
+            Duration duration,
+            long maxSize,
+            boolean tti
+    ) {
         var configuration = new CaffeineConfiguration<>();
         configuration.setMaximumSize(OptionalLong.of(maxSize));
-        if(tti) {
+        if (tti) {
             configuration.setExpireAfterAccess(OptionalLong.of(duration.toNanos()));
         } else {
             configuration.setExpireAfterWrite(OptionalLong.of(duration.toNanos()));
@@ -243,14 +271,17 @@ public class CacheConfig {
             @Value("${ovsx.caching.extension-json.ttl:PT1H}") Duration extensionJsonTtl,
             @Value("${ovsx.caching.latest-extension-version.ttl:PT1H}") Duration latestExtensionVersionTtl,
             @Value("${ovsx.caching.latest-extension-version-vscode.ttl:PT1H}") Duration latestExtensionVersionVscodeTtl,
-            @Value("${ovsx.caching.latest-extension-versions-by-platform.ttl:PT1H}") Duration latestExtensionVersionsByPlatformTtl,
+            @Value(
+                "${ovsx.caching.latest-extension-versions-by-platform.ttl:PT1H}"
+            ) Duration latestExtensionVersionsByPlatformTtl,
             @Value("${ovsx.caching.sitemap.ttl:PT1H}") Duration sitemapTtl,
             @Value("${ovsx.caching.malicious-extensions.ttl:P3D}") Duration maliciousExtensionsTtl
     ) {
         logger.info("Configure Redis cache manager");
         var extensionVersionMapper = JsonMapper.builder()
-                .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL).
-                        withValueInclusion(JsonInclude.Include.NON_NULL))
+                .changeDefaultPropertyInclusion(
+                        incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL)
+                                .withValueInclusion(JsonInclude.Include.NON_NULL))
                 .build();
 
         var genericMapper = JsonMapper.shared();
@@ -258,46 +289,42 @@ public class CacheConfig {
         return RedisCacheManager.builder(redisConnectionFactory)
                 .withCacheConfiguration(
                         CACHE_AVERAGE_REVIEW_RATING,
-                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), averageReviewRatingTtl)
-                )
+                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), averageReviewRatingTtl))
                 .withCacheConfiguration(
                         CACHE_NAMESPACE_DETAILS_JSON,
-                        redisCacheConfig(new JacksonJsonRedisSerializer<>(NamespaceDetailsJson.class), namespaceDetailsJsonTtl)
-                )
+                        redisCacheConfig(
+                                new JacksonJsonRedisSerializer<>(NamespaceDetailsJson.class),
+                                namespaceDetailsJsonTtl))
                 .withCacheConfiguration(
                         CACHE_DATABASE_SEARCH,
-                        redisCacheConfig(new JacksonJsonRedisSerializer<>(SearchResult.class), databaseSearchTtl)
-                )
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(SearchResult.class), databaseSearchTtl))
                 .withCacheConfiguration(
                         CACHE_EXTENSION_JSON,
-                        redisCacheConfig(new JacksonJsonRedisSerializer<>(ExtensionJson.class), extensionJsonTtl)
-                )
+                        redisCacheConfig(new JacksonJsonRedisSerializer<>(ExtensionJson.class), extensionJsonTtl))
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSION_VSCODE,
-                        redisCacheConfig(new JacksonJsonRedisSerializer<>(ExtensionQueryResult.Extension.class), latestExtensionVersionVscodeTtl)
-                )
+                        redisCacheConfig(
+                                new JacksonJsonRedisSerializer<>(ExtensionQueryResult.Extension.class),
+                                latestExtensionVersionVscodeTtl))
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSION,
-                        redisCacheConfig(new JacksonJsonRedisSerializer<>(extensionVersionMapper, ExtensionVersion.class), latestExtensionVersionTtl)
-                )
+                        redisCacheConfig(
+                                new JacksonJsonRedisSerializer<>(extensionVersionMapper, ExtensionVersion.class),
+                                latestExtensionVersionTtl))
                 .withCacheConfiguration(
                         CACHE_LATEST_EXTENSION_VERSIONS_BY_PLATFORM,
                         redisCacheConfig(
                                 new JacksonJsonRedisSerializer<>(
                                         extensionVersionMapper,
-                                        extensionVersionMapper.getTypeFactory().constructParametricType(List.class, ExtensionVersion.class)
-                                ),
-                                latestExtensionVersionsByPlatformTtl
-                        )
-                )
+                                        extensionVersionMapper.getTypeFactory()
+                                                .constructParametricType(List.class, ExtensionVersion.class)),
+                                latestExtensionVersionsByPlatformTtl))
                 .withCacheConfiguration(
                         CACHE_SITEMAP,
-                        redisCacheConfig(new StringRedisSerializer(), sitemapTtl)
-                )
+                        redisCacheConfig(new StringRedisSerializer(), sitemapTtl))
                 .withCacheConfiguration(
                         CACHE_MALICIOUS_EXTENSIONS,
-                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), maliciousExtensionsTtl)
-                )
+                        redisCacheConfig(new GenericJacksonJsonRedisSerializer(genericMapper), maliciousExtensionsTtl))
                 .build();
     }
 

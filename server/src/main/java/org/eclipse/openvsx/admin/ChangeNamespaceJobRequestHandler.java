@@ -9,7 +9,17 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
+import org.jobrunr.jobs.lambdas.JobRequestHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.util.Pair;
+import org.springframework.data.util.Streamable;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.ExtensionValidator;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
@@ -19,15 +29,6 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.ErrorResultException;
 import org.eclipse.openvsx.util.NamingUtil;
-import org.jobrunr.jobs.lambdas.JobRequestHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.util.Pair;
-import org.springframework.data.util.Streamable;
-import org.springframework.stereotype.Component;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.eclipse.openvsx.entities.FileResource.*;
 
@@ -45,7 +46,7 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
         var MAX_SIZE = 100;
         LOCKS = Collections.synchronizedMap(new LinkedHashMap<>(MAX_SIZE) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry eldest){
+            protected boolean removeEldestEntry(Map.Entry eldest) {
                 return size() > MAX_SIZE;
             }
         });
@@ -84,7 +85,7 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
         var json = jobRequest.getData();
         LOGGER.info(">> Change namespace from {} to {}", json.oldNamespace(), json.newNamespace());
         var oldNamespace = repositories.findNamespace(json.oldNamespace());
-        if(oldNamespace == null) {
+        if (oldNamespace == null) {
             return;
         }
 
@@ -110,12 +111,17 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
                 })
                 .collect(Collectors.toList());
 
-        if(StringUtils.isNotEmpty(oldNamespace.getLogoName())) {
+        if (StringUtils.isNotEmpty(oldNamespace.getLogoName())) {
             newNamespace.setLogoName(NamingUtil.changeLogoName(oldNamespace, newNamespace));
             storageUtil.copyNamespaceLogo(oldNamespace, newNamespace);
         }
 
-        service.changeNamespaceInDatabase(newNamespace, oldNamespace, updatedResources, createNewNamespace, json.removeOldNamespace());
+        service.changeNamespaceInDatabase(
+                newNamespace,
+                oldNamespace,
+                updatedResources,
+                createNewNamespace,
+                json.removeOldNamespace());
 
         // remove the old resources from external storage
         pairs.stream()
@@ -132,7 +138,10 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
         }
     }
 
-    private List<Pair<FileResource, FileResource>> copyResources(Streamable<FileResource> resources, Namespace newNamespace) {
+    private List<Pair<FileResource, FileResource>> copyResources(
+            Streamable<FileResource> resources,
+            Namespace newNamespace
+    ) {
         var extVersions = resources.stream()
                 .map(FileResource::getExtension)
                 .collect(Collectors.toMap(ExtensionVersion::getId, ev -> ev, (ev1, ev2) -> ev1));
@@ -151,7 +160,7 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        for(var entry : extVersions.entrySet()) {
+        for (var entry : extVersions.entrySet()) {
             var extVersion = entry.getValue();
             var newExtVersion = new ExtensionVersion();
             newExtVersion.setId(extVersion.getId());
@@ -184,10 +193,10 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
                 ? newBinaryNames.get(resource.getExtension().getId())
                 : resource.getName();
 
-        if(resource.getType().equals(DOWNLOAD_SHA256)) {
+        if (resource.getType().equals(DOWNLOAD_SHA256)) {
             name = name.replace(EXT_PACKAGE, ".sha256");
         }
-        if(resource.getType().equals(DOWNLOAD_SIG)) {
+        if (resource.getType().equals(DOWNLOAD_SIG)) {
             name = name.replace(EXT_PACKAGE, ".sigzip");
         }
 
@@ -201,7 +210,6 @@ public class ChangeNamespaceJobRequestHandler implements JobRequestHandler<Chang
                 extVersion.getExtension().getName(),
                 extVersion.getTargetPlatform(),
                 extVersion.getVersion(),
-                EXT_PACKAGE
-        );
+                EXT_PACKAGE);
     }
 }

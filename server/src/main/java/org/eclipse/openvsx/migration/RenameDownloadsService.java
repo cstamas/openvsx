@@ -11,8 +11,9 @@ package org.eclipse.openvsx.migration;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.entities.FileResource;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.FileResource;
 
 @Component
 public class RenameDownloadsService {

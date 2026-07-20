@@ -12,21 +12,23 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.eclipse.openvsx.entities.Namespace;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
+import org.eclipse.openvsx.entities.Namespace;
 
-@SpringBootTest(properties = {
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(
+    properties = {
         "ovsx.elasticsearch.enabled=false"
-})
+    }
+)
 @ActiveProfiles("test_db")
 @Transactional
 class NamespaceRepositoryTest {

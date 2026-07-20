@@ -12,27 +12,29 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import com.azure.core.annotation.QueryParam;
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.DailyUsageStats;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.Repository;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.azure.core.annotation.QueryParam;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.DailyUsageStats;
 
 public interface DailyUsageStatsRepository extends Repository<DailyUsageStats, Long> {
     DailyUsageStats findDailyUsageStatsByCustomerAndDate(Customer customer, LocalDate date);
 
     DailyUsageStats save(DailyUsageStats dailyUsageStats);
 
-    @Query(value = """
-        SELECT date_trunc ('day', windowStart) FROM UsageStats where customer = :customer
-        GROUP BY date_trunc ('day', windowStart)
-        HAVING date_trunc ('day', windowStart) NOT IN (SELECT date from DailyUsageStats where customer = :customer)
-        ORDER BY date_trunc ('day', windowStart)
-        """
+    @Query(
+        value = """
+                SELECT date_trunc ('day', windowStart) FROM UsageStats where customer = :customer
+                GROUP BY date_trunc ('day', windowStart)
+                HAVING date_trunc ('day', windowStart) NOT IN (SELECT date from DailyUsageStats where customer = :customer)
+                ORDER BY date_trunc ('day', windowStart)
+                """
     )
     List<LocalDateTime> findUnprocessedDays(@QueryParam("customer") Customer customer);
 }

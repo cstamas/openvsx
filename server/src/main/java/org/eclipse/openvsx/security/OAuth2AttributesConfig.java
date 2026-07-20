@@ -9,9 +9,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.security;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.*;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Configuration example:
@@ -30,8 +30,8 @@ import java.util.*;
 @ConfigurationProperties(prefix = "ovsx.oauth2")
 public record OAuth2AttributesConfig(Map<String, OAuth2AttributesMapping> attributeNames) {
     private static final Map<String, OAuth2AttributesMapping> DEFAULT_MAPPINGS = Map.of(
-            "github", new OAuth2AttributesMapping("avatar_url", "email", "name", "login", "html_url")
-    );
+            "github",
+            new OAuth2AttributesMapping("avatar_url", "email", "name", "login", "html_url"));
 
     public OAuth2AttributesMapping getAttributeMapping(String provider) {
         return Optional.ofNullable(attributeNames).map(a -> a.get(provider)).orElse(DEFAULT_MAPPINGS.get(provider));

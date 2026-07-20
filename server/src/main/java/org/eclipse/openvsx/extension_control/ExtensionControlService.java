@@ -9,15 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.extension_control;
 
+import java.io.IOException;
+import java.net.URI;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.SearchUtilService;
-import org.eclipse.openvsx.util.ExtensionId;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.jobrunr.scheduling.cron.Cron;
 import org.slf4j.Logger;
@@ -30,12 +30,13 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
-import java.net.URI;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.SearchUtilService;
+import org.eclipse.openvsx.util.ExtensionId;
+import org.eclipse.openvsx.util.TimeUtil;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_MALICIOUS_EXTENSIONS;
 
@@ -85,12 +86,18 @@ public class ExtensionControlService {
             scheduler.deleteRecurringJob("UpdateExtensionControl");
         } else {
             if (updateOnStart) {
-                scheduler.schedule(TimeUtil.getCurrentUTC().plusSeconds(delay), new HandlerJobRequest<>(ExtensionControlJobRequestHandler.class));
+                scheduler.schedule(
+                        TimeUtil.getCurrentUTC().plusSeconds(delay),
+                        new HandlerJobRequest<>(ExtensionControlJobRequestHandler.class));
             }
 
             var schedule = Cron.daily(1, 8);
             logger.info("Scheduling update extension control job with schedule '{}'", schedule);
-            scheduler.scheduleRecurrently("UpdateExtensionControl", schedule, ZoneId.of("UTC"), new HandlerJobRequest<>(ExtensionControlJobRequestHandler.class));
+            scheduler.scheduleRecurrently(
+                    "UpdateExtensionControl",
+                    schedule,
+                    ZoneId.of("UTC"),
+                    new HandlerJobRequest<>(ExtensionControlJobRequestHandler.class));
         }
     }
 
@@ -108,7 +115,12 @@ public class ExtensionControlService {
     }
 
     @Transactional
-    public void updateExtension(ExtensionId extensionId, boolean deprecated, ExtensionId replacementId, boolean downloadable) {
+    public void updateExtension(
+            ExtensionId extensionId,
+            boolean deprecated,
+            ExtensionId replacementId,
+            boolean downloadable
+    ) {
         var extension = repositories.findExtension(extensionId.extension(), extensionId.namespace());
         if (extension == null) {
             return;
@@ -130,7 +142,9 @@ public class ExtensionControlService {
     }
 
     public JsonNode getExtensionControlJson() throws IOException {
-        var url = URI.create("https://github.com/open-vsx/publish-extensions/raw/master/extension-control/extensions.json").toURL();
+        var url = URI
+                .create("https://github.com/open-vsx/publish-extensions/raw/master/extension-control/extensions.json")
+                .toURL();
         try (var inputStream = url.openStream()) {
             return JsonMapper.shared().readValue(inputStream, JsonNode.class);
         }

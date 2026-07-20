@@ -21,7 +21,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public final class FileDecisionResultJson {
 
-    private FileDecisionResultJson() {}
+    private FileDecisionResultJson() {
+    }
 
     @Schema(
         name = "FileDecisionResult",
@@ -39,12 +40,24 @@ public final class FileDecisionResultJson {
         @Schema(description = "Error message if the operation failed", example = "File hash not found")
         private String error;
 
-        public String getFileHash() { return fileHash; }
-        public void setFileHash(String fileHash) { this.fileHash = fileHash; }
-        public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
-        public String getError() { return error; }
-        public void setError(String error) { this.error = error; }
+        public String getFileHash() {
+            return fileHash;
+        }
+        public void setFileHash(String fileHash) {
+            this.fileHash = fileHash;
+        }
+        public boolean isSuccess() {
+            return success;
+        }
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+        public String getError() {
+            return error;
+        }
+        public void setError(String error) {
+            this.error = error;
+        }
 
         public static Create success(String fileHash) {
             var result = new Create();
@@ -78,12 +91,24 @@ public final class FileDecisionResultJson {
         @Schema(description = "Error message if the deletion failed")
         private String error;
 
-        public Long getFileId() { return fileId; }
-        public void setFileId(Long fileId) { this.fileId = fileId; }
-        public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
-        public String getError() { return error; }
-        public void setError(String error) { this.error = error; }
+        public Long getFileId() {
+            return fileId;
+        }
+        public void setFileId(Long fileId) {
+            this.fileId = fileId;
+        }
+        public boolean isSuccess() {
+            return success;
+        }
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+        public String getError() {
+            return error;
+        }
+        public void setError(String error) {
+            this.error = error;
+        }
 
         public static Delete success(Long fileId) {
             var result = new Delete();

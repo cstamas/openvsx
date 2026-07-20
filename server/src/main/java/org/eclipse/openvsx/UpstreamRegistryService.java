@@ -9,11 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.json.*;
-import org.eclipse.openvsx.search.ISearchService;
-import org.eclipse.openvsx.util.NotFoundException;
-import org.eclipse.openvsx.util.TargetPlatform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -29,11 +31,10 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.json.*;
+import org.eclipse.openvsx.search.ISearchService;
+import org.eclipse.openvsx.util.NotFoundException;
+import org.eclipse.openvsx.util.TargetPlatform;
 
 @Component
 public class UpstreamRegistryService implements IExtensionRegistry {
@@ -46,7 +47,6 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     private static final String VAR_ALL_VERSIONS = "includeAllVersions";
     private static final String URL_EXTENSION_FRAGMENT = "/api/{namespace}/{extension}";
     private static final String URL_TARGET_FRAGMENT = "/{targetPlatform}";
-
 
     protected final Logger logger = LoggerFactory.getLogger(UpstreamRegistryService.class);
 
@@ -76,7 +76,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
             var json = restTemplate.getForObject(urlTemplate, NamespaceJson.class, uriVariables);
             return proxy != null ? proxy.rewriteUrls(json) : json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -109,23 +109,23 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_NAMESPACE, namespace);
         uriVariables.put(VAR_EXTENSION, extension);
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             urlTemplate += URL_TARGET_FRAGMENT;
             uriVariables.put(VAR_TARGET, targetPlatform);
         }
 
         try {
             var json = restTemplate.getForObject(urlTemplate, ExtensionJson.class, uriVariables);
-            if(json != null) {
+            if (json != null) {
                 makeDownloadsCompatible(json);
-                if(proxy != null) {
+                if (proxy != null) {
                     proxy.rewriteUrls(json);
                 }
             }
 
             return json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -139,27 +139,27 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_NAMESPACE, namespace);
         uriVariables.put(VAR_EXTENSION, extension);
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             urlTemplate += URL_TARGET_FRAGMENT;
             uriVariables.put(VAR_TARGET, targetPlatform);
         }
-        if(version != null) {
+        if (version != null) {
             urlTemplate += "/{version}";
             uriVariables.put("version", version);
         }
 
         try {
             var json = restTemplate.getForObject(urlTemplate, ExtensionJson.class, uriVariables);
-            if(json != null) {
+            if (json != null) {
                 makeDownloadsCompatible(json);
-                if(proxy != null) {
+                if (proxy != null) {
                     proxy.rewriteUrls(json);
                 }
             }
 
             return json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -173,7 +173,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_NAMESPACE, namespace);
         uriVariables.put(VAR_EXTENSION, extension);
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             urlTemplate += URL_TARGET_FRAGMENT;
             uriVariables.put(VAR_TARGET, targetPlatform);
         }
@@ -186,7 +186,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
             var json = restTemplate.getForObject(urlTemplate, VersionsJson.class, uriVariables);
             return proxy != null ? proxy.rewriteUrls(json) : json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -195,12 +195,18 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     }
 
     @Override
-    public VersionReferencesJson getVersionReferences(String namespace, String extension, String targetPlatform, int size, int offset) {
+    public VersionReferencesJson getVersionReferences(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            int size,
+            int offset
+    ) {
         var urlTemplate = urlConfigService.getUpstreamUrl() + URL_EXTENSION_FRAGMENT;
         var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_NAMESPACE, namespace);
         uriVariables.put(VAR_EXTENSION, extension);
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             urlTemplate += URL_TARGET_FRAGMENT;
             uriVariables.put(VAR_TARGET, targetPlatform);
         }
@@ -213,7 +219,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
             var json = restTemplate.getForObject(urlTemplate, VersionReferencesJson.class, uriVariables);
             return proxy != null ? proxy.rewriteUrls(json) : json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -222,15 +228,21 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     }
 
     @Override
-    public ResponseEntity<StreamingResponseBody> getFile(String namespace, String extension, String targetPlatform, String version, String fileName) {
+    public ResponseEntity<StreamingResponseBody> getFile(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version,
+            String fileName
+    ) {
         var urlTemplate = urlConfigService.getUpstreamUrl() + URL_EXTENSION_FRAGMENT;
         var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_NAMESPACE, namespace);
         uriVariables.put(VAR_EXTENSION, extension);
-        if(TargetPlatform.isUniversal(targetPlatform)) {
+        if (TargetPlatform.isUniversal(targetPlatform)) {
             targetPlatform = null;
         }
-        if(targetPlatform != null) {
+        if (targetPlatform != null) {
             urlTemplate += URL_TARGET_FRAGMENT;
             uriVariables.put(VAR_TARGET, targetPlatform);
         }
@@ -267,8 +279,8 @@ public class UpstreamRegistryService implements IExtensionRegistry {
 
         try {
             return restTemplate.execute(urlTemplate, HttpMethod.HEAD, null, responseHandler, uriVariables);
-        } catch(RestClientException exc) {
-            if(!isNotFound(exc)) {
+        } catch (RestClientException exc) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("HEAD {}", url, exc);
             }
@@ -287,7 +299,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         try {
             return restTemplate.getForObject(urlTemplate, ReviewListJson.class, uriVariables);
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -296,10 +308,10 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         }
     }
 
-	@Override
-	public SearchResultJson search(ISearchService.Options options) {
+    @Override
+    public SearchResultJson search(ISearchService.Options options) {
         var urlTemplate = urlConfigService.getUpstreamUrl() + "/api/-/search";
-        var uriVariables = new HashMap<String,String>();
+        var uriVariables = new HashMap<String, String>();
         uriVariables.put(VAR_SIZE, Integer.toString(options.requestedSize()));
         uriVariables.put(VAR_OFFSET, Integer.toString(options.requestedOffset()));
         uriVariables.put(VAR_ALL_VERSIONS, Boolean.toString(options.includeAllVersions()));
@@ -314,7 +326,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
                 .map(Map.Entry::getKey)
                 .map(key -> key + "={" + key + "}")
                 .collect(Collectors.joining("&"));
-        if(!queryString.isEmpty()) {
+        if (!queryString.isEmpty()) {
             urlTemplate += "?" + queryString;
         }
 
@@ -322,7 +334,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
             var json = restTemplate.getForObject(urlTemplate, SearchResultJson.class, uriVariables);
             return proxy != null ? proxy.rewriteUrls(json) : json;
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -333,43 +345,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     @Override
     public QueryResultJson query(QueryRequest request) {
         var urlTemplate = urlConfigService.getUpstreamUrl() + "/api/-/query";
-        var queryParams = new HashMap<String,String>();
-        queryParams.put("namespaceName", request.namespaceName());
-        queryParams.put("extensionName", request.extensionName());
-        queryParams.put("extensionVersion", request.extensionVersion());
-        queryParams.put("extensionId", request.extensionId());
-        queryParams.put("extensionUuid", request.extensionUuid());
-        queryParams.put("namespaceUuid", request.namespaceUuid());
-        queryParams.put(VAR_ALL_VERSIONS, String.valueOf(request.includeAllVersions()));
-        queryParams.put(VAR_TARGET, request.targetPlatform());
-        queryParams.put(VAR_SIZE, String.valueOf(request.size()));
-        queryParams.put(VAR_OFFSET, String.valueOf(request.offset()));
-
-        var queryString = queryParams.entrySet().stream()
-            .filter(entry -> !StringUtils.isEmpty(entry.getValue()))
-            .map(Map.Entry::getKey)
-            .map(key -> key + "={" + key + "}")
-            .collect(Collectors.joining("&"));
-        if(!queryString.isEmpty()) {
-            urlTemplate += "?" + queryString;
-        }
-
-        try {
-            var json = restTemplate.getForObject(urlTemplate, QueryResultJson.class, queryParams);
-            return proxy != null ? proxy.rewriteUrls(json) : json;
-        } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
-                var url = UriComponentsBuilder.fromUriString(urlTemplate).build(queryParams);
-                logger.error("GET {}", url, exc);
-            }
-            throw new NotFoundException();
-        }
-    }
-
-    @Override
-    public QueryResultJson queryV2(QueryRequestV2 request) {
-        var urlTemplate = urlConfigService.getUpstreamUrl() + "/api/v2/-/query";
-        var queryParams = new HashMap<String,String>();
+        var queryParams = new HashMap<String, String>();
         queryParams.put("namespaceName", request.namespaceName());
         queryParams.put("extensionName", request.extensionName());
         queryParams.put("extensionVersion", request.extensionVersion());
@@ -386,14 +362,50 @@ public class UpstreamRegistryService implements IExtensionRegistry {
                 .map(Map.Entry::getKey)
                 .map(key -> key + "={" + key + "}")
                 .collect(Collectors.joining("&"));
-        if(!queryString.isEmpty()) {
+        if (!queryString.isEmpty()) {
+            urlTemplate += "?" + queryString;
+        }
+
+        try {
+            var json = restTemplate.getForObject(urlTemplate, QueryResultJson.class, queryParams);
+            return proxy != null ? proxy.rewriteUrls(json) : json;
+        } catch (RestClientException exc) {
+            if (!isNotFound(exc)) {
+                var url = UriComponentsBuilder.fromUriString(urlTemplate).build(queryParams);
+                logger.error("GET {}", url, exc);
+            }
+            throw new NotFoundException();
+        }
+    }
+
+    @Override
+    public QueryResultJson queryV2(QueryRequestV2 request) {
+        var urlTemplate = urlConfigService.getUpstreamUrl() + "/api/v2/-/query";
+        var queryParams = new HashMap<String, String>();
+        queryParams.put("namespaceName", request.namespaceName());
+        queryParams.put("extensionName", request.extensionName());
+        queryParams.put("extensionVersion", request.extensionVersion());
+        queryParams.put("extensionId", request.extensionId());
+        queryParams.put("extensionUuid", request.extensionUuid());
+        queryParams.put("namespaceUuid", request.namespaceUuid());
+        queryParams.put(VAR_ALL_VERSIONS, String.valueOf(request.includeAllVersions()));
+        queryParams.put(VAR_TARGET, request.targetPlatform());
+        queryParams.put(VAR_SIZE, String.valueOf(request.size()));
+        queryParams.put(VAR_OFFSET, String.valueOf(request.offset()));
+
+        var queryString = queryParams.entrySet().stream()
+                .filter(entry -> !StringUtils.isEmpty(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .map(key -> key + "={" + key + "}")
+                .collect(Collectors.joining("&"));
+        if (!queryString.isEmpty()) {
             urlTemplate += "?" + queryString;
         }
 
         try {
             return restTemplate.getForObject(urlTemplate, QueryResultJson.class, queryParams);
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(queryParams);
                 logger.error("GET {}", url, exc);
             }
@@ -409,7 +421,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         try {
             return restTemplate.getForObject(urlTemplate, String.class, uriVariables);
         } catch (RestClientException exc) {
-            if(!isNotFound(exc)) {
+            if (!isNotFound(exc)) {
                 var url = UriComponentsBuilder.fromUriString(urlTemplate).build(uriVariables);
                 logger.error("GET {}", url, exc);
             }
@@ -431,7 +443,8 @@ public class UpstreamRegistryService implements IExtensionRegistry {
         var urlTemplate = urlConfigService.getUpstreamUrl() + "/api/version";
 
         try {
-            ResponseEntity<RegistryVersionJson> response = restTemplate.getForEntity(urlTemplate,
+            ResponseEntity<RegistryVersionJson> response = restTemplate.getForEntity(
+                    urlTemplate,
                     RegistryVersionJson.class);
             return response.getBody();
         } catch (RestClientException exc) {
@@ -443,11 +456,14 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     private void handleError(Throwable exc) throws RuntimeException {
         if (exc instanceof HttpStatusCodeException) {
             var status = ((HttpStatusCodeException) exc).getStatusCode();
-            if (status == HttpStatus.NOT_FOUND)
+            if (status == HttpStatus.NOT_FOUND) {
                 throw new NotFoundException();
-            else
-                throw new ResponseStatusException(status,
-                        "Upstream registry responded with status \"" + exc.getMessage() + "\".", exc);
+            } else {
+                throw new ResponseStatusException(
+                        status,
+                        "Upstream registry responded with status \"" + exc.getMessage() + "\".",
+                        exc);
+            }
         } else if (exc.getCause() != null && exc.getCause() != exc) {
             handleError(exc.getCause());
         }

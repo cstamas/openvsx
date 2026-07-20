@@ -11,8 +11,9 @@ package org.eclipse.openvsx.admin;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.entities.AdminStatistics;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.entities.AdminStatistics;
 
 @Component
 public class AdminStatisticsService {

@@ -9,13 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.LinkedHashMap;
+import java.util.stream.Stream;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.LinkedHashMap;
-import java.util.stream.Stream;
 
 import static org.eclipse.openvsx.util.TargetPlatform.*;
 
@@ -47,19 +47,33 @@ public class QueryParamJson {
     @Schema(description = "Whether to include all versions of an extension, ignored if extensionVersion is specified")
     private boolean includeAllVersions;
 
-    @Schema(description = "Name of the target platform", allowableValues = {
-        NAME_WIN32_X64, NAME_WIN32_IA32, NAME_WIN32_ARM64,
-        NAME_LINUX_X64, NAME_LINUX_ARM64, NAME_LINUX_ARMHF,
-        NAME_ALPINE_X64, NAME_ALPINE_ARM64,
-        NAME_DARWIN_X64, NAME_DARWIN_ARM64,
-        NAME_WEB, NAME_UNIVERSAL
-    })
+    @Schema(
+        description = "Name of the target platform",
+        allowableValues = {
+            NAME_WIN32_X64,
+            NAME_WIN32_IA32,
+            NAME_WIN32_ARM64,
+            NAME_LINUX_X64,
+            NAME_LINUX_ARM64,
+            NAME_LINUX_ARMHF,
+            NAME_ALPINE_X64,
+            NAME_ALPINE_ARM64,
+            NAME_DARWIN_X64,
+            NAME_DARWIN_ARM64,
+            NAME_WEB,
+            NAME_UNIVERSAL
+        }
+    )
     private String targetPlatform;
 
     @Schema(description = "Maximal number of entries to return", minimum = "0", defaultValue = "100")
     private Integer size;
 
-    @Schema(description = "Number of entries to skip (usually a multiple of the page size)", minimum = "0", defaultValue = "0")
+    @Schema(
+        description = "Number of entries to skip (usually a multiple of the page size)",
+        minimum = "0",
+        defaultValue = "0"
+    )
     private Integer offset;
 
     public String getNamespaceName() {
@@ -143,7 +157,7 @@ public class QueryParamJson {
     }
 
     public String[] toQueryParams() {
-        var queryParams = new LinkedHashMap<String,String>();
+        var queryParams = new LinkedHashMap<String, String>();
         queryParams.put("namespaceName", namespaceName);
         queryParams.put("extensionName", extensionName);
         queryParams.put("extensionVersion", extensionVersion);
@@ -152,10 +166,10 @@ public class QueryParamJson {
         queryParams.put("namespaceUuid", namespaceUuid);
         queryParams.put("targetPlatform", targetPlatform);
         queryParams.put("includeAllVersions", String.valueOf(includeAllVersions));
-        if(offset != null) {
+        if (offset != null) {
             queryParams.put("offset", String.valueOf(offset));
         }
-        if(size != null) {
+        if (size != null) {
             queryParams.put("size", String.valueOf(size));
         }
 

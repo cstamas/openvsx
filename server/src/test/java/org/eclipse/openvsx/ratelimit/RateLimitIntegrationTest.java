@@ -12,6 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.net.URI;
+import java.time.Duration;
+
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
@@ -19,26 +22,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import redis.clients.jedis.RedisClusterClient;
 
-import java.net.URI;
-import java.time.Duration;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
+@SpringBootTest(
+    webEnvironment = WebEnvironment.RANDOM_PORT,
+    properties = {
         "ovsx.rate-limit.enabled=true",
         "ovsx.rate-limit.filters[0].url=/(api|vscode)/.*",
         "ovsx.elasticsearch.enabled=false"
-})
+    }
+)
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("test_db")
 class RateLimitIntegrationTest {

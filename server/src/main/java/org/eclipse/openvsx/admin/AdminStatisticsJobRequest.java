@@ -17,7 +17,8 @@ public class AdminStatisticsJobRequest implements JobRequest {
     private int year;
     private int month;
 
-    public AdminStatisticsJobRequest() {}
+    public AdminStatisticsJobRequest() {
+    }
 
     public AdminStatisticsJobRequest(int year, int month) {
         this.year = year;

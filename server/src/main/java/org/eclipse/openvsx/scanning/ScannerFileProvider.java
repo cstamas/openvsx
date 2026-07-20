@@ -12,19 +12,20 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.io.IOException;
+
 import jakarta.persistence.EntityManager;
+import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TempFile;
-import org.jspecify.annotations.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 /**
  * Service for retrieving extension files for scanning.
@@ -71,12 +72,12 @@ public class ScannerFileProvider {
 
             if (download == null) {
                 throw new ScannerException(
-                    "Download file not found for extension version: " + extensionVersionId
-                );
+                        "Download file not found for extension version: " + extensionVersionId);
             }
 
-            logger.debug("Downloading extension file for scanning: extension version {}",
-                NamingUtil.toLogFormat(extVersion));
+            logger.debug(
+                    "Downloading extension file for scanning: extension version {}",
+                    NamingUtil.toLogFormat(extVersion));
 
             // Download file to temporary location
             // The TempFile is AutoCloseable and will be deleted when closed
@@ -86,8 +87,10 @@ public class ScannerFileProvider {
                 throw new ScannerException("Failed to download file for extension version: " + extensionVersionId);
             }
 
-            logger.debug("Extension file ready for scanning: {} (extension version: {})",
-                extensionFile.getPath(), NamingUtil.toLogFormat(extVersion));
+            logger.debug(
+                    "Extension file ready for scanning: {} (extension version: {})",
+                    extensionFile.getPath(),
+                    NamingUtil.toLogFormat(extVersion));
 
             return extensionFile;
 

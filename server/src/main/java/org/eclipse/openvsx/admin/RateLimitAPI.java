@@ -12,16 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.settings.MutatingOperation;
-import org.eclipse.openvsx.json.*;
-import org.eclipse.openvsx.ratelimit.CustomerService;
-import org.eclipse.openvsx.ratelimit.cache.RateLimitCacheService;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.LogService;
-import org.eclipse.openvsx.util.NotFoundException;
-import org.eclipse.openvsx.util.TimeUtil;
+import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -29,9 +22,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
-
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.json.*;
+import org.eclipse.openvsx.ratelimit.CustomerService;
+import org.eclipse.openvsx.ratelimit.cache.RateLimitCacheService;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.MutatingOperation;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.LogService;
+import org.eclipse.openvsx.util.NotFoundException;
+import org.eclipse.openvsx.util.TimeUtil;
 
 @RestController
 @RequestMapping("/admin/ratelimit")
@@ -61,8 +61,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/tiers",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/tiers",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<TierListJson> getTiers() {
         admins.checkAdminUser();
@@ -78,9 +78,9 @@ public class RateLimitAPI {
     }
 
     @PostMapping(
-            path = "/tiers/create",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/tiers/create",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<TierJson> createTier(@RequestBody TierJson tier) {
@@ -89,14 +89,16 @@ public class RateLimitAPI {
 
             var existingTier = repositories.findTier(tier.getName());
             if (existingTier != null) {
-                return ResponseEntity.badRequest().body(TierJson.error("Tier with name " + tier.getName() + " already exists"));
+                return ResponseEntity.badRequest()
+                        .body(TierJson.error("Tier with name " + tier.getName() + " already exists"));
             }
 
             var tierType = TierType.valueOf(tier.getTierType());
             if (tierType != TierType.NON_FREE) {
                 var existingTiers = repositories.findTiersByTierType(TierType.valueOf(tier.getTierType()));
                 if (!existingTiers.isEmpty()) {
-                    return ResponseEntity.badRequest().body(TierJson.error("Tier with type '" + tier.getTierType() + "' already exists"));
+                    return ResponseEntity.badRequest()
+                            .body(TierJson.error("Tier with type '" + tier.getTierType() + "' already exists"));
                 }
             }
 
@@ -107,7 +109,8 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(savedTier.getId()));
+                rateLimitCacheService
+                        .publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(savedTier.getId()));
             }
 
             return ResponseEntity.ok(result);
@@ -120,9 +123,9 @@ public class RateLimitAPI {
     }
 
     @PutMapping(
-            path = "/tiers/{name}",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/tiers/{name}",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<TierJson> updateTier(@PathVariable String name, @RequestBody TierJson tier) {
@@ -136,9 +139,11 @@ public class RateLimitAPI {
 
             var tierType = TierType.valueOf(tier.getTierType());
             if (tierType != TierType.NON_FREE) {
-                var existingTiers = repositories.findTiersByTierTypeExcludingTier(TierType.valueOf(tier.getTierType()), savedTier);
+                var existingTiers = repositories
+                        .findTiersByTierTypeExcludingTier(TierType.valueOf(tier.getTierType()), savedTier);
                 if (!existingTiers.isEmpty()) {
-                    return ResponseEntity.badRequest().body(TierJson.error("Tier with type '" + tier.getTierType() + "' already exists"));
+                    return ResponseEntity.badRequest()
+                            .body(TierJson.error("Tier with type '" + tier.getTierType() + "' already exists"));
                 }
             }
 
@@ -150,7 +155,8 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(savedTier.getId()));
+                rateLimitCacheService
+                        .publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(savedTier.getId()));
             }
 
             return ResponseEntity.ok(result);
@@ -163,8 +169,8 @@ public class RateLimitAPI {
     }
 
     @DeleteMapping(
-            path = "/tiers/{name}",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/tiers/{name}",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> deleteTier(@PathVariable String name) {
@@ -178,7 +184,8 @@ public class RateLimitAPI {
 
             var existingCustomers = repositories.countCustomersByTier(tier);
             if (existingCustomers > 0) {
-                return ResponseEntity.badRequest().body(ResultJson.error("Cannot delete tier '" + name + "' because it is still in use"));
+                return ResponseEntity.badRequest()
+                        .body(ResultJson.error("Cannot delete tier '" + name + "' because it is still in use"));
             }
 
             repositories.deleteTier(tier);
@@ -187,7 +194,8 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(tier.getId()));
+                rateLimitCacheService
+                        .publishConfigUpdate(RateLimitCacheService.CACHE_TIER, Long.toString(tier.getId()));
             }
 
             return ResponseEntity.ok(result);
@@ -200,8 +208,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/tiers/{name}/customers",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/tiers/{name}/customers",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<CustomerListJson> getCustomersForTier(@PathVariable String name) {
         admins.checkAdminUser();
@@ -222,8 +230,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/customers",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<CustomerListJson> getCustomers() {
         admins.checkAdminUser();
@@ -239,8 +247,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/customers/{name}",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<CustomerJson> getCustomer(@PathVariable String name) {
         try {
@@ -261,9 +269,9 @@ public class RateLimitAPI {
     }
 
     @PostMapping(
-            path = "/customers/create",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/create",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<CustomerJson> createCustomer(@RequestBody CustomerJson customerJson) {
@@ -273,8 +281,8 @@ public class RateLimitAPI {
             var existingCustomer = repositories.findCustomer(customerJson.getName());
             if (existingCustomer != null) {
                 return ResponseEntity
-                            .badRequest()
-                            .body(CustomerJson.error("Customer with name " + customerJson.getName() + " already exists"));
+                        .badRequest()
+                        .body(CustomerJson.error("Customer with name " + customerJson.getName() + " already exists"));
             }
 
             var customer = Customer.fromJson(customerJson);
@@ -282,8 +290,8 @@ public class RateLimitAPI {
             var tier = repositories.findTier(customer.getTier().getName());
             if (tier == null) {
                 return ResponseEntity
-                            .badRequest()
-                            .body(CustomerJson.error("Tier with name " + customer.getTier().getName() + " does not exist"));
+                        .badRequest()
+                        .body(CustomerJson.error("Tier with name " + customer.getTier().getName() + " does not exist"));
             }
             customer.setTier(tier);
 
@@ -294,7 +302,9 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_CUSTOMER, Long.toString(savedCustomer.getId()));
+                rateLimitCacheService.publishConfigUpdate(
+                        RateLimitCacheService.CACHE_CUSTOMER,
+                        Long.toString(savedCustomer.getId()));
             }
 
             return ResponseEntity.ok(result);
@@ -307,9 +317,9 @@ public class RateLimitAPI {
     }
 
     @PutMapping(
-            path = "/customers/{name}",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<CustomerJson> updateCustomer(@PathVariable String name, @RequestBody CustomerJson customer) {
@@ -326,8 +336,8 @@ public class RateLimitAPI {
             var tier = repositories.findTier(savedCustomer.getTier().getName());
             if (tier == null) {
                 return ResponseEntity
-                            .badRequest()
-                            .body(CustomerJson.error("Tier with name " + customer.getTier().getName() + " does not exist"));
+                        .badRequest()
+                        .body(CustomerJson.error("Tier with name " + customer.getTier().getName() + " does not exist"));
             }
             savedCustomer.setTier(tier);
 
@@ -338,7 +348,9 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_CUSTOMER, Long.toString(savedCustomer.getId()));
+                rateLimitCacheService.publishConfigUpdate(
+                        RateLimitCacheService.CACHE_CUSTOMER,
+                        Long.toString(savedCustomer.getId()));
             }
 
             return ResponseEntity.ok(result);
@@ -351,8 +363,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/customers/{name}/members",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/members",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<CustomerMembershipListJson> getCustomerMembers(@PathVariable String name) {
         try {
@@ -376,8 +388,8 @@ public class RateLimitAPI {
     }
 
     @PostMapping(
-            path = "/customers/{name}/add-member",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/add-member",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> addCustomerMember(
@@ -400,8 +412,8 @@ public class RateLimitAPI {
     }
 
     @PostMapping(
-            path = "/customers/{name}/remove-member",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/remove-member",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> removeCustomerMember(
@@ -424,8 +436,8 @@ public class RateLimitAPI {
     }
 
     @DeleteMapping(
-            path = "/customers/{name}",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> deleteCustomer(@PathVariable String name) {
@@ -450,10 +462,13 @@ public class RateLimitAPI {
             logs.logAction(adminUser, result);
 
             if (rateLimitCacheService != null) {
-                rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_CUSTOMER, Long.toString(customer.getId()));
+                rateLimitCacheService
+                        .publishConfigUpdate(RateLimitCacheService.CACHE_CUSTOMER, Long.toString(customer.getId()));
 
                 if (!activeRateLimitTokenIds.isEmpty()) {
-                    rateLimitCacheService.publishConfigUpdate(RateLimitCacheService.CACHE_TOKEN, String.join(",", activeRateLimitTokenIds));
+                    rateLimitCacheService.publishConfigUpdate(
+                            RateLimitCacheService.CACHE_TOKEN,
+                            String.join(",", activeRateLimitTokenIds));
                 }
             }
 
@@ -467,10 +482,13 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/customers/{name}/usage",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/usage",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<UsageStatsListJson> getUsageStats(@PathVariable String name, @RequestParam(required = false) String date) {
+    public ResponseEntity<UsageStatsListJson> getUsageStats(
+            @PathVariable String name,
+            @RequestParam(required = false) String date
+    ) {
         admins.checkAdminUser();
 
         try {
@@ -492,8 +510,8 @@ public class RateLimitAPI {
     }
 
     @GetMapping(
-            path = "/customers/{name}/tokens",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/tokens",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<List<RateLimitTokenJson>> getRateLimitTokens(@PathVariable String name) {
         admins.checkAdminUser();
@@ -517,8 +535,8 @@ public class RateLimitAPI {
     }
 
     @PostMapping(
-            path = "/customers/{name}/tokens",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/tokens",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<RateLimitTokenJson> createRateLimitToken(
@@ -529,7 +547,8 @@ public class RateLimitAPI {
             admins.checkAdminUser();
 
             if (description != null && description.length() > TOKEN_DESCRIPTION_SIZE) {
-                var json = RateLimitTokenJson.error("The description must not be longer than " + TOKEN_DESCRIPTION_SIZE + " characters.");
+                var json = RateLimitTokenJson
+                        .error("The description must not be longer than " + TOKEN_DESCRIPTION_SIZE + " characters.");
                 return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
             }
 
@@ -538,7 +557,9 @@ public class RateLimitAPI {
                 return ResponseEntity.notFound().build();
             }
 
-            return new ResponseEntity<>(customerService.createRateLimitToken(customer, description), HttpStatus.CREATED);
+            return new ResponseEntity<>(
+                    customerService.createRateLimitToken(customer, description),
+                    HttpStatus.CREATED);
         } catch (ErrorResultException exc) {
             return exc.toResponseEntity(RateLimitTokenJson.class);
         } catch (Exception exc) {
@@ -548,8 +569,8 @@ public class RateLimitAPI {
     }
 
     @DeleteMapping(
-            path = "/customers/{name}/tokens/{id}",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/customers/{name}/tokens/{id}",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> deactivateRateLimitToken(@PathVariable String name, @PathVariable long id) {

@@ -11,18 +11,15 @@ package org.eclipse.openvsx;
 
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.eclipse.openvsx.mirror.ReadOnlyRequestFilter;
-import org.eclipse.openvsx.security.OAuth2AttributesConfig;
-import org.eclipse.openvsx.web.ShallowEtagHeaderFilter;
 import org.jobrunr.utils.mapper.jackson3.Jackson3JsonMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchReactiveRepositoriesAutoConfiguration;
 import org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
@@ -36,9 +33,14 @@ import org.springframework.security.web.firewall.HttpStatusRequestRejectedHandle
 import org.springframework.security.web.firewall.RequestRejectedHandler;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 
+import org.eclipse.openvsx.mirror.ReadOnlyRequestFilter;
+import org.eclipse.openvsx.security.OAuth2AttributesConfig;
+import org.eclipse.openvsx.web.ShallowEtagHeaderFilter;
+
 import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
 
-@SpringBootApplication(exclude = {
+@SpringBootApplication(
+    exclude = {
         // currently no redis / elasticsearch repositories are being used
         // exclude autoconfiguration for them to avoid unnecessary logging
         // messages due to existing jpa repositories
@@ -46,7 +48,8 @@ import static org.springframework.data.web.config.EnableSpringDataWebSupport.Pag
         DataElasticsearchRepositoriesAutoConfiguration.class,
         DataElasticsearchReactiveRepositoriesAutoConfiguration.class,
         DataRedisRepositoriesAutoConfiguration.class,
-})
+    }
+)
 @EnableScheduling
 @EnableResilientMethods
 @EnableAsync

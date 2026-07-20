@@ -12,14 +12,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.util.TempFile;
-import org.jspecify.annotations.NonNull;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.jspecify.annotations.NonNull;
+
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.util.TempFile;
 
 /**
  * Interface for checks that run during extension publishing.
@@ -97,17 +98,17 @@ public interface PublishCheck {
      * etc. to access extension metadata.
      */
     record Context(
-        @NonNull ExtensionScan scan,
-        @NonNull TempFile extensionFile,
-        @NonNull UserData user
+            @NonNull ExtensionScan scan,
+            @NonNull TempFile extensionFile,
+            @NonNull UserData user
     ) {}
 
     /**
      * Result of a publishing check execution.
      */
     record Result(
-        boolean passed,
-        List<Failure> failures
+            boolean passed,
+            List<Failure> failures
     ) {
         public static Result pass() {
             return new Result(true, List.of());
@@ -122,7 +123,9 @@ public interface PublishCheck {
         }
 
         public Result and(Result other) {
-            if (this.passed && other.passed) return pass();
+            if (this.passed && other.passed) {
+                return pass();
+            }
             return fail(Stream.concat(this.failures().stream(), other.failures().stream()).toList());
         }
     }
@@ -131,7 +134,7 @@ public interface PublishCheck {
      * A single check failure with details for recording.
      */
     record Failure(
-        String ruleName,
-        String reason
+            String ruleName,
+            String reason
     ) {}
 }

@@ -12,22 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.entities.ExtensionScan;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.ScannerJob;
-import org.eclipse.openvsx.entities.ScanStatus;
-import org.eclipse.openvsx.entities.ScanCheckResult;
-import org.eclipse.openvsx.entities.ExtensionThreat;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.publish.PublishExtensionVersionService;
-import org.eclipse.openvsx.repositories.ExtensionScanRepository;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.repositories.ScannerJobRepository;
-import org.eclipse.openvsx.repositories.ExtensionThreatRepository;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
@@ -35,12 +27,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.entities.ExtensionScan;
+import org.eclipse.openvsx.entities.ExtensionThreat;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.ScanCheckResult;
+import org.eclipse.openvsx.entities.ScanStatus;
+import org.eclipse.openvsx.entities.ScannerJob;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.publish.PublishExtensionVersionService;
+import org.eclipse.openvsx.repositories.ExtensionScanRepository;
+import org.eclipse.openvsx.repositories.ExtensionThreatRepository;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.repositories.ScannerJobRepository;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Service that checks when all scans are complete and activates extensions.
@@ -128,8 +129,10 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
             // Only process if still in SCANNING status
             if (scanResult.getStatus() != ScanStatus.SCANNING) {
-                logger.debug("Scan {} not in SCANNING status (status={}), skipping",
-                    scanId, scanResult.getStatus());
+                logger.debug(
+                        "Scan {} not in SCANNING status (status={}), skipping",
+                        scanId,
+                        scanResult.getStatus());
                 return;
             }
 
@@ -177,8 +180,8 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
             // Only load the oldest MAX_SCANS_PER_CYCLE scans - let DB do the sorting
             // This is much faster than loading all 900+ scans and sorting in memory
-            List<ExtensionScan> scanningExtensions =
-                scanRepository.findOldestByStatus(ScanStatus.SCANNING, MAX_SCANS_PER_CYCLE);
+            List<ExtensionScan> scanningExtensions = scanRepository
+                    .findOldestByStatus(ScanStatus.SCANNING, MAX_SCANS_PER_CYCLE);
 
             if (scanningExtensions.isEmpty()) {
                 logger.debug("No extensions currently in SCANNING status");
@@ -206,11 +209,15 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
             }
 
             if (activatedCount > 0 || quarantinedCount > 0) {
-                logger.info("Scan completion cycle finished: {} activated, {} quarantined of {} checked",
-                    activatedCount, quarantinedCount, processedCount);
+                logger.info(
+                        "Scan completion cycle finished: {} activated, {} quarantined of {} checked",
+                        activatedCount,
+                        quarantinedCount,
+                        processedCount);
             } else {
-                logger.debug("Scan completion cycle finished: {} checked, none ready for activation",
-                    processedCount);
+                logger.debug(
+                        "Scan completion cycle finished: {} checked, none ready for activation",
+                        processedCount);
             }
 
         } catch (Exception e) {
@@ -229,8 +236,9 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
         // This can happen if server crashed after activateExtension() but before markScanPassed()
         ExtensionVersion extVersion = findExtensionVersion(scanResult);
         if (extVersion != null && extVersion.isActive()) {
-            logger.debug("Extension already active but scan {} still in SCANNING - marking as PASSED (recovery)",
-                scanId);
+            logger.debug(
+                    "Extension already active but scan {} still in SCANNING - marking as PASSED (recovery)",
+                    scanId);
             scanService.markScanPassed(scanResult);
             return true;
         }
@@ -251,8 +259,10 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
         // Check if all jobs in this scan are terminal (finished)
         if (!allJobsTerminal(jobs)) {
-            logger.debug("Extension still has pending jobs: scanId={} pending={}",
-                scanId, jobs.size() - countTerminalJobs(jobs));
+            logger.debug(
+                    "Extension still has pending jobs: scanId={} pending={}",
+                    scanId,
+                    jobs.size() - countTerminalJobs(jobs));
             return null;
         }
 
@@ -290,20 +300,22 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
         if (activeScanners.isEmpty()) {
             // No scanners active - proceed with whatever we have
-            logger.warn("No active scanners found for scanId={}, proceeding with {} existing jobs",
-                scanResult.getId(), jobs.size());
+            logger.warn(
+                    "No active scanners found for scanId={}, proceeding with {} existing jobs",
+                    scanResult.getId(),
+                    jobs.size());
             return true;
         }
 
         // Build set of active scanner types
         Set<String> activeScannerTypes = activeScanners.stream()
-            .map(Scanner::getScannerType)
-            .collect(Collectors.toSet());
+                .map(Scanner::getScannerType)
+                .collect(Collectors.toSet());
 
         // Build set of scanner types that have jobs (any status)
         Set<String> scannersWithJobs = jobs.stream()
-            .map(ScannerJob::getScannerType)
-            .collect(Collectors.toSet());
+                .map(ScannerJob::getScannerType)
+                .collect(Collectors.toSet());
 
         // Find scanners that are active but don't have jobs yet
         Set<String> missingScanners = new HashSet<>(activeScannerTypes);
@@ -319,8 +331,11 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
                     // Been scanning for > 1 minutes
                     // These are likely scanners that were added after publishing started
                     // Create jobs for them so they scan this extension too
-                    logger.info("ScanId {} has been scanning for {} minutes - creating jobs for newly added scanners: {}",
-                        scanResult.getId(), minutesElapsed, missingScanners);
+                    logger.info(
+                            "ScanId {} has been scanning for {} minutes - creating jobs for newly added scanners: {}",
+                            scanResult.getId(),
+                            minutesElapsed,
+                            missingScanners);
 
                     createMissingScanJobs(scanResult, jobs, missingScanners);
 
@@ -328,8 +343,11 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
                     return false;
                 } else {
                     // Just started - give jobs time to be created
-                    logger.debug("ScanId {} waiting for initial job creation for scanners {} (elapsed: {} min)",
-                        scanResult.getId(), missingScanners, minutesElapsed);
+                    logger.debug(
+                            "ScanId {} waiting for initial job creation for scanners {} (elapsed: {} min)",
+                            scanResult.getId(),
+                            missingScanners,
+                            minutesElapsed);
                     return false;
                 }
             }
@@ -341,9 +359,9 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
         // All active scanners have jobs - check if they're all terminal
         Set<String> terminalScanners = jobs.stream()
-            .filter(job -> job.getStatus().isTerminal())
-            .map(ScannerJob::getScannerType)
-            .collect(Collectors.toSet());
+                .filter(job -> job.getStatus().isTerminal())
+                .map(ScannerJob::getScannerType)
+                .collect(Collectors.toSet());
 
         // Only check scanners that are currently active
         // Ignore jobs for removed scanners
@@ -354,14 +372,20 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
         if (pendingScanners.isEmpty()) {
             // All active scanners have terminal jobs - ready to complete
-            logger.debug("ScanId {} ({}) has all {} active scanners terminal",
-                scanResult.getId(), extId, activeScannerTypes.size());
+            logger.debug(
+                    "ScanId {} ({}) has all {} active scanners terminal",
+                    scanResult.getId(),
+                    extId,
+                    activeScannerTypes.size());
             return true;
         }
 
         // Some active scanners still pending - keep waiting
-        logger.debug("ScanId {} ({}) waiting for active scanners to complete: {}",
-            scanResult.getId(), extId, pendingScanners);
+        logger.debug(
+                "ScanId {} ({}) waiting for active scanners to complete: {}",
+                scanResult.getId(),
+                extId,
+                pendingScanners);
         return false;
     }
 
@@ -371,12 +395,18 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
      * This allows new scanners to retroactively scan extensions that are still
      * in the scanning phase.
      */
-    private void createMissingScanJobs(ExtensionScan scanResult, List<ScannerJob> existingJobs, Set<String> missingScannerTypes) {
+    private void createMissingScanJobs(
+            ExtensionScan scanResult,
+            List<ScannerJob> existingJobs,
+            Set<String> missingScannerTypes
+    ) {
         String scanId = String.valueOf(scanResult.getId());
 
         // Get extensionVersionId from existing jobs (all jobs for a scan share the same extension version)
         if (existingJobs.isEmpty()) {
-            logger.warn("Cannot create missing scan jobs - no existing jobs to get extensionVersionId from. scanId={}", scanId);
+            logger.warn(
+                    "Cannot create missing scan jobs - no existing jobs to get extensionVersionId from. scanId={}",
+                    scanId);
             return;
         }
         long extensionVersionId = existingJobs.getFirst().getExtensionVersionId();
@@ -385,20 +415,25 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
             try {
                 // Create scanner invocation job request
                 ScannerInvocationRequest jobRequest = new ScannerInvocationRequest(
-                    scannerType,
-                    extensionVersionId,
-                    scanId
-                );
+                        scannerType,
+                        extensionVersionId,
+                        scanId);
 
                 // Enqueue to JobRunr - returns immediately
                 jobScheduler.enqueue(jobRequest);
 
-                logger.debug("Enqueued retroactive scanner invocation for newly added scanner: {} scanId={} extensionVersionId={}",
-                    scannerType, scanId, extensionVersionId);
+                logger.debug(
+                        "Enqueued retroactive scanner invocation for newly added scanner: {} scanId={} extensionVersionId={}",
+                        scannerType,
+                        scanId,
+                        extensionVersionId);
 
             } catch (Exception e) {
-                logger.error("Failed to enqueue retroactive scanner invocation for scanner {} scanId={}",
-                    scannerType, scanId, e);
+                logger.error(
+                        "Failed to enqueue retroactive scanner invocation for scanner {} scanId={}",
+                        scannerType,
+                        scanId,
+                        e);
                 // Continue with other scanners even if one fails
             }
         }
@@ -409,8 +444,8 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
      */
     private long countTerminalJobs(List<ScannerJob> jobs) {
         return jobs.stream()
-            .filter(job -> job.getStatus().isTerminal())
-            .count();
+                .filter(job -> job.getStatus().isTerminal())
+                .count();
     }
 
     /**
@@ -437,8 +472,10 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
         // Load extension version entity
         ExtensionVersion extVersion = entityManager.find(ExtensionVersion.class, extensionVersionId);
         if (extVersion == null) {
-            logger.error("Extension version not found: id={}, scanId={}",
-                extensionVersionId, scanId);
+            logger.error(
+                    "Extension version not found: id={}, scanId={}",
+                    extensionVersionId,
+                    scanId);
             return false;
         }
 
@@ -446,15 +483,17 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
         // This can happen if JobRunr retries or if multiple completion cycles run
         // Return true to indicate successful activation (idempotent)
         if (extVersion.isActive()) {
-            logger.debug("Extension already active, skipping reprocessing: {} scanId={}",
-                NamingUtil.toLogFormat(extVersion), scanId);
+            logger.debug(
+                    "Extension already active, skipping reprocessing: {} scanId={}",
+                    NamingUtil.toLogFormat(extVersion),
+                    scanId);
             return true;
         }
 
         // Check for failed jobs (ignore REMOVED jobs - those are from removed scanners)
         List<ScannerJob> failedJobs = jobs.stream()
-            .filter(job -> job.getStatus() == ScannerJob.JobStatus.FAILED)
-            .toList();
+                .filter(job -> job.getStatus() == ScannerJob.JobStatus.FAILED)
+                .toList();
 
         if (!failedJobs.isEmpty()) {
             // Check if any REQUIRED scanners failed
@@ -468,50 +507,56 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
                     // Include the actual error reason in the summary so it's visible in the UI
                     String errorDetail = failedJob.getErrorMessage();
                     String failSummary = errorDetail != null
-                        ? "Scanner failed: " + errorDetail
-                        : "Scanner failed (no details available)";
+                            ? "Scanner failed: " + errorDetail
+                            : "Scanner failed (no details available)";
                     persistenceService.recordScannerJobResult(
-                        scanId,
-                        failedJob,
-                        ScanCheckResult.CheckResult.ERROR,
-                        failedJob.getCreatedAt(),
-                        0,
-                        0,
-                        failSummary,
-                        errorDetail
-                    );
+                            scanId,
+                            failedJob,
+                            ScanCheckResult.CheckResult.ERROR,
+                            failedJob.getCreatedAt(),
+                            0,
+                            0,
+                            failSummary,
+                            errorDetail);
                 }
 
                 Scanner scanner = scannerRegistry.getScanner(failedJob.getScannerType());
                 if (scanner != null && !scanner.isRequired()) {
                     optionalFailedJobs.add(failedJob);
-                    logger.warn("Optional scanner failed (not blocking activation): {} error: {}",
-                        failedJob.getScannerType(), failedJob.getErrorMessage());
+                    logger.warn(
+                            "Optional scanner failed (not blocking activation): {} error: {}",
+                            failedJob.getScannerType(),
+                            failedJob.getErrorMessage());
                 } else {
                     requiredFailedJobs.add(failedJob);
-                    logger.error("Required scanner failed (blocking activation): {} error: {}",
-                        failedJob.getScannerType(), failedJob.getErrorMessage());
+                    logger.error(
+                            "Required scanner failed (blocking activation): {} error: {}",
+                            failedJob.getScannerType(),
+                            failedJob.getErrorMessage());
                 }
             }
 
             // If any REQUIRED scanners failed (errored), block activation (fail-closed)
             // Note: This is different from threats - scanner errors mean the scan couldn't complete
             if (!requiredFailedJobs.isEmpty()) {
-                logger.error("Extension scan group has {} REQUIRED scanner(s) ERRORED, marking as error: {} scanId={}",
-                    requiredFailedJobs.size(), NamingUtil.toLogFormat(extVersion), scanId);
+                logger.error(
+                        "Extension scan group has {} REQUIRED scanner(s) ERRORED, marking as error: {} scanId={}",
+                        requiredFailedJobs.size(),
+                        NamingUtil.toLogFormat(extVersion),
+                        scanId);
 
                 // Build error message listing failed required scanners
                 var scannerErrors = requiredFailedJobs.stream()
-                    .map(job -> {
-                        String msg = job.getScannerType();
-                        if (job.getErrorMessage() != null) {
-                            msg += " (" + job.getErrorMessage() + ")";
-                        }
-                        return msg;
-                    })
-                    .toList();
+                        .map(job -> {
+                            String msg = job.getScannerType();
+                            if (job.getErrorMessage() != null) {
+                                msg += " (" + job.getErrorMessage() + ")";
+                            }
+                            return msg;
+                        })
+                        .toList();
                 String errorMessage = requiredFailedJobs.size() + " required scanner(s) errored: "
-                    + String.join(", ", scannerErrors);
+                        + String.join(", ", scannerErrors);
 
                 // Update ExtensionScan status to ERRORED (not QUARANTINED - that's for threats)
                 ExtensionScan scan = scanRepository.findById(Long.parseLong(scanId));
@@ -524,18 +569,24 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
             // Only optional scanners failed - log but allow activation
             if (!optionalFailedJobs.isEmpty()) {
-                logger.debug("Extension has {} optional scanner(s) failed, but proceeding with activation: {} scanId={}",
-                    optionalFailedJobs.size(), NamingUtil.toLogFormat(extVersion), scanId);
+                logger.debug(
+                        "Extension has {} optional scanner(s) failed, but proceeding with activation: {} scanId={}",
+                        optionalFailedJobs.size(),
+                        NamingUtil.toLogFormat(extVersion),
+                        scanId);
             }
         }
 
         // Log any removed scanners for informational purposes
         long removedCount = jobs.stream()
-            .filter(job -> job.getStatus() == ScannerJob.JobStatus.REMOVED)
-            .count();
+                .filter(job -> job.getStatus() == ScannerJob.JobStatus.REMOVED)
+                .count();
         if (removedCount > 0) {
-            logger.debug("Extension scan group includes {} REMOVED scanner(s) - these will be ignored: {} scanId={}",
-                removedCount, NamingUtil.toLogFormat(extVersion), scanId);
+            logger.debug(
+                    "Extension scan group includes {} REMOVED scanner(s) - these will be ignored: {} scanId={}",
+                    removedCount,
+                    NamingUtil.toLogFormat(extVersion),
+                    scanId);
         }
 
         // All jobs completed successfully - check for threats
@@ -550,38 +601,46 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
             if (!threats.isEmpty()) {
                 // Separate enforced vs non-enforced threats
                 List<ExtensionThreat> enforcedThreats = threats.stream()
-                    .filter(ExtensionThreat::isEnforced)
-                    .toList();
+                        .filter(ExtensionThreat::isEnforced)
+                        .toList();
                 List<ExtensionThreat> warningThreats = threats.stream()
-                    .filter(t -> !t.isEnforced())
-                    .toList();
+                        .filter(t -> !t.isEnforced())
+                        .toList();
 
                 enforcedThreatCount += enforcedThreats.size();
                 warningThreatCount += warningThreats.size();
 
                 if (!enforcedThreats.isEmpty()) {
-                    logger.warn("Scanner {} found {} ENFORCED threats (blocking activation) in extension: {} scanId={}",
-                        job.getScannerType(), enforcedThreats.size(),
-                        NamingUtil.toLogFormat(extVersion), scanId);
+                    logger.warn(
+                            "Scanner {} found {} ENFORCED threats (blocking activation) in extension: {} scanId={}",
+                            job.getScannerType(),
+                            enforcedThreats.size(),
+                            NamingUtil.toLogFormat(extVersion),
+                            scanId);
 
                     for (ExtensionThreat threat : enforcedThreats) {
-                        logger.warn("  - [ENFORCED] Threat: {} severity={} file={}",
-                            threat.getRuleName(),
-                            threat.getSeverity(),
-                            threat.getFileName());
+                        logger.warn(
+                                "  - [ENFORCED] Threat: {} severity={} file={}",
+                                threat.getRuleName(),
+                                threat.getSeverity(),
+                                threat.getFileName());
                     }
                 }
 
                 if (!warningThreats.isEmpty()) {
-                    logger.info("Scanner {} found {} non-enforced threats (warning only) in extension: {} scanId={}",
-                        job.getScannerType(), warningThreats.size(),
-                        NamingUtil.toLogFormat(extVersion), scanId);
+                    logger.info(
+                            "Scanner {} found {} non-enforced threats (warning only) in extension: {} scanId={}",
+                            job.getScannerType(),
+                            warningThreats.size(),
+                            NamingUtil.toLogFormat(extVersion),
+                            scanId);
 
                     for (ExtensionThreat threat : warningThreats) {
-                        logger.info("  - [WARNING] Threat: {} severity={} file={}",
-                            threat.getRuleName(),
-                            threat.getSeverity(),
-                            threat.getFileName());
+                        logger.info(
+                                "  - [WARNING] Threat: {} severity={} file={}",
+                                threat.getRuleName(),
+                                threat.getSeverity(),
+                                threat.getFileName());
                     }
                 }
             }
@@ -590,8 +649,12 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
         // Only block activation if there are ENFORCED threats
         if (enforcedThreatCount > 0) {
             // Enforced threats found - keep extension inactive (quarantined)
-            logger.warn("Extension has {} enforced threats (plus {} warnings), keeping inactive (quarantined): {} scanId={}",
-                enforcedThreatCount, warningThreatCount, NamingUtil.toLogFormat(extVersion), scanId);
+            logger.warn(
+                    "Extension has {} enforced threats (plus {} warnings), keeping inactive (quarantined): {} scanId={}",
+                    enforcedThreatCount,
+                    warningThreatCount,
+                    NamingUtil.toLogFormat(extVersion),
+                    scanId);
 
             // Update ExtensionScan status to QUARANTINED
             ExtensionScan scan = scanRepository.findById(Long.parseLong(scanId));
@@ -604,13 +667,19 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
 
         // Log warning if there are non-enforced threats but proceeding anyway
         if (warningThreatCount > 0) {
-            logger.warn("Extension has {} non-enforced threats (warnings only), proceeding with activation: {} scanId={}",
-                warningThreatCount, NamingUtil.toLogFormat(extVersion), scanId);
+            logger.warn(
+                    "Extension has {} non-enforced threats (warnings only), proceeding with activation: {} scanId={}",
+                    warningThreatCount,
+                    NamingUtil.toLogFormat(extVersion),
+                    scanId);
         }
 
         // All scans passed with no threats - activate the extension!
-        logger.info("Activating extension version: {}, all {} scans passed with no enforced threats scanId={}",
-            NamingUtil.toLogFormat(extVersion), jobs.size(), scanId);
+        logger.info(
+                "Activating extension version: {}, all {} scans passed with no enforced threats scanId={}",
+                NamingUtil.toLogFormat(extVersion),
+                jobs.size(),
+                scanId);
 
         // Activate extension first
         // This sets active=true and updates the extension metadata
@@ -643,13 +712,14 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
             }
 
             return repositories.findVersion(
-                scan.getExtensionVersion(),
-                scan.getTargetPlatform(),
-                extension
-            );
+                    scan.getExtensionVersion(),
+                    scan.getTargetPlatform(),
+                    extension);
         } catch (Exception e) {
-            logger.warn("Failed to find extension version for scan {}: {}",
-                scan.getId(), e.getMessage());
+            logger.warn(
+                    "Failed to find extension version for scan {}: {}",
+                    scan.getId(),
+                    e.getMessage());
             return null;
         }
     }
@@ -662,34 +732,38 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
         try {
             // Use findExtensionVersionIncludingInactive because quarantined extensions are inactive
             var detachedVersion = repositories.findExtensionVersionIncludingInactive(
-                scan.getNamespaceName(),
-                scan.getExtensionName(),
-                scan.getTargetPlatform(),
-                scan.getExtensionVersion()
-            );
-
-            if (detachedVersion == null) {
-                logger.warn("Extension version not found for scan #{}: {}.{} v{} ({})",
-                    scan.getId(),
                     scan.getNamespaceName(),
                     scan.getExtensionName(),
-                    scan.getExtensionVersion(),
-                    scan.getTargetPlatform());
+                    scan.getTargetPlatform(),
+                    scan.getExtensionVersion());
+
+            if (detachedVersion == null) {
+                logger.warn(
+                        "Extension version not found for scan #{}: {}.{} v{} ({})",
+                        scan.getId(),
+                        scan.getNamespaceName(),
+                        scan.getExtensionName(),
+                        scan.getExtensionVersion(),
+                        scan.getTargetPlatform());
                 return false;
             }
 
             // Load managed entity for modifications
             var extVersion = entityManager.find(ExtensionVersion.class, detachedVersion.getId());
             if (extVersion == null) {
-                logger.warn("Could not load managed entity for extension version ID {} (scan #{})",
-                    detachedVersion.getId(), scan.getId());
+                logger.warn(
+                        "Could not load managed entity for extension version ID {} (scan #{})",
+                        detachedVersion.getId(),
+                        scan.getId());
                 return false;
             }
 
             // Already active - just mark scan passed
             if (extVersion.isActive()) {
-                logger.info("Extension already active for scan #{}: {}",
-                    scan.getId(), NamingUtil.toLogFormat(extVersion));
+                logger.info(
+                        "Extension already active for scan #{}: {}",
+                        scan.getId(),
+                        NamingUtil.toLogFormat(extVersion));
                 scanService.markScanPassed(scan);
                 return true;
             }
@@ -698,14 +772,19 @@ public class ExtensionScanCompletionService implements JobRequestHandler<Handler
             scanService.markScanPassed(scan);
             publishService.activateExtension(extVersion, extensionService);
 
-            logger.info("Extension activated by admin decision: {} (scan #{})",
-                NamingUtil.toLogFormat(extVersion), scan.getId());
+            logger.info(
+                    "Extension activated by admin decision: {} (scan #{})",
+                    NamingUtil.toLogFormat(extVersion),
+                    scan.getId());
 
             return true;
 
         } catch (Exception e) {
-            logger.error("Failed to activate extension for scan #{}: {}",
-                scan.getId(), e.getMessage(), e);
+            logger.error(
+                    "Failed to activate extension for scan #{}: {}",
+                    scan.getId(),
+                    e.getMessage(),
+                    e);
             return false;
         }
     }

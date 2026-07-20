@@ -12,15 +12,16 @@
  *****************************************************************************/
 package org.eclipse.openvsx.util;
 
+import java.util.Objects;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.openvsx.entities.PersistedLog;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.json.ResultJson;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
+import org.eclipse.openvsx.entities.PersistedLog;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.json.ResultJson;
 
 @Service
 public class LogService {

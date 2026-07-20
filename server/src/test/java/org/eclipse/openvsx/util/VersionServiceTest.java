@@ -9,8 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.util;
 
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.repositories.RepositoryService;
+import java.util.Comparator;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +20,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.Comparator;
-import java.util.List;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

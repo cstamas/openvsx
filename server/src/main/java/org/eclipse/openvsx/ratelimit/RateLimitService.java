@@ -12,17 +12,15 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.TokensInheritanceStrategy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.EnforcementState;
-import org.eclipse.openvsx.entities.RefillStrategy;
-import org.eclipse.openvsx.entities.Tier;
-import org.eclipse.openvsx.ratelimit.cache.ConfigurationChanged;
-import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -31,9 +29,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.EnforcementState;
+import org.eclipse.openvsx.entities.RefillStrategy;
+import org.eclipse.openvsx.entities.Tier;
+import org.eclipse.openvsx.ratelimit.cache.ConfigurationChanged;
+import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
 
 @Service
 @ConditionalOnBean(RateLimitConfig.class)
@@ -109,8 +110,7 @@ public class RateLimitService {
                     var config = createBucketConfiguration(identity);
                     var minimumBandwidth = config != null ? calculateMinimumBandwidth(config) : null;
                     return new BucketConfigurationWrapper(config, minimumBandwidth);
-                }
-        );
+                });
     }
 
     /**

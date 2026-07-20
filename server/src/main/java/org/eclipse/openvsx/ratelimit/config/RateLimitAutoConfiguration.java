@@ -12,8 +12,8 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.config;
 
-import org.eclipse.openvsx.ratelimit.filter.RateLimitServletFilter;
-import org.eclipse.openvsx.ratelimit.filter.RateLimitServletFilterFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -23,7 +23,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.util.StringUtils;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import org.eclipse.openvsx.ratelimit.filter.RateLimitServletFilter;
+import org.eclipse.openvsx.ratelimit.filter.RateLimitServletFilterFactory;
 
 @Configuration
 @ConditionalOnBean(RateLimitConfig.class)

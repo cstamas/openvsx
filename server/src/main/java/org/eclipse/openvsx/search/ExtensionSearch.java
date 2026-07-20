@@ -9,13 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.search;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
-
-import java.util.List;
-import java.util.Objects;
 
 @Document(indexName = "extensions")
 public class ExtensionSearch {
@@ -161,8 +161,12 @@ public class ExtensionSearch {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionSearch that = (ExtensionSearch) o;
         return id == that.id
                 && Double.compare(that.relevance, relevance) == 0
@@ -182,8 +186,18 @@ public class ExtensionSearch {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, relevance, name, namespace, extensionId, targetPlatforms, displayName, description, timestamp,
-                rating, downloadCount, categories, tags
-        );
+                id,
+                relevance,
+                name,
+                namespace,
+                extensionId,
+                targetPlatforms,
+                displayName,
+                description,
+                timestamp,
+                rating,
+                downloadCount,
+                categories,
+                tags);
     }
 }

@@ -11,11 +11,11 @@ package org.eclipse.openvsx.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.eclipse.openvsx.util.UrlUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+
+import org.eclipse.openvsx.util.UrlUtil;
 
 public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
@@ -24,8 +24,11 @@ public class CustomAuthenticationSuccessHandler extends SavedRequestAwareAuthent
     }
 
     @Override
-    protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) {
+    protected String determineTargetUrl(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication
+    ) {
         if (authentication instanceof OAuth2AuthenticationToken) {
             var token = (OAuth2AuthenticationToken) authentication;
             // Redirect to user profile page after login to Eclipse

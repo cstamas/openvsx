@@ -9,12 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.json;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import java.util.Map;
 
 @Schema(
     name = "Versions",

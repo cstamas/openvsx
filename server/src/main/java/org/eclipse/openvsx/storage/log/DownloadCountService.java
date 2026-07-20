@@ -9,8 +9,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage.log;
 
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
+import java.time.ZoneId;
+
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,8 @@ import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.time.ZoneId;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 /**
  * A utility service to determine whether an optimized download count service
@@ -60,25 +61,27 @@ public class DownloadCountService {
     @EventListener
     public void applicationStarted(ApplicationStartedEvent event) {
         if (awsDownloadCountHandler.isEnabled()) {
-            logger.info("Scheduling AWS download count handler with cron '{}'", awsDownloadCountHandler.getCronSchedule());
+            logger.info(
+                    "Scheduling AWS download count handler with cron '{}'",
+                    awsDownloadCountHandler.getCronSchedule());
             scheduler.scheduleRecurrently(
                     awsDownloadCountHandler.getRecurringJobId(),
                     awsDownloadCountHandler.getCronSchedule(),
                     ZoneId.of("UTC"),
-                    new HandlerJobRequest<>(AwsDownloadCountHandler.class)
-            );
+                    new HandlerJobRequest<>(AwsDownloadCountHandler.class));
         } else {
             scheduler.deleteRecurringJob(awsDownloadCountHandler.getRecurringJobId());
         }
 
         if (azureDownloadCountHandler.isEnabled()) {
-            logger.info("Scheduling Azure download count handler with cron '{}'", azureDownloadCountHandler.getCronSchedule());
+            logger.info(
+                    "Scheduling Azure download count handler with cron '{}'",
+                    azureDownloadCountHandler.getCronSchedule());
             scheduler.scheduleRecurrently(
                     azureDownloadCountHandler.getRecurringJobId(),
                     azureDownloadCountHandler.getCronSchedule(),
                     ZoneId.of("UTC"),
-                    new HandlerJobRequest<>(AzureDownloadCountHandler.class)
-            );
+                    new HandlerJobRequest<>(AzureDownloadCountHandler.class));
         } else {
             scheduler.deleteRecurringJob(azureDownloadCountHandler.getRecurringJobId());
         }

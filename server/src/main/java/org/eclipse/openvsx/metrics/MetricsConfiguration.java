@@ -33,8 +33,8 @@ public class MetricsConfiguration {
             @Value("${management.metrics.tags.instance:local}") String instance
     ) {
         return context -> context
-                    .addLowCardinalityKeyValue(KeyValue.of("service.name", service))
-                    .addLowCardinalityKeyValue(KeyValue.of("deployment.environment", environment))
-                    .addLowCardinalityKeyValue(KeyValue.of("service.instance.id", instance));
+                .addLowCardinalityKeyValue(KeyValue.of("service.name", service))
+                .addLowCardinalityKeyValue(KeyValue.of("deployment.environment", environment))
+                .addLowCardinalityKeyValue(KeyValue.of("service.instance.id", instance));
     }
 }

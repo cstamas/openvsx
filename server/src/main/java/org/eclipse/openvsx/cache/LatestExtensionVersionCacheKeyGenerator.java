@@ -9,16 +9,17 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import java.lang.reflect.Method;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cache.interceptor.KeyGenerator;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.VersionAlias;
-import org.springframework.cache.interceptor.KeyGenerator;
-import org.springframework.stereotype.Component;
-
-import java.lang.reflect.Method;
-import java.util.List;
 
 @Component
 public class LatestExtensionVersionCacheKeyGenerator implements KeyGenerator {
@@ -31,7 +32,7 @@ public class LatestExtensionVersionCacheKeyGenerator implements KeyGenerator {
         var onlyActive = false;
         var type = ExtensionVersion.Type.EXTENDED;
 
-        if(params[0] instanceof Extension) {
+        if (params[0] instanceof Extension) {
             extension = (Extension) params[0];
             targetPlatform = (String) params[1];
             preRelease = (boolean) params[2];
@@ -43,7 +44,7 @@ public class LatestExtensionVersionCacheKeyGenerator implements KeyGenerator {
             type = firstVersion.getType();
             var groupedByTargetPlatform = (boolean) params[1];
             targetPlatform = groupedByTargetPlatform ? firstVersion.getTargetPlatform() : null;
-            if(params.length == 3) {
+            if (params.length == 3) {
                 preRelease = (boolean) params[2];
             }
         }
@@ -51,7 +52,13 @@ public class LatestExtensionVersionCacheKeyGenerator implements KeyGenerator {
         return generate(extension, targetPlatform, preRelease, onlyActive, type);
     }
 
-    public String generate(Extension extension, String targetPlatform, boolean preRelease, boolean onlyActive, ExtensionVersion.Type type) {
+    public String generate(
+            Extension extension,
+            String targetPlatform,
+            boolean preRelease,
+            boolean onlyActive,
+            ExtensionVersion.Type type
+    ) {
         var extensionName = StringUtils.lowerCase(extension.getName());
         var namespaceName = StringUtils.lowerCase(extension.getNamespace().getName());
         return NamingUtil.toFileFormat(namespaceName, extensionName, targetPlatform, VersionAlias.LATEST) +

@@ -12,9 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,15 +49,16 @@ class SecretDetectorResultTest {
         // Both helpers should produce empty, immutable findings and the "no secrets" summary.
         List<SecretDetector.Result> results = List.of(
                 SecretDetector.Result.noSecretsFound(),
-                SecretDetector.Result.skipped()
-        );
+                SecretDetector.Result.skipped());
 
         for (var result : results) {
             assertFalse(result.isSecretsFound());
             assertTrue(result.getFindings().isEmpty());
             assertEquals("No secrets detected", result.getSummaryMessage());
-            assertThrows(UnsupportedOperationException.class, () -> result.getFindings().add(
-                    new SecretDetector.Finding("file", 1, 1.0, "value", "rule")));
+            assertThrows(
+                    UnsupportedOperationException.class,
+                    () -> result.getFindings().add(
+                            new SecretDetector.Finding("file", 1, 1.0, "value", "rule")));
         }
     }
 }

@@ -13,6 +13,5 @@
 package org.eclipse.openvsx.entities;
 
 public enum EnforcementState {
-    EVALUATION,
-    ENFORCEMENT
+    EVALUATION, ENFORCEMENT
 }

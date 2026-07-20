@@ -13,7 +13,5 @@
 package org.eclipse.openvsx.entities;
 
 public enum TierType {
-    FREE,
-    SAFETY,
-    NON_FREE
+    FREE, SAFETY, NON_FREE
 }

@@ -11,9 +11,10 @@ package org.eclipse.openvsx.migration;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.entities.UserData;
 import org.eclipse.openvsx.repositories.RepositoryService;
-import org.springframework.stereotype.Component;
 
 @Component
 public class FixTargetPlatformsService {
@@ -30,7 +31,7 @@ public class FixTargetPlatformsService {
     public UserData getUser() {
         var userName = "FixTargetPlatformMigration";
         var user = repositories.findUserByLoginName("system", userName);
-        if(user == null) {
+        if (user == null) {
             user = new UserData();
             user.setProvider("system");
             user.setLoginName(userName);

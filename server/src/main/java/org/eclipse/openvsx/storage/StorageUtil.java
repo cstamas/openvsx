@@ -9,13 +9,14 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.storage;
 
-import org.springframework.http.*;
-
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.http.*;
 
 public class StorageUtil {
 
-    private StorageUtil() {}
+    private StorageUtil() {
+    }
 
     public static CacheControl getCacheControl(String fileName) {
         // Files are requested with a version string in the URL, so their content does not change.

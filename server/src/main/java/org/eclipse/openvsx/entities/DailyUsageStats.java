@@ -12,12 +12,12 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.Objects;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "daily_usage_stats")
@@ -85,14 +85,18 @@ public class DailyUsageStats implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DailyUsageStats that = (DailyUsageStats) o;
         return id == that.id
-            && Objects.equals(customer, that.customer)
-            && Objects.equals(date, that.date)
-            && Objects.equals(totalRequests, that.totalRequests)
-            && Objects.equals(p95Requests, that.p95Requests);
+                && Objects.equals(customer, that.customer)
+                && Objects.equals(date, that.date)
+                && Objects.equals(totalRequests, that.totalRequests)
+                && Objects.equals(p95Requests, that.p95Requests);
     }
 
     @Override

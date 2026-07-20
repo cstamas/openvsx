@@ -11,6 +11,7 @@ package org.eclipse.openvsx.json;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 
 import static org.eclipse.openvsx.util.TargetPlatform.*;
@@ -30,22 +31,30 @@ import static org.eclipse.openvsx.util.TargetPlatform.NAME_WEB;
  * @param version Version of the extension
  */
 @Schema(
-        name = "TargetPlatformVersion",
-        description = "Combination of target platform and version of an extension"
+    name = "TargetPlatformVersion",
+    description = "Combination of target platform and version of an extension"
 )
 public record TargetPlatformVersionJson(
-        @Schema(description = "Name of the target platform", allowableValues = {
-                NAME_WIN32_X64, NAME_WIN32_IA32, NAME_WIN32_ARM64,
-                NAME_LINUX_X64, NAME_LINUX_ARM64, NAME_LINUX_ARMHF,
-                NAME_ALPINE_X64, NAME_ALPINE_ARM64,
-                NAME_DARWIN_X64, NAME_DARWIN_ARM64,
-                NAME_WEB, NAME_UNIVERSAL
-        })
-        String targetPlatform,
+        @Schema(
+            description = "Name of the target platform",
+            allowableValues = {
+                NAME_WIN32_X64,
+                NAME_WIN32_IA32,
+                NAME_WIN32_ARM64,
+                NAME_LINUX_X64,
+                NAME_LINUX_ARM64,
+                NAME_LINUX_ARMHF,
+                NAME_ALPINE_X64,
+                NAME_ALPINE_ARM64,
+                NAME_DARWIN_X64,
+                NAME_DARWIN_ARM64,
+                NAME_WEB,
+                NAME_UNIVERSAL
+            }
+        ) String targetPlatform,
         @NotNull
-        @Schema(description = "Version of the extension")
-        String version
-) {
+        @Schema(description = "Version of the extension") String version
+){
     public TargetPlatformVersion toTargetPlatformVersion() {
         return new TargetPlatformVersion(targetPlatform, version);
     }

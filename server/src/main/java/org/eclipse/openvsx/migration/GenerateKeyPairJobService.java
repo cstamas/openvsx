@@ -9,6 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.UUID;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
@@ -18,17 +25,11 @@ import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.entities.SignatureKeyPair;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.util.TimeUtil;
-import org.springframework.stereotype.Component;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.UUID;
 
 @Component
 public class GenerateKeyPairJobService {

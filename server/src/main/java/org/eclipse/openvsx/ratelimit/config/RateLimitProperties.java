@@ -12,15 +12,14 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpStatus;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ConfigurationProperties(prefix = RateLimitProperties.PROPERTY_PREFIX)
 public class RateLimitProperties {

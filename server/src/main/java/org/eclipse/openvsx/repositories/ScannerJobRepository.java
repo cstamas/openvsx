@@ -12,7 +12,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.ScannerJob;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,9 +23,7 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import org.eclipse.openvsx.entities.ScannerJob;
 
 /**
  * Repository for ScanJob entities.
@@ -100,8 +101,10 @@ public interface ScannerJobRepository extends Repository<ScannerJob, Long> {
      */
     @Modifying
     @Transactional
-    @Query("UPDATE ScannerJob j SET j.status = 'PROCESSING', j.recoveryInProgress = false, "
-         + "j.updatedAt = :now WHERE j.id = :id AND j.status = 'QUEUED'")
+    @Query(
+        "UPDATE ScannerJob j SET j.status = 'PROCESSING', j.recoveryInProgress = false, "
+                + "j.updatedAt = :now WHERE j.id = :id AND j.status = 'QUEUED'"
+    )
     int claimForProcessing(@Param("id") long id, @Param("now") LocalDateTime now);
 
     /**
@@ -110,7 +113,10 @@ public interface ScannerJobRepository extends Repository<ScannerJob, Long> {
      * Pass Pageable to limit results to the number of available slots.
      */
     List<ScannerJob> findByScannerTypeAndStatusOrderByCreatedAtAsc(
-        String scannerType, ScannerJob.JobStatus status, Pageable pageable);
+            String scannerType,
+            ScannerJob.JobStatus status,
+            Pageable pageable
+    );
 
     /**
      * Find scan jobs by status that were created before a certain time.
@@ -128,8 +134,8 @@ public interface ScannerJobRepository extends Repository<ScannerJob, Long> {
      * when multiple pods are running.
      */
     List<ScannerJob> findByStatusAndCreatedAtBeforeAndRecoveryInProgressFalse(
-        ScannerJob.JobStatus status,
-        LocalDateTime threshold
+            ScannerJob.JobStatus status,
+            LocalDateTime threshold
     );
 
     /**

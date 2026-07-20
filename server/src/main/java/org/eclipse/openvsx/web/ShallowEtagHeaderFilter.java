@@ -20,7 +20,7 @@ public class ShallowEtagHeaderFilter extends org.springframework.web.filter.Shal
         // /api/{namespace}/{extension}/{version}, and /api/-/search endpoints
         var path = request.getRequestURI().substring(1).split("/");
         var applyFilter = (path.length == 3 || path.length == 4) && path[0].equals("api");
-        if(applyFilter && path[1].equals("-")) {
+        if (applyFilter && path[1].equals("-")) {
             applyFilter = path[2].contains("search");
         }
 

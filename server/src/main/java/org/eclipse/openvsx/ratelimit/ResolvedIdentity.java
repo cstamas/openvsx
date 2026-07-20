@@ -12,10 +12,11 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.entities.Tier;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.entities.Tier;
 
 public record ResolvedIdentity(
         @NonNull String ipAddress,

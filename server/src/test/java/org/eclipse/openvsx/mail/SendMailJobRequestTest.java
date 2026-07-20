@@ -12,6 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx.mail;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.jobrunr.utils.mapper.jackson3.Jackson3JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +23,6 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-
-import java.time.LocalDateTime;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,17 +40,18 @@ class SendMailJobRequestTest {
     @Test
     void testVariablesMapFailsToRoundTrip() {
         var variables = Map.<String, Object>of(
-                "name", "Jane Doe",
-                "tokenName", "My Token",
-                "expiryDate", LocalDateTime.now()
-        );
+                "name",
+                "Jane Doe",
+                "tokenName",
+                "My Token",
+                "expiryDate",
+                LocalDateTime.now());
         var request = new SendMailJobRequest(
                 "from@example.com",
                 "to@example.com",
                 "subject",
                 "template.html",
-                variables
-        );
+                variables);
 
         var json = mapper.serialize(request);
 

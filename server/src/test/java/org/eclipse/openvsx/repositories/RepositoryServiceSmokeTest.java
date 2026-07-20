@@ -9,16 +9,23 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
-
 import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.Invocation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.context.ActiveProfiles;
 
 import org.eclipse.openvsx.entities.AdminScanDecision;
 import org.eclipse.openvsx.entities.Customer;
@@ -40,25 +47,20 @@ import org.eclipse.openvsx.entities.UsageStats;
 import org.eclipse.openvsx.entities.UserData;
 import org.eclipse.openvsx.json.QueryRequest;
 import org.eclipse.openvsx.util.ExtensionId;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.Invocation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.ActiveProfiles;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
+import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 /**
  * Run the DB queries and assert no DB error, just to ensure that the queries
  * are consistent with the schema.
  */
-@SpringBootTest(properties = {
+@SpringBootTest(
+    properties = {
         "ovsx.elasticsearch.enabled=false"
-})
+    }
+)
 @ActiveProfiles("test_db")
 class RepositoryServiceSmokeTest {
 
@@ -123,11 +125,13 @@ class RepositoryServiceSmokeTest {
         fileDecision.setVersion("1.0.0");
 
         // Extension threat entity for testing
-        var threat = ExtensionThreat.create("test.js", "threatFileHash", ".js", "testScanner", "test-rule", "Test threat", "high");
+        var threat = ExtensionThreat
+                .create("test.js", "threatFileHash", ".js", "testScanner", "test-rule", "Test threat", "high");
         threat.setScan(scan);
 
         // Scan check result entity for testing
-        var scanCheckResult = ScanCheckResult.passed("SECRET_SCANNING", ScanCheckResult.CheckCategory.PUBLISH_CHECK, NOW, 10, "All checks passed");
+        var scanCheckResult = ScanCheckResult
+                .passed("SECRET_SCANNING", ScanCheckResult.CheckCategory.PUBLISH_CHECK, NOW, 10, "All checks passed");
         scanCheckResult.setScan(scan);
 
         var tier = new Tier();
@@ -146,10 +150,23 @@ class RepositoryServiceSmokeTest {
         dailyUsageStats.setP95Requests(1L);
 
         // Persist all entities consistently using EntityManager
-        Stream.of(namespace, extension, userData, extVersion, personalAccessToken, keyPair,
-                  scan, validationFailure, adminDecision, fileDecision, threat, scanCheckResult,
-                  tier, customer, usageStats)
-              .forEach(em::persist);
+        Stream.of(
+                namespace,
+                extension,
+                userData,
+                extVersion,
+                personalAccessToken,
+                keyPair,
+                scan,
+                validationFailure,
+                adminDecision,
+                fileDecision,
+                threat,
+                scanCheckResult,
+                tier,
+                customer,
+                usageStats)
+                .forEach(em::persist);
         em.flush();
 
         var page = PageRequest.ofSize(1);
@@ -190,8 +207,10 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.findPersistedLogsPaginated(page),
                 () -> repositories.findPersistedLogsAfterPaginated(NOW, page),
                 () -> repositories.findAllReviews(extension),
-                () -> repositories.findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn("storageType", STRING_LIST),
-                () -> repositories.findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn("storageType", STRING_LIST),
+                () -> repositories
+                        .findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn("storageType", STRING_LIST),
+                () -> repositories
+                        .findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn("storageType", STRING_LIST),
                 () -> repositories.findBundledExtensionsReference(extension),
                 () -> repositories.findDependenciesReference(extension),
                 () -> repositories.findDownloadsByStorageTypeAndName("storageType", STRING_LIST),
@@ -248,11 +267,12 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.deleteAllKeyPairs(),
                 () -> repositories.findActiveVersionsSorted("namespaceName", "extensionName", page),
                 () -> repositories.findActiveVersionsSorted("namespaceName", "extensionName", "targetPlatform", page),
-                () -> repositories.findActiveVersionStringsSorted("namespaceName", "extensionName", "targetPlatform", page),
+                () -> repositories
+                        .findActiveVersionStringsSorted("namespaceName", "extensionName", "targetPlatform", page),
                 () -> repositories.findVersionStringsSorted(extension, "targetPlatform", true),
                 () -> repositories.findVersionStringsSorted(extension, "targetPlatform", true),
                 () -> repositories.findActiveVersions(queryRequest),
-                () -> repositories.findActiveVersionStringsSorted(LONG_LIST,"targetPlatform"),
+                () -> repositories.findActiveVersionStringsSorted(LONG_LIST, "targetPlatform"),
                 () -> repositories.findActiveVersionReferencesSorted(List.of(1L)),
                 () -> repositories.findAllPublicIds(),
                 () -> repositories.findPublicId("namespaceName", "extensionName"),
@@ -278,8 +298,10 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.findMemberships("namespaceName"),
                 () -> repositories.findActiveExtensionNames(namespace),
                 () -> repositories.namespaceExists("namespaceName"),
-                () -> repositories.findFileByType("namespaceName", "extensionName", "targetPlatform", "version", "type"),
-                () -> repositories.findFileByName("namespaceName", "extensionName", "targetPlatform", "version", "name"),
+                () -> repositories
+                        .findFileByType("namespaceName", "extensionName", "targetPlatform", "version", "type"),
+                () -> repositories
+                        .findFileByName("namespaceName", "extensionName", "targetPlatform", "version", "name"),
                 () -> repositories.findVersionsByUser(userData, false),
                 () -> repositories.deleteFiles(extVersion),
                 () -> repositories.findExtensionTargetPlatforms(extension),
@@ -294,10 +316,12 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.canPublishInNamespace(userData, namespace),
                 () -> repositories.findLatestVersion("namespaceName", "extensionName", "targetPlatform", false, false),
                 () -> repositories.hasMembership(userData, namespace),
-                () -> repositories.findFirstUnresolvedDependency(List.of(new ExtensionId("namespaceName", "extensionName"))),
+                () -> repositories
+                        .findFirstUnresolvedDependency(List.of(new ExtensionId("namespaceName", "extensionName"))),
                 () -> repositories.findAllAccessTokens(),
                 () -> repositories.hasAccessToken("tokenValue"),
-                () -> repositories.findSignatureKeyPairPublicId("namespaceName", "extensionName", "targetPlatform", "version"),
+                () -> repositories
+                        .findSignatureKeyPairPublicId("namespaceName", "extensionName", "targetPlatform", "version"),
                 () -> repositories.findFirstMembership("namespaceName"),
                 () -> repositories.findActiveExtensionsForUrls(namespace),
                 () -> repositories.deactivateKeyPairs(),
@@ -307,15 +331,28 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.findNotMigratedItems(page),
                 () -> repositories.findRemoveFileResourceTypeResourceMigrationItems(0, 1),
                 () -> repositories.findTargetPlatformsGroupedByVersion(extension, userData),
-                () -> repositories.findVersionPublishedWithUser(userData, "version", "targetPlatform", "extensionName", "namespace"),
+                () -> repositories.findVersionPublishedWithUser(
+                        userData,
+                        "version",
+                        "targetPlatform",
+                        "extensionName",
+                        "namespace"),
                 () -> repositories.findLatestVersion(userData, "namespaceName", "extensionName"),
                 () -> repositories.isDeleteAllVersions(userData, "namespaceName", "extensionName"),
                 () -> repositories.deactivateAccessTokens(userData),
                 () -> repositories.expireAccessTokens(NOW),
                 () -> repositories.findExpiringAccessTokensWithoutNotification(NOW, page),
                 () -> repositories.updateExpiresTimeForLegacyAccessTokens(NOW),
-                () -> repositories.findSimilarExtensionsByLevenshtein("extensionName", "namespaceName", "displayName", Collections.emptyList(), 0.5, false, 10),
-                () -> repositories.findSimilarNamespacesByLevenshtein("namespaceName", Collections.emptyList(), 0.5, false, 10),
+                () -> repositories.findSimilarExtensionsByLevenshtein(
+                        "extensionName",
+                        "namespaceName",
+                        "displayName",
+                        Collections.emptyList(),
+                        0.5,
+                        false,
+                        10),
+                () -> repositories
+                        .findSimilarNamespacesByLevenshtein("namespaceName", Collections.emptyList(), 0.5, false, 10),
                 () -> repositories.findExtensionScans(extVersion),
                 () -> repositories.findLatestExtensionScan(extVersion),
                 () -> repositories.findExtensionScans(extension),
@@ -340,14 +377,63 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.saveValidationFailure(validationFailure),
                 // DB paging and filtering methods for scan API
                 () -> repositories.countExtensionScansByStatusAndDateRange(ScanStatus.STARTED, NOW, NOW),
-                () -> repositories.countExtensionScansByStatusDateRangeAndEnforcement(ScanStatus.STARTED, NOW, NOW, true),
-                () -> repositories.findScansFiltered(List.of(ScanStatus.STARTED), "namespaceName", "publisher", "extensionName", NOW, NOW, page),
-                () -> repositories.countScansFiltered(List.of(ScanStatus.STARTED), "namespaceName", "publisher", "extensionName", NOW, NOW),
-                () -> repositories.findScansFullyFiltered(List.of(ScanStatus.STARTED), "namespaceName", "publisher", "extensionName", NOW, NOW, List.of("checkType"), List.of("scanner"), true, null, false, page),
-                () -> repositories.countScansFullyFiltered(List.of(ScanStatus.STARTED), "namespaceName", "publisher", "extensionName", NOW, NOW, List.of("checkType"), List.of("scanner"), true, null, false),
+                () -> repositories
+                        .countExtensionScansByStatusDateRangeAndEnforcement(ScanStatus.STARTED, NOW, NOW, true),
+                () -> repositories.findScansFiltered(
+                        List.of(ScanStatus.STARTED),
+                        "namespaceName",
+                        "publisher",
+                        "extensionName",
+                        NOW,
+                        NOW,
+                        page),
+                () -> repositories.countScansFiltered(
+                        List.of(ScanStatus.STARTED),
+                        "namespaceName",
+                        "publisher",
+                        "extensionName",
+                        NOW,
+                        NOW),
+                () -> repositories.findScansFullyFiltered(
+                        List.of(ScanStatus.STARTED),
+                        "namespaceName",
+                        "publisher",
+                        "extensionName",
+                        NOW,
+                        NOW,
+                        List.of("checkType"),
+                        List.of("scanner"),
+                        true,
+                        null,
+                        false,
+                        page),
+                () -> repositories.countScansFullyFiltered(
+                        List.of(ScanStatus.STARTED),
+                        "namespaceName",
+                        "publisher",
+                        "extensionName",
+                        NOW,
+                        NOW,
+                        List.of("checkType"),
+                        List.of("scanner"),
+                        true,
+                        null,
+                        false),
                 // Statistics queries with full filter support
-                () -> repositories.countScansForStatistics(ScanStatus.STARTED, NOW, NOW, List.of("checkType"), List.of("scanner"), true),
-                () -> repositories.countAdminDecisionsForStatistics("ALLOWED", NOW, NOW, List.of("checkType"), List.of("scanner"), true),
+                () -> repositories.countScansForStatistics(
+                        ScanStatus.STARTED,
+                        NOW,
+                        NOW,
+                        List.of("checkType"),
+                        List.of("scanner"),
+                        true),
+                () -> repositories.countAdminDecisionsForStatistics(
+                        "ALLOWED",
+                        NOW,
+                        NOW,
+                        List.of("checkType"),
+                        List.of("scanner"),
+                        true),
                 // Admin scan decision methods
                 () -> repositories.findAdminScanDecision(scan),
                 () -> repositories.findAdminScanDecision(1L),
@@ -367,7 +453,14 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.deleteFileDecisionByHash("fileHash"),
                 () -> repositories.findFileDecisionsByIds(LONG_LIST),
                 () -> repositories.findFileDecisionByHash("fileHash"),
-                () -> repositories.findFileDecisionsFiltered("ALLOWED", "publisher", "namespace", "name", NOW.minusYears(1), NOW.plusYears(1), page),
+                () -> repositories.findFileDecisionsFiltered(
+                        "ALLOWED",
+                        "publisher",
+                        "namespace",
+                        "name",
+                        NOW.minusYears(1),
+                        NOW.plusYears(1),
+                        page),
                 () -> repositories.countAllFileDecisions(),
                 // Note: We pass valid LocalDateTime values to avoid PostgreSQL null parameter type issues
                 () -> repositories.countFileDecisionsByDateRange("ALLOWED", NOW.minusYears(1), NOW.plusYears(1)),
@@ -397,7 +490,11 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.findScanCheckResults(scan),
                 () -> repositories.findScanCheckResultsByScanId(1L),
                 // Extension version lookup including inactive
-                () -> repositories.findExtensionVersionIncludingInactive(namespace.getName(), extension.getName(), extVersion.getTargetPlatform(), extVersion.getVersion()),
+                () -> repositories.findExtensionVersionIncludingInactive(
+                        namespace.getName(),
+                        extension.getName(),
+                        extVersion.getTargetPlatform(),
+                        extVersion.getVersion()),
                 // Rate limit tests
                 () -> repositories.upsertTier(tier),
                 () -> repositories.findTier("tier"),
@@ -425,8 +522,7 @@ class RepositoryServiceSmokeTest {
                 () -> repositories.deleteTier(tier),
                 () -> repositories.deleteCustomer(customer),
                 // Extension scan delete method - add last, still not clear why but otherwise the test fails
-                () -> repositories.deleteExtensionScan(scan)
-            );
+                () -> repositories.deleteExtensionScan(scan));
 
         // check that we did not miss anything
         // (remember to add new queries also to this test)

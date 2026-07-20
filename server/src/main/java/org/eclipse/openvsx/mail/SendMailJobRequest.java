@@ -9,10 +9,10 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mail;
 
+import java.util.Map;
+
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
-
-import java.util.Map;
 
 /**
  * A {@code JobRequest} to send templated emails.
@@ -29,16 +29,17 @@ public class SendMailJobRequest implements JobRequest {
     //        <a href="https://www.jobrunr.io/en/documentation/serialization/jackson3/#exploring-alternatives-to-additional-polymorphic-type-validation">...</a>
     //        RegistryApplication injects a custom Jackson3JsonMapper that also allows subtypes from java.util and java.time
     //        but we should revisit the variables
-    private Map<String,Object> variables;
+    private Map<String, Object> variables;
 
-    public SendMailJobRequest() {}
+    public SendMailJobRequest() {
+    }
 
     public SendMailJobRequest(
             String from,
             String to,
             String subject,
             String template,
-            Map<String,Object> variables
+            Map<String, Object> variables
     ) {
         this.from = from;
         this.to = to;

@@ -12,13 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.util.TimeUtil;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * Records the result of each check/scan executed on an extension.
@@ -338,15 +339,21 @@ public class ScanCheckResult implements Serializable {
         result.setCompletedAt(TimeUtil.getCurrentUTC());
         result.setDurationMs(java.time.Duration.between(startedAt, result.getCompletedAt()).toMillis());
         result.setErrorMessage(errorMessage);
-        result.setSummary("Error: " + (errorMessage != null && errorMessage.length() > 100
-            ? errorMessage.substring(0, 100) + "..." : errorMessage));
+        result.setSummary(
+                "Error: " + (errorMessage != null && errorMessage.length() > 100
+                        ? errorMessage.substring(0, 100) + "..."
+                        : errorMessage));
         return result;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ScanCheckResult that = (ScanCheckResult) o;
         return id == that.id
                 && Objects.equals(getScanId(scan), getScanId(that.scan))

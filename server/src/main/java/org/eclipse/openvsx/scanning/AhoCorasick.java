@@ -12,9 +12,9 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-
 import java.util.*;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Aho-Corasick string matching automaton for efficient multi-pattern search.
@@ -71,7 +71,8 @@ public final class AhoCorasick {
         private final Set<String> keywords = new HashSet<>();
         private boolean built = false;
 
-        private Builder() {}
+        private Builder() {
+        }
 
         /**
          * Add a single keyword to the automaton.

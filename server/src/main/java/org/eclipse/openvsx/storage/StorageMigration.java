@@ -9,9 +9,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.storage;
 
+import java.io.IOException;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledFuture;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.repositories.RepositoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,13 +27,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ScheduledFuture;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 import static org.eclipse.openvsx.entities.FileResource.*;
 
@@ -75,11 +76,13 @@ public class StorageMigration {
         for (var i = 0; i < migrations.size(); i++) {
             final int index = i;
             repositories.findFilesByStorageType(migrations.get(index))
-                .filter(resource -> !resource.getStorageType().equals(STORAGE_LOCAL) || storageUtil.shouldStoreExternally(resource))
-                .forEach(resource -> {
-                    resourceQueue.add(resource.getId());
-                    migrationCount[index]++;
-                });
+                    .filter(
+                            resource -> !resource.getStorageType().equals(STORAGE_LOCAL)
+                                    || storageUtil.shouldStoreExternally(resource))
+                    .forEach(resource -> {
+                        resourceQueue.add(resource.getId());
+                        migrationCount[index]++;
+                    });
         }
 
         if (!resourceQueue.isEmpty()) {

@@ -12,12 +12,11 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.util.Map;
+import java.util.Optional;
+
 import com.giffing.bucket4j.spring.boot.starter.context.ExpressionParams;
 import jakarta.servlet.http.HttpServletRequest;
-import org.eclipse.openvsx.accesstoken.AccessTokenService;
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
-import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -27,8 +26,10 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
+import org.eclipse.openvsx.accesstoken.AccessTokenService;
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
+import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
 
 @Service
 @ConditionalOnBean(RateLimitConfig.class)
@@ -116,8 +117,7 @@ public class IdentityService {
                 cacheKey,
                 customer.orElse(null),
                 tierService.getFreeTier().orElse(null),
-                tierService.getSafetyTier().orElse(null)
-        );
+                tierService.getSafetyTier().orElse(null));
     }
 
     private String getIPAddress(HttpServletRequest request) {

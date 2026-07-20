@@ -9,17 +9,19 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.json.ChangeNamespaceJson;
+import java.util.Objects;
+
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
-import java.util.Objects;
+import org.eclipse.openvsx.json.ChangeNamespaceJson;
 
 public class ChangeNamespaceJobRequest implements JobRequest {
 
     private ChangeNamespaceJson data;
 
-    public ChangeNamespaceJobRequest() {}
+    public ChangeNamespaceJobRequest() {
+    }
 
     public ChangeNamespaceJobRequest(ChangeNamespaceJson data) {
         this.data = data;
@@ -41,8 +43,12 @@ public class ChangeNamespaceJobRequest implements JobRequest {
     // equals and hashCode are used to make AdminAPITest.testChangeNamespace test succeed
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ChangeNamespaceJobRequest that = (ChangeNamespaceJobRequest) o;
         return Objects.equals(data, that.data);
     }

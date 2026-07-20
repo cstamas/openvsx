@@ -9,6 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.SerializationUtils;
@@ -18,17 +23,6 @@ import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.entities.NamespaceMembership;
-import org.eclipse.openvsx.entities.UserData;
-import org.eclipse.openvsx.json.NamespaceDetailsJson;
-import org.eclipse.openvsx.json.ResultJson;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.security.IdPrincipal;
-import org.eclipse.openvsx.security.OAuth2AttributesConfig;
-import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,10 +34,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ServerErrorException;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.entities.NamespaceMembership;
+import org.eclipse.openvsx.entities.UserData;
+import org.eclipse.openvsx.json.NamespaceDetailsJson;
+import org.eclipse.openvsx.json.ResultJson;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.security.IdPrincipal;
+import org.eclipse.openvsx.security.OAuth2AttributesConfig;
+import org.eclipse.openvsx.storage.StorageUtilService;
+import org.eclipse.openvsx.util.*;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_NAMESPACE_DETAILS_JSON;
 
@@ -100,7 +101,13 @@ public class UserService {
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    public ResultJson setNamespaceMember(UserData requestingUser, String namespaceName, String provider, String userLogin, String role) {
+    public ResultJson setNamespaceMember(
+            UserData requestingUser,
+            String namespaceName,
+            String provider,
+            String userLogin,
+            String role
+    ) {
         var namespace = repositories.findNamespace(namespaceName);
         if (!repositories.isNamespaceOwner(requestingUser, namespace)) {
             throw new ErrorResultException("You must be an owner of this namespace.");
@@ -118,18 +125,19 @@ public class UserService {
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key="#namespace.name")
+    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key = "#namespace.name")
     public ResultJson removeNamespaceMember(Namespace namespace, UserData user) throws ErrorResultException {
         var membership = repositories.findMembership(user, namespace);
         if (membership == null) {
-            throw new ErrorResultException("User " + user.getLoginName() + " is not a member of " + namespace.getName() + ".");
+            throw new ErrorResultException(
+                    "User " + user.getLoginName() + " is not a member of " + namespace.getName() + ".");
         }
         entityManager.remove(membership);
         return ResultJson.success("Removed " + user.getLoginName() + " from namespace " + namespace.getName() + ".");
     }
 
     @Transactional(rollbackOn = ErrorResultException.class)
-    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key="#namespace.name")
+    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key = "#namespace.name")
     public ResultJson addNamespaceMember(Namespace namespace, UserData user, String role) {
         if (!(role.equals(NamespaceMembership.ROLE_OWNER)
                 || role.equals(NamespaceMembership.ROLE_CONTRIBUTOR))) {
@@ -141,7 +149,8 @@ public class UserService {
                 throw new ErrorResultException("User " + user.getLoginName() + " already has the role " + role + ".");
             }
             membership.setRole(role);
-            return ResultJson.success("Changed role of " + user.getLoginName() + " in " + namespace.getName() + " to " + role + ".");
+            return ResultJson.success(
+                    "Changed role of " + user.getLoginName() + " in " + namespace.getName() + " to " + role + ".");
         }
         membership = new NamespaceMembership();
         membership.setNamespace(namespace);
@@ -152,7 +161,7 @@ public class UserService {
     }
 
     @Transactional(rollbackOn = { ErrorResultException.class, NotFoundException.class })
-    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key="#details.name")
+    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key = "#details.name")
     public ResultJson updateNamespaceDetails(NamespaceDetailsJson details, UserData user) {
         var namespace = repositories.findNamespace(details.getName());
         if (namespace == null) {
@@ -167,7 +176,7 @@ public class UserService {
             var message = issues.size() == 1
                     ? issues.getFirst().toString()
                     : "Multiple issues were found in the extension metadata:\n"
-                      + issues.stream().map(Object::toString).collect(Collectors.joining("\n"));
+                            + issues.stream().map(Object::toString).collect(Collectors.joining("\n"));
 
             throw new ErrorResultException(message);
         }
@@ -180,7 +189,8 @@ public class UserService {
                     var conflictingNamespace = conflictingNamespaces.getFirst();
                     throw new ErrorResultException(
                             "Display name '" + details.getDisplayName()
-                                    + "' collides with the name of existing namespace '" + conflictingNamespace.getName()
+                                    + "' collides with the name of existing namespace '"
+                                    + conflictingNamespace.getName()
                                     + " (" + conflictingNamespace.getDisplayName() + ")"
                                     + "'. Please choose a different display name.");
                 }
@@ -209,7 +219,7 @@ public class UserService {
     }
 
     @Transactional
-    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key="#namespaceName")
+    @CacheEvict(value = { CACHE_NAMESPACE_DETAILS_JSON }, key = "#namespaceName")
     public ResultJson updateNamespaceDetailsLogo(String namespaceName, MultipartFile file, UserData user) {
         var namespace = repositories.findNamespace(namespaceName);
         if (namespace == null) {
@@ -270,15 +280,13 @@ public class UserService {
             if (!userData.getAuthId().equals(newUser.getAuthId())) {
                 logger.error(
                         "Login attempt by user '{}' with authId '{}' which does not match existing authId '{}'," +
-                        "potential account takeover attempt, disallowing login",
+                                "potential account takeover attempt, disallowing login",
                         newUser.getLoginName(),
                         newUser.getAuthId(),
-                        userData.getAuthId()
-                );
+                        userData.getAuthId());
                 throw new AuthenticationServiceException(
                         "Could not login due to an existing user account with the same name. " +
-                        "Please contact support for details."
-                );
+                                "Please contact support for details.");
             }
             var updated = false;
             if (!Strings.CS.equals(userData.getLoginName(), newUser.getLoginName())) {
@@ -316,7 +324,10 @@ public class UserService {
 
         return attributesConfig.getProviders().stream()
                 .filter(provider -> clientRegistrationRepository.findByRegistrationId(provider) != null)
-                .map(provider -> Map.entry(provider, UrlUtil.createApiUrl(UrlUtil.getBaseUrl(), "oauth2", "authorization", provider)))
+                .map(
+                        provider -> Map.entry(
+                                provider,
+                                UrlUtil.createApiUrl(UrlUtil.getBaseUrl(), "oauth2", "authorization", provider)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

@@ -9,15 +9,16 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.util.TempFile;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
+import org.junit.jupiter.api.Test;
+
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -97,7 +98,7 @@ class ExtensionProcessorTest {
 
     private TempFile writeToTempFile(String resource) throws IOException {
         var file = new TempFile("test", ".zip");
-        try(
+        try (
                 var in = getClass().getResourceAsStream(resource);
                 var out = Files.newOutputStream(file.getPath());
         ) {

@@ -17,7 +17,10 @@ import org.springframework.context.annotation.Configuration;
 public class ExtensionQueryConfig {
     @Bean
     @ConditionalOnMissingBean(IExtensionQueryRequestHandler.class)
-    public IExtensionQueryRequestHandler defaultExtensionQueryRequestHandler(LocalVSCodeService local, UpstreamVSCodeService upstream) {
+    public IExtensionQueryRequestHandler defaultExtensionQueryRequestHandler(
+            LocalVSCodeService local,
+            UpstreamVSCodeService upstream
+    ) {
         return new DefaultExtensionQueryRequestHandler(local, upstream);
     }
 }

@@ -12,12 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.util.Timeout;
-import org.eclipse.openvsx.util.TempFile;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -32,8 +34,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import org.eclipse.openvsx.util.TempFile;
 
 /**
  * Executes HTTP requests based on configuration.
@@ -66,12 +67,12 @@ public class HttpClientExecutor {
             RemoteScannerProperties.@Nullable AuthConfig authConfig,
             String scannerName
     ) {
-        logger.debug("Creating HTTP client for scanner '{}': socketTimeout={}ms, connectTimeout={}ms, auth={}",
-            scannerName,
-            httpConfig.getSocketTimeoutMs(),
-            httpConfig.getConnectTimeoutMs(),
-            authConfig != null ? authConfig.getType() : "none"
-        );
+        logger.debug(
+                "Creating HTTP client for scanner '{}': socketTimeout={}ms, connectTimeout={}ms, auth={}",
+                scannerName,
+                httpConfig.getSocketTimeoutMs(),
+                httpConfig.getConnectTimeoutMs(),
+                authConfig != null ? authConfig.getType() : "none");
 
         RestTemplate restTemplate = createRestTemplate(httpConfig);
 
@@ -105,9 +106,9 @@ public class HttpClientExecutor {
      */
     private static RestTemplate createRestTemplate(RemoteScannerProperties.HttpConfig httpConfig) {
         var connectionConfig = ConnectionConfig.custom()
-            .setConnectTimeout(Timeout.of(httpConfig.getConnectTimeoutMs(), TimeUnit.MILLISECONDS))
-            .setSocketTimeout(Timeout.of(httpConfig.getSocketTimeoutMs(), TimeUnit.MILLISECONDS))
-            .build();
+                .setConnectTimeout(Timeout.of(httpConfig.getConnectTimeoutMs(), TimeUnit.MILLISECONDS))
+                .setSocketTimeout(Timeout.of(httpConfig.getSocketTimeoutMs(), TimeUnit.MILLISECONDS))
+                .build();
 
         PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(httpConfig.getMaxTotal());
@@ -115,13 +116,14 @@ public class HttpClientExecutor {
         connectionManager.setDefaultConnectionConfig(connectionConfig);
 
         var requestConfig = RequestConfig.custom()
-            .setConnectionRequestTimeout(Timeout.of(httpConfig.getConnectionRequestTimeoutMs(), TimeUnit.MILLISECONDS))
-            .build();
+                .setConnectionRequestTimeout(
+                        Timeout.of(httpConfig.getConnectionRequestTimeoutMs(), TimeUnit.MILLISECONDS))
+                .build();
 
         var httpClient = HttpClientBuilder.create()
-            .setConnectionManager(connectionManager)
-            .setDefaultRequestConfig(requestConfig)
-            .build();
+                .setConnectionManager(connectionManager)
+                .setDefaultRequestConfig(requestConfig)
+                .build();
 
         return new RestTemplateBuilder()
                 .requestFactory(() -> {
@@ -136,8 +138,8 @@ public class HttpClientExecutor {
      * Execute an HTTP request based on configuration.
      */
     public String execute(
-        RemoteScannerProperties.HttpOperation operation,
-        TempFile file
+            RemoteScannerProperties.HttpOperation operation,
+            TempFile file
     ) throws ScannerException {
         try {
             // Build request entity (includes auth headers)
@@ -149,11 +151,10 @@ public class HttpClientExecutor {
             // Execute request
             HttpMethod method = HttpMethod.valueOf(operation.getMethod().toUpperCase());
             ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                method,
-                requestEntity,
-                String.class
-            );
+                    url,
+                    method,
+                    requestEntity,
+                    String.class);
 
             // Return response body for successful requests
             return response.getBody();
@@ -166,11 +167,11 @@ public class HttpClientExecutor {
                     bodySnippet = bodySnippet.substring(0, 200) + "...";
                 }
                 throw new ScannerException(
-                    "Scanner service error: " + e.getStatusCode() + " " +
-                    e.getStatusText() + " on " + operation.getMethod() + " " +
-                    operation.getUrl() +
-                    (bodySnippet != null && !bodySnippet.isEmpty() ? " — " + bodySnippet : ""), e
-                );
+                        "Scanner service error: " + e.getStatusCode() + " " +
+                                e.getStatusText() + " on " + operation.getMethod() + " " +
+                                operation.getUrl() +
+                                (bodySnippet != null && !bodySnippet.isEmpty() ? " — " + bodySnippet : ""),
+                        e);
             }
             // 4xx — some scanners use non-2xx for valid results (e.g., 406 = malware found).
             // Return the body so the scanner can parse it.
@@ -180,10 +181,10 @@ public class HttpClientExecutor {
             }
             // No body on a 4xx — genuine error
             throw new ScannerException(
-                "Failed to execute HTTP request: " + e.getStatusCode() + " " +
-                e.getStatusText() + " on " + operation.getMethod() + " request for \"" +
-                operation.getUrl() + "\"", e
-            );
+                    "Failed to execute HTTP request: " + e.getStatusCode() + " " +
+                            e.getStatusText() + " on " + operation.getMethod() + " request for \"" +
+                            operation.getUrl() + "\"",
+                    e);
         } catch (Exception e) {
             throw new ScannerException("Failed to execute HTTP request: " + e.getMessage(), e);
         }
@@ -211,8 +212,8 @@ public class HttpClientExecutor {
      * Build the HTTP request entity based on configuration.
      */
     private HttpEntity<?> buildRequestEntity(
-        RemoteScannerProperties.HttpOperation operation,
-        TempFile file
+            RemoteScannerProperties.HttpOperation operation,
+            TempFile file
     ) {
         // Build headers
         HttpHeaders headers = new HttpHeaders();
@@ -249,9 +250,9 @@ public class HttpClientExecutor {
      * Used for file uploads.
      */
     private HttpEntity<MultiValueMap<String, Object>> buildMultipartEntity(
-        RemoteScannerProperties.BodyConfig bodyConfig,
-        TempFile file,
-        HttpHeaders headers
+            RemoteScannerProperties.BodyConfig bodyConfig,
+            TempFile file,
+            HttpHeaders headers
     ) {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -275,8 +276,8 @@ public class HttpClientExecutor {
      * Build JSON request entity.
      */
     private HttpEntity<String> buildJsonEntity(
-        RemoteScannerProperties.BodyConfig bodyConfig,
-        HttpHeaders headers
+            RemoteScannerProperties.BodyConfig bodyConfig,
+            HttpHeaders headers
     ) {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -292,8 +293,8 @@ public class HttpClientExecutor {
      * Build form-urlencoded request entity.
      */
     private HttpEntity<MultiValueMap<String, String>> buildFormEntity(
-        RemoteScannerProperties.BodyConfig bodyConfig,
-        HttpHeaders headers
+            RemoteScannerProperties.BodyConfig bodyConfig,
+            HttpHeaders headers
     ) {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -309,8 +310,8 @@ public class HttpClientExecutor {
      * Build raw text request entity.
      */
     private HttpEntity<String> buildRawEntity(
-        RemoteScannerProperties.BodyConfig bodyConfig,
-        HttpHeaders headers
+            RemoteScannerProperties.BodyConfig bodyConfig,
+            HttpHeaders headers
     ) {
         String rawBody = bodyConfig.getTemplate();
         if (rawBody == null) {
@@ -330,7 +331,9 @@ public class HttpClientExecutor {
 
         @Override
         public @NonNull String getFilename() {
-            return tempFile.getResource() != null ? tempFile.getResource().getName() : tempFile.getPath().toFile().getName();
+            return tempFile.getResource() != null
+                    ? tempFile.getResource().getName()
+                    : tempFile.getPath().toFile().getName();
         }
     }
 }

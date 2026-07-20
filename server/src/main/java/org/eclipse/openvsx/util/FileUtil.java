@@ -24,13 +24,14 @@ public class FileUtil {
         var MAX_SIZE = 100;
         LOCKS = Collections.synchronizedMap(new LinkedHashMap<>(MAX_SIZE) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry eldest){
+            protected boolean removeEldestEntry(Map.Entry eldest) {
                 return size() > MAX_SIZE;
             }
         });
     }
 
-    private FileUtil() {}
+    private FileUtil() {
+    }
 
     /***
      * Write to file synchronously, if it doesn't already exist.
@@ -43,7 +44,7 @@ public class FileUtil {
             lock = LOCKS.computeIfAbsent(path, key -> new Object());
         }
         synchronized (lock) {
-            if(!Files.exists(path)) {
+            if (!Files.exists(path)) {
                 writer.accept(path);
             }
         }

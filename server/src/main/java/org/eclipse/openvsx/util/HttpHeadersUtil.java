@@ -12,8 +12,15 @@
  *****************************************************************************/
 package org.eclipse.openvsx.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.tika.Tika;
-import org.eclipse.openvsx.storage.StorageUtil;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ContentDisposition;
@@ -22,13 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
+import org.eclipse.openvsx.storage.StorageUtil;
 
 public class HttpHeadersUtil {
     private static final MediaType APPLICATION_ZIP = MediaType.valueOf("application/zip");
@@ -40,23 +41,38 @@ public class HttpHeadersUtil {
 
     // Characters explicitly dangerous in Content-Disposition or HTTP headers
     private static final Set<Character> FORBIDDEN_CHARS = Set.of(
-            '/', '\\', ':', '*', '?', '"', '<', '>', '|', // filesystem/shell
-            '\r', '\n', '\0',                              // header injection
-            ';', ',', '='                                  // header parameter delimiters
+            '/',
+            '\\',
+            ':',
+            '*',
+            '?',
+            '"',
+            '<',
+            '>',
+            '|', // filesystem/shell
+            '\r',
+            '\n',
+            '\0', // header injection
+            ';',
+            ',',
+            '=' // header parameter delimiters
     );
 
     private static final Set<String> TEXT_VIEWABLE_MEDIA_TYPES = Set.of(
-            "text/plain", "text/html", "text/markdown", "text/css", "text/javascript"
-    );
+            "text/plain",
+            "text/html",
+            "text/markdown",
+            "text/css",
+            "text/javascript");
 
     private static final Set<String> PASSTHROUGH_MEDIA_TYPES = Set.of(
-            "application/json", "application/xml"
-    );
+            "application/json",
+            "application/xml");
 
-    public static final String CSP_PREVENT_ALL =
-            "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox";
+    public static final String CSP_PREVENT_ALL = "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox";
 
-    private HttpHeadersUtil() {}
+    private HttpHeadersUtil() {
+    }
 
     public static HttpHeaders getForwardedHeaders() {
         var headers = new HttpHeaders();
@@ -69,7 +85,8 @@ public class HttpHeadersUtil {
                 var header = it.nextElement();
                 headers.add(header, request.getHeader(header));
             }
-        } catch (IllegalStateException _) {}
+        } catch (IllegalStateException _) {
+        }
         headers.remove(HttpHeaders.HOST);
         headers.remove(HttpHeaders.CONTENT_LENGTH);
         return headers;
@@ -105,7 +122,7 @@ public class HttpHeadersUtil {
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
         headers.set("X-Content-Type-Options", "nosniff"); // prevents MIME sniffing
-        headers.set("X-Frame-Options", "DENY");           // prevents framing
+        headers.set("X-Frame-Options", "DENY"); // prevents framing
 
         boolean viewableAsText = false;
         boolean forceDownload = true;
@@ -182,7 +199,7 @@ public class HttpHeadersUtil {
             int dot = sanitized.lastIndexOf('.');
             if (dot > 0 && dot > sanitized.length() - 16) {
                 // Has a short extension — preserve it
-                String ext = sanitized.substring(dot);           // e.g. ".tar.gz" won't work but ".gz" will
+                String ext = sanitized.substring(dot); // e.g. ".tar.gz" won't work but ".gz" will
                 String name = sanitized.substring(0, dot);
                 name = name.substring(0, MAX_FILENAME_LENGTH - ext.length());
                 sanitized = name + ext;
@@ -198,8 +215,7 @@ public class HttpHeadersUtil {
         String stripped = filename;
         int lastSep = Math.max(
                 filename.lastIndexOf('/'),
-                filename.lastIndexOf('\\')
-        );
+                filename.lastIndexOf('\\'));
         if (lastSep >= 0) {
             stripped = filename.substring(lastSep + 1);
         }

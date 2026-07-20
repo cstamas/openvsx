@@ -46,8 +46,7 @@ public class MigrationScheduler implements JobRequestHandler<HandlerJobRequest<?
         scheduler.scheduleRecurrently(
                 SCHEDULE_MIGRATION_ITEMS_JOB,
                 Cron.every15minutes(),
-                new HandlerJobRequest<>(MigrationItemJobRequestHandler.class)
-        );
+                new HandlerJobRequest<>(MigrationItemJobRequestHandler.class));
     }
 
     public void deleteScheduleMigrationItemsJob() {

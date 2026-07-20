@@ -28,7 +28,8 @@ public class SignAgreementParam {
     @JsonProperty("github_handle")
     private String githubHandle;
 
-    public SignAgreementParam() {}
+    public SignAgreementParam() {
+    }
 
     public SignAgreementParam(String version, String githubHandle) {
         this.version = version;

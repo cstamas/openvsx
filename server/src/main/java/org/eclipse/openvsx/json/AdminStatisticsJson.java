@@ -9,9 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.json;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AdminStatisticsJson extends ResultJson {
@@ -126,7 +126,9 @@ public class AdminStatisticsJson extends ResultJson {
         return publishersByExtensionsPublished;
     }
 
-    public void setPublishersByExtensionsPublished(List<PublishersByExtensionsPublished> publishersByExtensionsPublished) {
+    public void setPublishersByExtensionsPublished(
+            List<PublishersByExtensionsPublished> publishersByExtensionsPublished
+    ) {
         this.publishersByExtensionsPublished = publishersByExtensionsPublished;
     }
 

@@ -9,6 +9,12 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -21,17 +27,12 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import org.apache.commons.lang3.StringUtils;
+
 import org.eclipse.openvsx.json.ExtensionJson;
 import org.eclipse.openvsx.json.ExtensionReferenceJson;
 import org.eclipse.openvsx.json.SearchEntryJson;
 import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.TimeUtil;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "extension_version")
@@ -40,16 +41,14 @@ public class ExtensionVersion implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public static final Comparator<ExtensionVersion> SORT_COMPARATOR =
-        Comparator.comparing(ExtensionVersion::getSemanticVersion)
-                .thenComparing(ExtensionVersion::isUniversalTargetPlatform, Comparator.reverseOrder())
-                .thenComparing(ExtensionVersion::getTargetPlatform)
-                .thenComparing(ExtensionVersion::getTimestamp, Comparator.reverseOrder());
+    public static final Comparator<ExtensionVersion> SORT_COMPARATOR = Comparator
+            .comparing(ExtensionVersion::getSemanticVersion)
+            .thenComparing(ExtensionVersion::isUniversalTargetPlatform, Comparator.reverseOrder())
+            .thenComparing(ExtensionVersion::getTargetPlatform)
+            .thenComparing(ExtensionVersion::getTimestamp, Comparator.reverseOrder());
 
     public enum Type {
-        REGULAR,
-        MINIMAL,
-        EXTENDED
+        REGULAR, MINIMAL, EXTENDED
     }
 
     @Id
@@ -156,9 +155,10 @@ public class ExtensionVersion implements Serializable {
         json.setTargetPlatform(this.getTargetPlatform());
         var namespace = extension.getNamespace();
         json.setNamespace(namespace.getName());
-        json.setNamespaceDisplayName(StringUtils.isNotEmpty(namespace.getDisplayName())
-                ? namespace.getDisplayName()
-                : json.getNamespace());
+        json.setNamespaceDisplayName(
+                StringUtils.isNotEmpty(namespace.getDisplayName())
+                        ? namespace.getDisplayName()
+                        : json.getNamespace());
         json.setName(extension.getName());
         json.setAverageRating(extension.getAverageRating());
         json.setDownloadCount(extension.getDownloadCount());
@@ -240,15 +240,15 @@ public class ExtensionVersion implements Serializable {
         return !map.isEmpty() ? map : null;
     }
 
-	public long getId() {
-		return id;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public void setId(long id) {
-		this.id = id;
-	}
+    public void setId(long id) {
+        this.id = id;
+    }
 
-	public Extension getExtension() {
+    public Extension getExtension() {
         return extension;
     }
 
@@ -256,11 +256,11 @@ public class ExtensionVersion implements Serializable {
         this.extension = extension;
     }
 
-	public String getVersion() {
-		return version;
-	}
+    public String getVersion() {
+        return version;
+    }
 
-	public void setVersion(String version) {
+    public void setVersion(String version) {
         this.version = version;
         this.semver = SemanticVersion.parse(version);
     }
@@ -290,15 +290,15 @@ public class ExtensionVersion implements Serializable {
         // do nothing, semver is derived from version
     }
 
-	public boolean isPreRelease() {
-		return preRelease;
-	}
+    public boolean isPreRelease() {
+        return preRelease;
+    }
 
-	public void setPreRelease(boolean preRelease) {
-		this.preRelease = preRelease;
-	}
+    public void setPreRelease(boolean preRelease) {
+        this.preRelease = preRelease;
+    }
 
-	public boolean isPreview() {
+    public boolean isPreview() {
         return preview;
     }
 
@@ -306,13 +306,13 @@ public class ExtensionVersion implements Serializable {
         this.preview = preview;
     }
 
-	public LocalDateTime getTimestamp() {
-		return timestamp;
-	}
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-	public void setTimestamp(LocalDateTime timestamp) {
-		this.timestamp = timestamp;
-	}
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
 
     public PersonalAccessToken getPublishedWith() {
         return publishedWith;
@@ -338,79 +338,79 @@ public class ExtensionVersion implements Serializable {
         this.potentiallyMalicious = potentiallyMalicious;
     }
 
-	public String getDisplayName() {
-		return displayName;
-	}
+    public String getDisplayName() {
+        return displayName;
+    }
 
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
-	}
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
-	public String getDescription() {
-		return description;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-	public String getLicense() {
-		return license;
-	}
+    public String getLicense() {
+        return license;
+    }
 
-	public void setLicense(String license) {
-		this.license = license;
-	}
+    public void setLicense(String license) {
+        this.license = license;
+    }
 
-	public List<String> getEngines() {
-		return engines;
-	}
+    public List<String> getEngines() {
+        return engines;
+    }
 
-	public void setEngines(List<String> engines) {
-		this.engines = engines;
-	}
+    public void setEngines(List<String> engines) {
+        this.engines = engines;
+    }
 
-	public List<String> getCategories() {
-		return categories;
-	}
+    public List<String> getCategories() {
+        return categories;
+    }
 
-	public void setCategories(List<String> categories) {
-		this.categories = categories;
-	}
+    public void setCategories(List<String> categories) {
+        this.categories = categories;
+    }
 
-	public List<String> getExtensionKind() {
-		return extensionKind;
-	}
+    public List<String> getExtensionKind() {
+        return extensionKind;
+    }
 
-	public void setExtensionKind(List<String> extensionKind) {
-		this.extensionKind = extensionKind;
-	}
+    public void setExtensionKind(List<String> extensionKind) {
+        this.extensionKind = extensionKind;
+    }
 
-	public List<String> getTags() {
-		return tags;
-	}
+    public List<String> getTags() {
+        return tags;
+    }
 
-	public void setTags(List<String> tags) {
-		this.tags = tags;
-	}
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
 
-	public String getHomepage() {
-		return homepage;
-	}
+    public String getHomepage() {
+        return homepage;
+    }
 
-	public void setHomepage(String homepage) {
-		this.homepage = homepage;
-	}
+    public void setHomepage(String homepage) {
+        this.homepage = homepage;
+    }
 
-	public String getRepository() {
-		return repository;
-	}
+    public String getRepository() {
+        return repository;
+    }
 
-	public void setRepository(String repository) {
-		this.repository = repository;
-	}
+    public void setRepository(String repository) {
+        this.repository = repository;
+    }
 
-	public String getSponsorLink() {
+    public String getSponsorLink() {
         return sponsorLink;
     }
 
@@ -418,39 +418,39 @@ public class ExtensionVersion implements Serializable {
         this.sponsorLink = sponsorLink;
     }
 
-	public String getBugs() {
-		return bugs;
-	}
+    public String getBugs() {
+        return bugs;
+    }
 
-	public void setBugs(String bugs) {
-		this.bugs = bugs;
-	}
+    public void setBugs(String bugs) {
+        this.bugs = bugs;
+    }
 
-	public String getMarkdown() {
-		return markdown;
-	}
+    public String getMarkdown() {
+        return markdown;
+    }
 
-	public void setMarkdown(String markdown) {
-		this.markdown = markdown;
-	}
+    public void setMarkdown(String markdown) {
+        this.markdown = markdown;
+    }
 
-	public String getGalleryColor() {
-		return galleryColor;
-	}
+    public String getGalleryColor() {
+        return galleryColor;
+    }
 
-	public void setGalleryColor(String galleryColor) {
-		this.galleryColor = galleryColor;
-	}
+    public void setGalleryColor(String galleryColor) {
+        this.galleryColor = galleryColor;
+    }
 
-	public String getGalleryTheme() {
-		return galleryTheme;
-	}
+    public String getGalleryTheme() {
+        return galleryTheme;
+    }
 
-	public void setGalleryTheme(String galleryTheme) {
-		this.galleryTheme = galleryTheme;
-	}
+    public void setGalleryTheme(String galleryTheme) {
+        this.galleryTheme = galleryTheme;
+    }
 
-	public List<String> getLocalizedLanguages() {
+    public List<String> getLocalizedLanguages() {
         return localizedLanguages;
     }
 
@@ -458,29 +458,29 @@ public class ExtensionVersion implements Serializable {
         this.localizedLanguages = localizedLanguages;
     }
 
-	public String getQna() {
-		return qna;
-	}
+    public String getQna() {
+        return qna;
+    }
 
-	public void setQna(String qna) {
-		this.qna = qna;
-	}
+    public void setQna(String qna) {
+        this.qna = qna;
+    }
 
-	public List<String> getDependencies() {
-		return dependencies;
-	}
+    public List<String> getDependencies() {
+        return dependencies;
+    }
 
-	public void setDependencies(List<String> dependencies) {
-		this.dependencies = dependencies;
-	}
+    public void setDependencies(List<String> dependencies) {
+        this.dependencies = dependencies;
+    }
 
-	public List<String> getBundledExtensions() {
-		return bundledExtensions;
-	}
+    public List<String> getBundledExtensions() {
+        return bundledExtensions;
+    }
 
-	public void setBundledExtensions(List<String> bundledExtensions) {
-		this.bundledExtensions = bundledExtensions;
-	}
+    public void setBundledExtensions(List<String> bundledExtensions) {
+        this.bundledExtensions = bundledExtensions;
+    }
 
     public SignatureKeyPair getSignatureKeyPair() {
         return signatureKeyPair;
@@ -490,7 +490,7 @@ public class ExtensionVersion implements Serializable {
         this.signatureKeyPair = signatureKeyPair;
     }
 
-	public void setType(ExtensionVersion.Type type) {
+    public void setType(ExtensionVersion.Type type) {
         this.type = type;
     }
 
@@ -500,8 +500,12 @@ public class ExtensionVersion implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionVersion that = (ExtensionVersion) o;
         return id == that.id
                 && preRelease == that.preRelease
@@ -537,11 +541,37 @@ public class ExtensionVersion implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, getId(extension), version, targetPlatform, semver, preRelease, preview, timestamp, getId(publishedWith),
-                active, potentiallyMalicious, displayName, description, engines, categories, tags, extensionKind, license, homepage, repository,
-                sponsorLink, bugs, markdown, galleryColor, galleryTheme, localizedLanguages, qna, dependencies,
-                bundledExtensions, signatureKeyPair, type
-        );
+                id,
+                getId(extension),
+                version,
+                targetPlatform,
+                semver,
+                preRelease,
+                preview,
+                timestamp,
+                getId(publishedWith),
+                active,
+                potentiallyMalicious,
+                displayName,
+                description,
+                engines,
+                categories,
+                tags,
+                extensionKind,
+                license,
+                homepage,
+                repository,
+                sponsorLink,
+                bugs,
+                markdown,
+                galleryColor,
+                galleryTheme,
+                localizedLanguages,
+                qna,
+                dependencies,
+                bundledExtensions,
+                signatureKeyPair,
+                type);
     }
 
     private Long getId(Extension extension) {

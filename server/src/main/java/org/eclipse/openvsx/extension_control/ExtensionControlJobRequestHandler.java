@@ -9,11 +9,6 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.extension_control;
 
-import org.eclipse.openvsx.admin.AdminService;
-import org.eclipse.openvsx.migration.HandlerJobRequest;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.settings.SettingsService;
-import org.eclipse.openvsx.util.NamingUtil;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
@@ -21,8 +16,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
+import org.eclipse.openvsx.admin.AdminService;
+import org.eclipse.openvsx.migration.HandlerJobRequest;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.SettingsService;
+import org.eclipse.openvsx.util.NamingUtil;
+
 @Component
-public class ExtensionControlJobRequestHandler implements JobRequestHandler<HandlerJobRequest<?>>  {
+public class ExtensionControlJobRequestHandler implements JobRequestHandler<HandlerJobRequest<?>> {
 
     protected final Logger logger = LoggerFactory.getLogger(ExtensionControlJobRequestHandler.class);
 
@@ -76,7 +77,10 @@ public class ExtensionControlJobRequestHandler implements JobRequestHandler<Hand
             if (extensionId != null && repositories.hasExtension(extensionId.namespace(), extensionId.extension())) {
                 logger.info("delete malicious extension");
                 if (service.deleteTransitively) {
-                    admin.deleteExtensionAndDependencies(extensionControlUser, extensionId.namespace(), extensionId.extension());
+                    admin.deleteExtensionAndDependencies(
+                            extensionControlUser,
+                            extensionId.namespace(),
+                            extensionId.extension());
                 } else {
                     admin.deleteExtension(extensionControlUser, extensionId.namespace(), extensionId.extension());
                 }
@@ -95,7 +99,7 @@ public class ExtensionControlJobRequestHandler implements JobRequestHandler<Hand
         node.properties().iterator().forEachRemaining(field -> {
             logger.info("deprecated: {}", field.getKey());
             var extensionId = NamingUtil.fromExtensionId(field.getKey());
-            if(extensionId == null) {
+            if (extensionId == null) {
                 return;
             }
 

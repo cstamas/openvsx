@@ -15,12 +15,13 @@ package org.eclipse.openvsx.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
 
 /**
  * Service for recording extension download metrics to Prometheus.
@@ -91,10 +92,12 @@ public class ExtensionDownloadMetrics {
         try {
             Counter.builder(EXTENSION_DOWNLOADS_METRIC)
                     .description("Total extension downloads by namespace and extension")
-                    .tags(Tags.of(
-                            "namespace", sanitizeLabel(namespace),
-                            "extension", sanitizeLabel(extensionName)
-                    ))
+                    .tags(
+                            Tags.of(
+                                    "namespace",
+                                    sanitizeLabel(namespace),
+                                    "extension",
+                                    sanitizeLabel(extensionName)))
                     .register(meterRegistry)
                     .increment();
         } catch (Exception e) {

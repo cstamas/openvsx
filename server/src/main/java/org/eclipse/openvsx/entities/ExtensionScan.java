@@ -12,13 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import jakarta.persistence.*;
 
 /**
  * Main scan record that tracks the complete lifecycle of an extension
@@ -265,8 +266,12 @@ public class ExtensionScan implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionScan that = (ExtensionScan) o;
         return id == that.id
                 && Objects.equals(namespaceName, that.namespaceName)
@@ -283,7 +288,17 @@ public class ExtensionScan implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, namespaceName, extensionName, extensionVersion, targetPlatform,
-                publisher, publisherUrl, startedAt, completedAt, status, errorMessage);
+        return Objects.hash(
+                id,
+                namespaceName,
+                extensionName,
+                extensionVersion,
+                targetPlatform,
+                publisher,
+                publisherUrl,
+                startedAt,
+                completedAt,
+                status,
+                errorMessage);
     }
 }

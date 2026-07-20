@@ -9,6 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.publish;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.apache.commons.codec.binary.Base64;
@@ -19,12 +28,6 @@ import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.openssl.PEMParser;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.SignatureKeyPair;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.TempFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,14 +35,12 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.SignatureKeyPair;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.TempFile;
 
 import static org.eclipse.openvsx.entities.SignatureKeyPair.KEYPAIR_MODE_CREATE;
 import static org.eclipse.openvsx.entities.SignatureKeyPair.KEYPAIR_MODE_RENEW;
@@ -112,14 +113,14 @@ public class ExtensionVersionIntegrityService {
             try (var zip = new ZipOutputStream(out)) {
                 var sigEntry = new ZipEntry(".signature.sig");
                 zip.putNextEntry(sigEntry);
-                try(var signatureFile = createSignatureFile(extensionFile, keyPair)) {
+                try (var signatureFile = createSignatureFile(extensionFile, keyPair)) {
                     writeZipEntry(signatureFile, zip);
                 }
                 zip.closeEntry();
 
                 var manifestEntry = new ZipEntry(".signature.manifest");
                 zip.putNextEntry(manifestEntry);
-                try(var manifestFile = generateSignatureManifest(extensionFile)) {
+                try (var manifestFile = generateSignatureManifest(extensionFile)) {
                     writeZipEntry(manifestFile, zip);
                 }
                 zip.closeEntry();
@@ -157,24 +158,28 @@ public class ExtensionVersionIntegrityService {
     private TempFile generateSignatureManifest(TempFile extensionFile) throws IOException {
         var base64 = new Base64();
         var manifestEntries = jsonMapper.createObjectNode();
-        try(var zip = new ZipFile(extensionFile.getPath().toFile())) {
+        try (var zip = new ZipFile(extensionFile.getPath().toFile())) {
             var iterator = zip.stream().iterator();
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 var entry = iterator.next();
-                if(entry.isDirectory()) {
+                if (entry.isDirectory()) {
                     continue;
                 }
 
                 try (var entryStream = zip.getInputStream(entry)) {
                     var manifestEntry = generateManifestEntry(entryStream, entry.getSize(), base64);
-                    manifestEntries.set(new String(base64.encode(entry.getName().getBytes(StandardCharsets.UTF_8))), manifestEntry);
+                    manifestEntries.set(
+                            new String(base64.encode(entry.getName().getBytes(StandardCharsets.UTF_8))),
+                            manifestEntry);
                 }
             }
         }
 
         var manifest = jsonMapper.createObjectNode();
         try (var extensionStream = Files.newInputStream(extensionFile.getPath())) {
-            manifest.set("package", generateManifestEntry(extensionStream, Files.size(extensionFile.getPath()), base64));
+            manifest.set(
+                    "package",
+                    generateManifestEntry(extensionStream, Files.size(extensionFile.getPath()), base64));
         }
         manifest.set("entries", manifestEntries);
 
@@ -195,10 +200,10 @@ public class ExtensionVersionIntegrityService {
     }
 
     private void writeZipEntry(TempFile file, ZipOutputStream out) throws IOException {
-        try(var in = Files.newInputStream(file.getPath())) {
+        try (var in = Files.newInputStream(file.getPath())) {
             int length;
             var buffer = new byte[1024];
-            while((length = in.read(buffer)) >= 0) {
+            while ((length = in.read(buffer)) >= 0) {
                 out.write(buffer, 0, length);
             }
         }

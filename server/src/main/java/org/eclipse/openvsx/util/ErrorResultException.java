@@ -9,13 +9,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.util;
 
-import org.eclipse.openvsx.json.ResultJson;
+import java.io.Serial;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ServerErrorException;
 
-import java.io.Serial;
+import org.eclipse.openvsx.json.ResultJson;
 
 /**
  * Throw this exception to reply with a JSON object of the form

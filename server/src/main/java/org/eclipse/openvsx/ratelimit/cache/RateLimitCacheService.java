@@ -14,8 +14,6 @@ package org.eclipse.openvsx.ratelimit.cache;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
-import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,6 +23,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.RedisClusterClient;
+
+import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
+import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
 
 @Service
 @ConditionalOnBean(RateLimitConfig.class)
@@ -160,7 +161,7 @@ public class RateLimitCacheService extends JedisPubSub {
                         }
                         break;
 
-                    default:
+                    default :
                         logger.warn("Received unknown message {}", message);
                         break;
                 }

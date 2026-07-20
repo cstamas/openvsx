@@ -18,19 +18,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.annotation.PostConstruct;
-
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.util.HttpHeadersUtil;
-import org.eclipse.openvsx.util.TempFile;
-import org.eclipse.openvsx.util.UrlUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.util.HttpHeadersUtil;
+import org.eclipse.openvsx.util.TempFile;
+import org.eclipse.openvsx.util.UrlUtil;
 
 @Component
 public class LocalStorageService implements IStorageService {
@@ -104,7 +104,8 @@ public class LocalStorageService implements IStorageService {
 
     public ResponseEntity<StreamingResponseBody> getNamespaceLogo(Namespace namespace) {
         if (!isEnabled()) {
-            throw new IllegalStateException("Cannot determine location of logo. Configure the 'ovsx.storage.local.directory' property.");
+            throw new IllegalStateException(
+                    "Cannot determine location of logo. Configure the 'ovsx.storage.local.directory' property.");
         }
 
         var path = getLogoPath(namespace);
@@ -118,7 +119,13 @@ public class LocalStorageService implements IStorageService {
                 });
     }
     public URI getNamespaceLogoLocation(Namespace namespace) {
-        return URI.create(UrlUtil.createApiUrl(UrlUtil.getBaseUrl(), "api", namespace.getName(), "logo", namespace.getLogoName()));
+        return URI.create(
+                UrlUtil.createApiUrl(
+                        UrlUtil.getBaseUrl(),
+                        "api",
+                        namespace.getName(),
+                        "logo",
+                        namespace.getLogoName()));
     }
 
     @Override
@@ -172,7 +179,8 @@ public class LocalStorageService implements IStorageService {
 
     private Path getPath(FileResource resource) {
         if (!isEnabled()) {
-            throw new IllegalStateException("Cannot determine location of file. Configure the 'ovsx.storage.local.directory' property.");
+            throw new IllegalStateException(
+                    "Cannot determine location of file. Configure the 'ovsx.storage.local.directory' property.");
         }
 
         var extVersion = resource.getExtension();
@@ -191,7 +199,8 @@ public class LocalStorageService implements IStorageService {
 
     private Path getLogoPath(Namespace namespace) {
         if (!isEnabled()) {
-            throw new IllegalStateException("Cannot determine location of logo. Configure the 'ovsx.storage.local.directory' property.");
+            throw new IllegalStateException(
+                    "Cannot determine location of logo. Configure the 'ovsx.storage.local.directory' property.");
         }
 
         var path = storageDirectory + "/" + namespace.getName() + "/logo/" + namespace.getLogoName();

@@ -64,15 +64,16 @@ class EntropyCalculatorTest {
     void calculate_englishWordHasModerateEntropy() {
         // English words have moderate entropy
         double entropy = calculator.calculate("password");
-        assertTrue(entropy > 2.0 && entropy < 4.0,
-            "English word should have moderate entropy");
+        assertTrue(
+                entropy > 2.0 && entropy < 4.0,
+                "English word should have moderate entropy");
     }
 
     @Test
     void calculate_maxEntropyForUniqueChars() {
         // Maximum entropy when all characters are unique
         double entropy = calculator.calculate("abcd");
-        assertEquals(2.0, entropy, 0.001);  // log2(4) = 2.0
+        assertEquals(2.0, entropy, 0.001); // log2(4) = 2.0
     }
 
     @Test

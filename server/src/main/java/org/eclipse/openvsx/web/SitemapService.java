@@ -9,13 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.web;
 
-import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.UrlUtil;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Component;
-
+import java.io.IOException;
+import java.io.StringWriter;
+import java.net.URI;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -24,9 +20,14 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.net.URI;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.UrlUtil;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_SITEMAP;
 
@@ -52,7 +53,7 @@ public class SitemapService {
 
         var baseUrl = getBaseUrl();
         var rows = repositories.fetchSitemapRows();
-        for(var row : rows) {
+        for (var row : rows) {
             var entry = document.createElement("url");
             var loc = document.createElement("loc");
             loc.setTextContent(baseUrl + row.namespace() + "/" + row.extension());
@@ -64,7 +65,7 @@ public class SitemapService {
             urlset.appendChild(entry);
         }
 
-        try(var writer = new StringWriter()) {
+        try (var writer = new StringWriter()) {
             var factory = TransformerFactory.newInstance();
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             var transformer = factory.newTransformer();
@@ -78,14 +79,16 @@ public class SitemapService {
 
     private String getBaseUrl() {
         String url;
-        if (StringUtils.isEmpty(webuiUrl))
+        if (StringUtils.isEmpty(webuiUrl)) {
             url = UrlUtil.getBaseUrl();
-        else if (URI.create(webuiUrl).isAbsolute())
+        } else if (URI.create(webuiUrl).isAbsolute()) {
             url = webuiUrl;
-        else
+        } else {
             url = UrlUtil.createApiUrl(UrlUtil.getBaseUrl(), webuiUrl.split("/"));
-        if(!url.endsWith("/"))
+        }
+        if (!url.endsWith("/")) {
             url += "/";
+        }
 
         return url + "extension/";
     }

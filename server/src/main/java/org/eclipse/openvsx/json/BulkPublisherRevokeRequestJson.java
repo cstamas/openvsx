@@ -15,7 +15,6 @@ package org.eclipse.openvsx.json;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -27,6 +26,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 )
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BulkPublisherRevokeRequestJson(
-    List<PublisherRevocationTargetJson> publishers,
-    String reason
+        List<PublisherRevocationTargetJson> publishers,
+        String reason
 ) {}

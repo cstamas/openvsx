@@ -12,13 +12,14 @@
  *****************************************************************************/
 package org.eclipse.openvsx.cache;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.VersionAlias;
+import java.lang.reflect.Method;
+
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.VersionAlias;
 
 @Component
 public class LatestExtensionVersionsByPlatformCacheKeyGenerator implements KeyGenerator {
@@ -41,6 +42,7 @@ public class LatestExtensionVersionsByPlatformCacheKeyGenerator implements KeyGe
     public String generate(Extension extension, boolean preReleases) {
         var extensionName = extension.getName();
         var namespaceName = extension.getNamespace().getName();
-        return NamingUtil.toFileFormat(namespaceName, extensionName, VersionAlias.LATEST) + ",pre-releases=" + preReleases;
+        return NamingUtil.toFileFormat(namespaceName, extensionName, VersionAlias.LATEST) + ",pre-releases="
+                + preReleases;
     }
 }

@@ -12,15 +12,16 @@
  *****************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.Setting;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import org.eclipse.openvsx.entities.Setting;
 
 @Repository
 public interface SettingRepository extends JpaRepository<Setting, Long> {
@@ -29,10 +30,10 @@ public interface SettingRepository extends JpaRepository<Setting, Long> {
 
     @Modifying
     @Query(value = """
-        INSERT INTO setting (key, value, created_at, updated_at)
-        VALUES (:key, CAST(:value AS jsonb), :now, :now)
-        ON CONFLICT ON CONSTRAINT setting_key_unique
-        DO UPDATE SET value = CAST(:value AS jsonb), updated_at = :now
-        """, nativeQuery = true)
+            INSERT INTO setting (key, value, created_at, updated_at)
+            VALUES (:key, CAST(:value AS jsonb), :now, :now)
+            ON CONFLICT ON CONSTRAINT setting_key_unique
+            DO UPDATE SET value = CAST(:value AS jsonb), updated_at = :now
+            """, nativeQuery = true)
     void upsert(@Param("key") String key, @Param("value") String value, @Param("now") LocalDateTime now);
 }

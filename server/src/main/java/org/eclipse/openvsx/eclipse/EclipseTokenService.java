@@ -9,9 +9,11 @@
  ********************************************************************************/
 package org.eclipse.openvsx.eclipse;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.entities.AuthToken;
-import org.eclipse.openvsx.entities.UserData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +34,8 @@ import org.springframework.web.client.RestTemplate;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import org.eclipse.openvsx.entities.AuthToken;
+import org.eclipse.openvsx.entities.UserData;
 
 @Service
 public class EclipseTokenService {
@@ -67,7 +68,7 @@ public class EclipseTokenService {
     }
 
     private AuthToken toAuthToken(OAuth2AccessToken accessToken, OAuth2RefreshToken refreshToken) {
-        if(accessToken == null) {
+        if (accessToken == null) {
             return null;
         }
 
@@ -84,8 +85,7 @@ public class EclipseTokenService {
                 accessToken.getExpiresAt(),
                 accessToken.getScopes(),
                 refresh,
-                refreshExpiresAt
-        );
+                refreshExpiresAt);
     }
 
     public AuthToken getActiveEclipseToken(UserData userData) {
@@ -109,12 +109,13 @@ public class EclipseTokenService {
     }
 
     private Pair<OAuth2AccessToken, OAuth2RefreshToken> refreshEclipseToken(AuthToken token) {
-        if(token.refreshToken() == null || isExpired(token.refreshExpiresAt())) {
+        if (token.refreshToken() == null || isExpired(token.refreshExpiresAt())) {
             return null;
         }
 
-        var reg = Optional.ofNullable(clientRegistrationRepository).map(repo -> repo.findByRegistrationId("eclipse")).orElse(null);
-        if(reg == null) {
+        var reg = Optional.ofNullable(clientRegistrationRepository).map(repo -> repo.findByRegistrationId("eclipse"))
+                .orElse(null);
+        if (reg == null) {
             logger.error("Eclipse client not registered");
             return null;
         }

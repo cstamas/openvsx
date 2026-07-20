@@ -9,56 +9,57 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import org.junit.jupiter.api.Test;
+
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.Namespace;
-import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExtensionJsonCacheKeyGeneratorTest {
 
-	private final ExtensionJsonCacheKeyGenerator generator = new ExtensionJsonCacheKeyGenerator();
+    private final ExtensionJsonCacheKeyGenerator generator = new ExtensionJsonCacheKeyGenerator();
 
-	@Test
-	void shouldLowerCaseExtensionNameForCacheKey() {
-		var results = generator.generate("foobar", "BAZ", "linux", "1.0.0");
+    @Test
+    void shouldLowerCaseExtensionNameForCacheKey() {
+        var results = generator.generate("foobar", "BAZ", "linux", "1.0.0");
 
-		assertThat(results).startsWith("foobar.baz");
-	}
+        assertThat(results).startsWith("foobar.baz");
+    }
 
-	@Test
-	void shouldLowerCaseNamespaceNameForCacheKey() {
-		var results = generator.generate("FOoBAr", "baz", "linux", "1.0.0");
+    @Test
+    void shouldLowerCaseNamespaceNameForCacheKey() {
+        var results = generator.generate("FOoBAr", "baz", "linux", "1.0.0");
 
-		assertThat(results).startsWith("foobar.baz");
-	}
+        assertThat(results).startsWith("foobar.baz");
+    }
 
-	@Test
-	void shouldLowerCaseExtensionNameForWildcard() {
-		var extension = mockExtension();
-		extension.setName("BAZ");
-		var results = generator.generateWildcard(extension);
+    @Test
+    void shouldLowerCaseExtensionNameForWildcard() {
+        var extension = mockExtension();
+        extension.setName("BAZ");
+        var results = generator.generateWildcard(extension);
 
-		assertThat(results).startsWith("foobar.baz");
-	}
+        assertThat(results).startsWith("foobar.baz");
+    }
 
-	@Test
-	void shouldLowerCaseNamespaceNameForWildcard() {
-		var extension = mockExtension();
-		extension.getNamespace().setName("FOoBAr");
-		var results = generator.generateWildcard(extension);
+    @Test
+    void shouldLowerCaseNamespaceNameForWildcard() {
+        var extension = mockExtension();
+        extension.getNamespace().setName("FOoBAr");
+        var results = generator.generateWildcard(extension);
 
-		assertThat(results).startsWith("foobar.baz");
-	}
+        assertThat(results).startsWith("foobar.baz");
+    }
 
-	private Extension mockExtension() {
-		var namespace = new Namespace();
-		namespace.setName("foobar");
-		var extension = new Extension();
-		extension.setNamespace(namespace);
-		extension.setName("baz");
-		extension.setActive(true);
+    private Extension mockExtension() {
+        var namespace = new Namespace();
+        namespace.setName("foobar");
+        var extension = new Extension();
+        extension.setNamespace(namespace);
+        extension.setName("baz");
+        extension.setActive(true);
 
-		return extension;
-	}
+        return extension;
+    }
 }

@@ -15,7 +15,6 @@ import java.util.List;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -31,7 +30,8 @@ public class ReadOnlyRequestFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !(disallowedMethods.contains(request.getMethod()) && !allowedEndpoints.contains(request.getRequestURI()));
+        return !(disallowedMethods.contains(request.getMethod())
+                && !allowedEndpoints.contains(request.getRequestURI()));
     }
 
     @Override

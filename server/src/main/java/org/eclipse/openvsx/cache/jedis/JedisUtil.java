@@ -12,18 +12,19 @@
  *****************************************************************************/
 package org.eclipse.openvsx.cache.jedis;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import io.micrometer.common.util.StringUtils;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisClientConfig;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
 public class JedisUtil {
 
-    private JedisUtil() {}
+    private JedisUtil() {
+    }
 
     public static JedisClientConfig getClientConfig(DataRedisProperties properties) {
         var configBuilder = DefaultJedisClientConfig.builder();

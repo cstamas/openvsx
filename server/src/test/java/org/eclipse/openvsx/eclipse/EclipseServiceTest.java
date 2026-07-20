@@ -9,28 +9,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.eclipse;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.ExtensionService;
-import org.eclipse.openvsx.ExtensionValidator;
-import org.eclipse.openvsx.MockTransactionTemplate;
-import org.eclipse.openvsx.UserService;
-import org.eclipse.openvsx.adapter.VSCodeIdService;
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.publish.PublishExtensionVersionHandler;
-import org.eclipse.openvsx.publish.PublishingConfig;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
-import org.eclipse.openvsx.scanning.ExtensionScanService;
-import org.eclipse.openvsx.search.SearchUtilService;
-import org.eclipse.openvsx.storage.*;
-import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
-import org.eclipse.openvsx.storage.log.DownloadCountService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.LogService;
-import org.eclipse.openvsx.util.TargetPlatform;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,11 +33,26 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import org.eclipse.openvsx.ExtensionService;
+import org.eclipse.openvsx.ExtensionValidator;
+import org.eclipse.openvsx.MockTransactionTemplate;
+import org.eclipse.openvsx.UserService;
+import org.eclipse.openvsx.adapter.VSCodeIdService;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
+import org.eclipse.openvsx.publish.PublishExtensionVersionHandler;
+import org.eclipse.openvsx.publish.PublishingConfig;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
+import org.eclipse.openvsx.scanning.ExtensionScanService;
+import org.eclipse.openvsx.search.SearchUtilService;
+import org.eclipse.openvsx.storage.*;
+import org.eclipse.openvsx.storage.log.DownloadCountService;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.LogService;
+import org.eclipse.openvsx.util.TargetPlatform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -59,13 +60,28 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(SpringExtension.class)
-@MockitoBean(types = {
-    EntityManager.class, SearchUtilService.class, GoogleCloudStorageService.class, AzureBlobStorageService.class,
-    AwsStorageService.class, VSCodeIdService.class, DownloadCountService.class, ExtensionDownloadMetrics.class, CacheService.class,
-    UserService.class, PublishExtensionVersionHandler.class, SimpleMeterRegistry.class, FileCacheDurationConfig.class,
-    JobRequestScheduler.class, CdnServiceConfig.class, ExtensionScanService.class, ExtensionScanPersistenceService.class,
-    LogService.class
-})
+@MockitoBean(
+    types = {
+        EntityManager.class,
+        SearchUtilService.class,
+        GoogleCloudStorageService.class,
+        AzureBlobStorageService.class,
+        AwsStorageService.class,
+        VSCodeIdService.class,
+        DownloadCountService.class,
+        ExtensionDownloadMetrics.class,
+        CacheService.class,
+        UserService.class,
+        PublishExtensionVersionHandler.class,
+        SimpleMeterRegistry.class,
+        FileCacheDurationConfig.class,
+        JobRequestScheduler.class,
+        CdnServiceConfig.class,
+        ExtensionScanService.class,
+        ExtensionScanPersistenceService.class,
+        LogService.class
+    }
+)
 class EclipseServiceTest {
 
     private static final String PUBLIC_PROFILE_URL = "https://test.openvsx.eclipse.org/account/profile/{personId}";
@@ -93,14 +109,13 @@ class EclipseServiceTest {
     @Test
     void testGetPublicProfile() throws Exception {
         Mockito.when(
-            restTemplate.exchange(
-                eq(PUBLIC_PROFILE_URL),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(String.class),
-                eq(Map.of("personId", "test"))
-            )
-        ).thenReturn(mockProfileResponse());
+                restTemplate.exchange(
+                        eq(PUBLIC_PROFILE_URL),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(String.class),
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockProfileResponse());
 
         var profile = eclipse.getPublicProfile("test");
 
@@ -115,7 +130,7 @@ class EclipseServiceTest {
     @Test
     void testGetUserProfile() throws Exception {
         Mockito.when(restTemplate.exchange(any(RequestEntity.class), eq(String.class)))
-            .thenReturn(mockProfileResponse());
+                .thenReturn(mockProfileResponse());
 
         var profile = eclipse.getUserProfile("12345");
 
@@ -134,14 +149,13 @@ class EclipseServiceTest {
         user.setEclipsePersonId("test");
 
         Mockito.when(
-            restTemplate.exchange(
-                eq(PUBLISHER_AGREEMENT_URL),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(String.class),
-                eq(Map.of("personId", "test"))
-            )
-        ).thenReturn(mockAgreementResponse());
+                restTemplate.exchange(
+                        eq(PUBLISHER_AGREEMENT_URL),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(String.class),
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockAgreementResponse());
 
         var agreement = eclipse.getPublisherAgreement(user);
         assertThat(agreement).isNotNull();
@@ -157,20 +171,20 @@ class EclipseServiceTest {
         user.setEclipsePersonId("test");
 
         Mockito.when(
-            restTemplate.exchange(
-                    eq(PUBLISHER_AGREEMENT_URL),
-                    eq(HttpMethod.GET),
-                    any(HttpEntity.class),
-                    eq(String.class),
-                    eq(Map.of("personId", "test"))
-            )
-        ).thenReturn(mockOutdatedAgreementResponse());
+                restTemplate.exchange(
+                        eq(PUBLISHER_AGREEMENT_URL),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(String.class),
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockOutdatedAgreementResponse());
 
         try {
             eclipse.checkPublisherAgreement(user);
             fail("Expected an ErrorResultException");
-        } catch(ErrorResultException exc) {
-            assertThat(exc.getMessage()).isEqualTo("Your Publisher Agreement with the Eclipse Foundation is outdated (version 0.1). The current version is 1.1.");
+        } catch (ErrorResultException exc) {
+            assertThat(exc.getMessage()).isEqualTo(
+                    "Your Publisher Agreement with the Eclipse Foundation is outdated (version 0.1). The current version is 1.1.");
         }
     }
 
@@ -185,15 +199,15 @@ class EclipseServiceTest {
                         eq(HttpMethod.GET),
                         any(HttpEntity.class),
                         eq(String.class),
-                        eq(Map.of("personId", "test"))
-                )
-        ).thenReturn(mockOutdatedProfileResponse());
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockOutdatedProfileResponse());
 
         try {
             eclipse.checkPublisherAgreement(user);
             fail("Expected an ErrorResultException");
-        } catch(ErrorResultException exc) {
-            assertThat(exc.getMessage()).isEqualTo("Your Publisher Agreement with the Eclipse Foundation is outdated (version 0.1). The current version is 1.1.");
+        } catch (ErrorResultException exc) {
+            assertThat(exc.getMessage()).isEqualTo(
+                    "Your Publisher Agreement with the Eclipse Foundation is outdated (version 0.1). The current version is 1.1.");
         }
     }
 
@@ -203,14 +217,13 @@ class EclipseServiceTest {
         user.setEclipsePersonId("test");
 
         Mockito.when(
-            restTemplate.exchange(
-                    eq(PUBLISHER_AGREEMENT_URL),
-                    eq(HttpMethod.GET),
-                    any(HttpEntity.class),
-                    eq(String.class),
-                    eq(Map.of("personId", "test"))
-            )
-        ).thenReturn(mockAgreementResponse());
+                restTemplate.exchange(
+                        eq(PUBLISHER_AGREEMENT_URL),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(String.class),
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockAgreementResponse());
 
         eclipse.checkPublisherAgreement(user);
     }
@@ -226,9 +239,8 @@ class EclipseServiceTest {
                         eq(HttpMethod.GET),
                         any(HttpEntity.class),
                         eq(String.class),
-                        eq(Map.of("personId", "test"))
-                )
-        ).thenReturn(mockAllowedProfileResponse());
+                        eq(Map.of("personId", "test"))))
+                .thenReturn(mockAllowedProfileResponse());
 
         eclipse.checkPublisherAgreement(user);
     }
@@ -239,8 +251,14 @@ class EclipseServiceTest {
         user.setEclipsePersonId("test");
 
         var urlTemplate = "https://test.openvsx.eclipse.org/openvsx/publisher_agreement/{personId}";
-        Mockito.when(restTemplate.exchange(eq(urlTemplate), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class), eq(Map.of("personId", "test"))))
-            .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+        Mockito.when(
+                restTemplate.exchange(
+                        eq(urlTemplate),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(String.class),
+                        eq(Map.of("personId", "test"))))
+                .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
 
         var agreement = eclipse.getPublisherAgreement(user);
         assertThat(agreement).isNull();
@@ -259,9 +277,9 @@ class EclipseServiceTest {
     void testSignPublisherAgreement() throws Exception {
         var user = mockUser();
         Mockito.when(restTemplate.postForEntity(any(String.class), any(), eq(String.class)))
-            .thenReturn(mockAgreementResponse());
+                .thenReturn(mockAgreementResponse());
         Mockito.when(repositories.findVersionsByUser(user, false))
-            .thenReturn(Streamable.empty());
+                .thenReturn(Streamable.empty());
 
         var agreement = eclipse.signPublisherAgreement(user);
         assertThat(agreement).isNotNull();
@@ -275,7 +293,7 @@ class EclipseServiceTest {
     void testSignPublisherAgreementReactivateExtension() throws Exception {
         var user = mockUser();
         Mockito.when(restTemplate.postForEntity(any(String.class), any(), eq(String.class)))
-            .thenReturn(mockAgreementResponse());
+                .thenReturn(mockAgreementResponse());
         var namespace = new Namespace();
         namespace.setName("foo");
         var extension = new Extension();
@@ -287,7 +305,7 @@ class EclipseServiceTest {
         extVersion.setExtension(extension);
         extension.getVersions().add(extVersion);
         Mockito.when(repositories.findVersionsByUser(user, false))
-            .thenReturn(Streamable.of(extVersion));
+                .thenReturn(Streamable.of(extVersion));
 
         var agreement = eclipse.signPublisherAgreement(user);
 
@@ -304,7 +322,7 @@ class EclipseServiceTest {
     void testPublisherAgreementAlreadySigned() throws Exception {
         var user = mockUser();
         Mockito.when(restTemplate.postForEntity(any(String.class), any(), eq(String.class)))
-            .thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT));
+                .thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT));
 
         try {
             eclipse.signPublisherAgreement(user);
@@ -331,7 +349,7 @@ class EclipseServiceTest {
         admin.setLoginName("admin");
         admin.setEclipseToken(new AuthToken("67890", null, null, null, null, null));
         Mockito.when(tokens.getActiveEclipseToken(admin))
-            .thenReturn(admin.getEclipseToken());
+                .thenReturn(admin.getEclipseToken());
 
         eclipse.revokePublisherAgreement(user, admin);
     }
@@ -342,7 +360,7 @@ class EclipseServiceTest {
         user.setProvider("github");
         user.setEclipseToken(new AuthToken("12345", null, null, null, null, null));
         Mockito.when(tokens.getActiveEclipseToken(user))
-            .thenReturn(user.getEclipseToken());
+                .thenReturn(user.getEclipseToken());
         return user;
     }
 
@@ -351,7 +369,7 @@ class EclipseServiceTest {
         user.setLoginName("test");
         user.setProvider("github");
         Mockito.when(tokens.getActiveEclipseToken(user))
-            .thenReturn(null);
+                .thenReturn(null);
         return user;
     }
 
@@ -434,8 +452,7 @@ class EclipseServiceTest {
                     publishHandler,
                     scheduler,
                     extensionScanService,
-                    scanPersistenceService
-            );
+                    scanPersistenceService);
         }
 
         @Bean
@@ -470,8 +487,7 @@ class EclipseServiceTest {
                     cache,
                     entityManager,
                     fileCacheDurationConfig,
-                    cdnServiceConfig
-            );
+                    cdnServiceConfig);
         }
 
         @Bean

@@ -9,13 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.migration;
 
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.ExtensionProcessor;
-import org.eclipse.openvsx.entities.ExtensionVersion;
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.util.NamingUtil;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.slf4j.Logger;
@@ -23,16 +21,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import org.eclipse.openvsx.ExtensionProcessor;
+import org.eclipse.openvsx.entities.ExtensionVersion;
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.storage.StorageUtilService;
+import org.eclipse.openvsx.util.NamingUtil;
 
 import static org.eclipse.openvsx.entities.FileResource.*;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "false", matchIfMissing = true)
 public class FixMissingFilesJobRequestHandler implements JobRequestHandler<MigrationJobRequest<?>> {
-    protected final Logger logger = new JobRunrDashboardLogger(LoggerFactory.getLogger(FixMissingFilesJobRequestHandler.class));
+    protected final Logger logger = new JobRunrDashboardLogger(
+            LoggerFactory.getLogger(FixMissingFilesJobRequestHandler.class));
 
     private final EntityManager entityManager;
     private final RepositoryService repositories;
@@ -56,10 +58,10 @@ public class FixMissingFilesJobRequestHandler implements JobRequestHandler<Migra
         var missingFileTypes = new ArrayList<>(List.of(MANIFEST, CHANGELOG, README, LICENSE, ICON, VSIXMANIFEST));
         missingFileTypes.removeAll(resourceTypes);
         resources.filter(this::isFileMissing).map(FileResource::getType).forEach(missingFileTypes::add);
-        if(missingFileTypes.isEmpty()) {
+        if (missingFileTypes.isEmpty()) {
             return;
         }
-        if(missingFileTypes.stream().anyMatch(t -> t.equals(FileResource.DOWNLOAD))) {
+        if (missingFileTypes.stream().anyMatch(t -> t.equals(FileResource.DOWNLOAD))) {
             logger.atInfo()
                     .setMessage("No vsix package available for: {}")
                     .addArgument(() -> NamingUtil.toLogFormat(extVersion))
@@ -74,12 +76,12 @@ public class FixMissingFilesJobRequestHandler implements JobRequestHandler<Migra
                 .log();
 
         var download = resources.stream().filter(f -> f.getType().equals(FileResource.DOWNLOAD)).findFirst().get();
-        try(
+        try (
                 var tempFile = storage.downloadFile(download);
                 var processor = new ExtensionProcessor(tempFile)
         ) {
             processor.getFileResources(extVersion, (file) -> {
-                if(missingFileTypes.contains(file.getResource().getType())) {
+                if (missingFileTypes.contains(file.getResource().getType())) {
                     storage.uploadFile(file);
                     logger.atInfo()
                             .setMessage("Uploaded {} file for: {}")
@@ -92,7 +94,7 @@ public class FixMissingFilesJobRequestHandler implements JobRequestHandler<Migra
     }
 
     private boolean isFileMissing(FileResource resource) {
-        try(var tempFile = storage.downloadFile(resource)) {
+        try (var tempFile = storage.downloadFile(resource)) {
             return Files.size(tempFile.getPath()) == 0;
         } catch (Exception e) {
             return true;

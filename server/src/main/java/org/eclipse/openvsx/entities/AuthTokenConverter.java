@@ -11,10 +11,9 @@ package org.eclipse.openvsx.entities;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-
+import org.springframework.web.server.ServerErrorException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
-import org.springframework.web.server.ServerErrorException;
 
 @Converter
 public class AuthTokenConverter implements AttributeConverter<AuthToken, String> {
@@ -23,8 +22,9 @@ public class AuthTokenConverter implements AttributeConverter<AuthToken, String>
 
     @Override
     public String convertToDatabaseColumn(AuthToken data) {
-        if (data == null)
+        if (data == null) {
             return null;
+        }
         try {
             return jsonMapper.writeValueAsString(data);
         } catch (JacksonException exc) {
@@ -34,8 +34,9 @@ public class AuthTokenConverter implements AttributeConverter<AuthToken, String>
 
     @Override
     public AuthToken convertToEntityAttribute(String raw) {
-        if (raw == null)
+        if (raw == null) {
             return null;
+        }
         try {
             return jsonMapper.readValue(raw, AuthToken.class);
         } catch (JacksonException exc) {

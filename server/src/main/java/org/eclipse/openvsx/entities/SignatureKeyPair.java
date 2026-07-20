@@ -9,13 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Objects;
+
+import jakarta.persistence.*;
 
 @Entity
 public class SignatureKeyPair implements Serializable {
@@ -94,8 +94,12 @@ public class SignatureKeyPair implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         SignatureKeyPair that = (SignatureKeyPair) o;
         return id == that.id
                 && active == that.active

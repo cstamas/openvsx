@@ -12,15 +12,16 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.eclipse.openvsx.util.ArchiveUtil;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.zip.ZipFile;
+
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
+
+import org.eclipse.openvsx.util.ArchiveUtil;
 
 @Service
 @Order(0)
@@ -52,7 +53,8 @@ public class MaliciousZipCheckService implements PublishCheck {
     @Override
     public PublishCheck.Result check(Context context) {
         try (var zipFile = new ZipFile(context.extensionFile().getPath().toFile())) {
-            return checkForExtraFields(zipFile).and(checkForDuplicateEntries(zipFile)).and(checkForUnsafePaths(zipFile));
+            return checkForExtraFields(zipFile).and(checkForDuplicateEntries(zipFile))
+                    .and(checkForUnsafePaths(zipFile));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read extension zip file", e);
         }

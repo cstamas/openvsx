@@ -9,9 +9,10 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.adapter;
 
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.entities.Namespace;
-import org.eclipse.openvsx.repositories.RepositoryService;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -21,9 +22,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.entities.Namespace;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 @ExtendWith(SpringExtension.class)
 class VSCodeIdUpdateServiceTest {
@@ -210,7 +211,8 @@ class VSCodeIdUpdateServiceTest {
         extension3.setNamespace(namespace3);
 
         Mockito.when(idService.getUpstreamPublicIds(extension1)).thenReturn(new PublicIds(null, null));
-        Mockito.when(idService.getUpstreamPublicIds(extension2)).thenReturn(new PublicIds(namespacePublicId3, extensionPublicId3));
+        Mockito.when(idService.getUpstreamPublicIds(extension2))
+                .thenReturn(new PublicIds(namespacePublicId3, extensionPublicId3));
         Mockito.when(idService.getUpstreamPublicIds(extension3)).thenReturn(new PublicIds(null, null));
         Mockito.when(repositories.findAllPublicIds()).thenReturn(List.of(extension1, extension2, extension3));
 
@@ -219,14 +221,18 @@ class VSCodeIdUpdateServiceTest {
         Mockito.when(idService.getRandomPublicId()).thenReturn(extensionPublicId, namespacePublicId);
 
         updateService.updateAll();
-        Mockito.verify(repositories, Mockito.times(1)).updateExtensionPublicIds(Map.of(
-                extension2.getId(), extensionPublicId3,
-                extension3.getId(), extensionPublicId
-        ));
-        Mockito.verify(repositories, Mockito.times(1)).updateNamespacePublicIds(Map.of(
-                namespace2.getId(), namespacePublicId3,
-                namespace3.getId(), namespacePublicId
-        ));
+        Mockito.verify(repositories, Mockito.times(1)).updateExtensionPublicIds(
+                Map.of(
+                        extension2.getId(),
+                        extensionPublicId3,
+                        extension3.getId(),
+                        extensionPublicId));
+        Mockito.verify(repositories, Mockito.times(1)).updateNamespacePublicIds(
+                Map.of(
+                        namespace2.getId(),
+                        namespacePublicId3,
+                        namespace3.getId(),
+                        namespacePublicId));
     }
 
     @Test
@@ -280,7 +286,8 @@ class VSCodeIdUpdateServiceTest {
         Mockito.when(idService.getUpstreamPublicIds(extension)).thenReturn(new PublicIds(null, null));
         Mockito.when(repositories.extensionPublicIdExists(extensionPublicId1)).thenReturn(true);
         Mockito.when(repositories.namespacePublicIdExists(namespacePublicId1)).thenReturn(true);
-        Mockito.when(idService.getRandomPublicId()).thenReturn(extensionPublicId1, extensionPublicId2, namespacePublicId1, namespacePublicId2);
+        Mockito.when(idService.getRandomPublicId())
+                .thenReturn(extensionPublicId1, extensionPublicId2, namespacePublicId1, namespacePublicId2);
 
         updateService.update(namespaceName, extensionName);
         Mockito.verify(repositories).updateExtensionPublicIds(Mockito.argThat((Map<Long, String> map) -> {
@@ -382,7 +389,8 @@ class VSCodeIdUpdateServiceTest {
         var upstreamPublicIds = new PublicIds(namespacePublicId1, extensionPublicId1);
         Mockito.when(idService.getUpstreamPublicIds(extension1)).thenReturn(upstreamPublicIds);
         Mockito.when(idService.getUpstreamPublicIds(extension2)).thenReturn(upstreamPublicIds);
-        Mockito.when(idService.getRandomPublicId()).thenReturn(extensionPublicId1, extensionPublicId2, namespacePublicId1, namespacePublicId2);
+        Mockito.when(idService.getRandomPublicId())
+                .thenReturn(extensionPublicId1, extensionPublicId2, namespacePublicId1, namespacePublicId2);
 
         updateService.update(namespaceName1, extensionName1);
         Mockito.verify(repositories).updateExtensionPublicIds(Mockito.argThat((Map<Long, String> map) -> {
@@ -439,7 +447,8 @@ class VSCodeIdUpdateServiceTest {
         var upstreamPublicIds = new PublicIds(namespaceUuid1, extensionUuid1);
         Mockito.when(idService.getUpstreamPublicIds(extension1)).thenReturn(upstreamPublicIds);
         Mockito.when(idService.getUpstreamPublicIds(extension2)).thenReturn(upstreamPublicIds);
-        Mockito.when(idService.getRandomPublicId()).thenReturn(dbExtensionPublicId, extensionPublicId2, dbNamespacePublicId, namespacePublicId2);
+        Mockito.when(idService.getRandomPublicId())
+                .thenReturn(dbExtensionPublicId, extensionPublicId2, dbNamespacePublicId, namespacePublicId2);
 
         updateService.update(namespaceName1, extensionName1);
         Mockito.verify(repositories).updateExtensionPublicIds(Mockito.argThat((Map<Long, String> map) -> {
@@ -453,7 +462,6 @@ class VSCodeIdUpdateServiceTest {
                     && map.get(namespace2.getId()).equals(namespacePublicId2);
         }));
     }
-
 
     @Test
     void testUpdateNoChange() {
@@ -476,7 +484,8 @@ class VSCodeIdUpdateServiceTest {
         Mockito.when(repositories.findPublicId(namespaceName, extensionName)).thenReturn(extension);
         Mockito.when(repositories.findPublicId(extensionPublicId)).thenReturn(extension);
         Mockito.when(repositories.findNamespacePublicId(namespacePublicId)).thenReturn(extension);
-        Mockito.when(idService.getUpstreamPublicIds(extension)).thenReturn(new PublicIds(namespacePublicId, extensionPublicId));
+        Mockito.when(idService.getUpstreamPublicIds(extension))
+                .thenReturn(new PublicIds(namespacePublicId, extensionPublicId));
 
         updateService.update(namespaceName, extensionName);
         Mockito.verify(repositories, Mockito.never()).updateExtensionPublicIds(Mockito.anyMap());
@@ -502,7 +511,8 @@ class VSCodeIdUpdateServiceTest {
         extension.setNamespace(namespace);
 
         Mockito.when(repositories.findPublicId(namespaceName, extensionName)).thenReturn(extension);
-        Mockito.when(idService.getUpstreamPublicIds(extension)).thenReturn(new PublicIds(namespacePublicId, extensionPublicId));
+        Mockito.when(idService.getUpstreamPublicIds(extension))
+                .thenReturn(new PublicIds(namespacePublicId, extensionPublicId));
 
         updateService.update(namespaceName, extensionName);
         Mockito.verify(repositories).updateExtensionPublicIds(Mockito.argThat((Map<Long, String> map) -> {
@@ -584,10 +594,14 @@ class VSCodeIdUpdateServiceTest {
         Mockito.when(repositories.findNamespacePublicId(namespacePublicId2)).thenReturn(extension3);
         Mockito.when(repositories.findPublicId(extensionPublicId3)).thenReturn(extension4);
         Mockito.when(repositories.findNamespacePublicId(namespacePublicId3)).thenReturn(extension4);
-        Mockito.when(idService.getUpstreamPublicIds(extension1)).thenReturn(new PublicIds(namespacePublicId1, extensionPublicId1));
-        Mockito.when(idService.getUpstreamPublicIds(extension2)).thenReturn(new PublicIds(namespacePublicId2, extensionPublicId2));
-        Mockito.when(idService.getUpstreamPublicIds(extension3)).thenReturn(new PublicIds(namespacePublicId3, extensionPublicId3));
-        Mockito.when(idService.getUpstreamPublicIds(extension4)).thenReturn(new PublicIds(namespacePublicId4, extensionPublicId4));
+        Mockito.when(idService.getUpstreamPublicIds(extension1))
+                .thenReturn(new PublicIds(namespacePublicId1, extensionPublicId1));
+        Mockito.when(idService.getUpstreamPublicIds(extension2))
+                .thenReturn(new PublicIds(namespacePublicId2, extensionPublicId2));
+        Mockito.when(idService.getUpstreamPublicIds(extension3))
+                .thenReturn(new PublicIds(namespacePublicId3, extensionPublicId3));
+        Mockito.when(idService.getUpstreamPublicIds(extension4))
+                .thenReturn(new PublicIds(namespacePublicId4, extensionPublicId4));
 
         updateService.update(namespaceName1, extensionName1);
         Mockito.verify(repositories).updateExtensionPublicIds(Mockito.argThat((Map<Long, String> map) -> {

@@ -9,12 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.adapter;
 
-import org.eclipse.openvsx.settings.SettingsService;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.settings.SettingsService;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "false", matchIfMissing = true)

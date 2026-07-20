@@ -1,12 +1,12 @@
 package org.eclipse.openvsx.json;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 
 @Schema(
     name = "NamespaceDetails",
@@ -125,8 +125,12 @@ public class NamespaceDetailsJson extends ResultJson {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NamespaceDetailsJson that = (NamespaceDetailsJson) o;
         return verified == that.verified
                 && Objects.equals(name, that.name)
@@ -141,6 +145,7 @@ public class NamespaceDetailsJson extends ResultJson {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, displayName, description, logo, website, supportLink, socialLinks, extensions, verified);
+        return Objects
+                .hash(name, displayName, description, logo, website, supportLink, socialLinks, extensions, verified);
     }
 }

@@ -9,10 +9,20 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.mirror;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
 import org.eclipse.openvsx.ExtensionService;
 import org.eclipse.openvsx.LocalRegistryService;
 import org.eclipse.openvsx.UpstreamRegistryService;
@@ -29,15 +39,6 @@ import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 @ConditionalOnProperty(value = "ovsx.data.mirror.enabled", havingValue = "true")
@@ -116,22 +117,27 @@ public class DataMirrorService {
     public boolean match(String namespaceName, String extensionName) {
         var extensionId = NamingUtil.toExtensionId(namespaceName, extensionName);
         if (!excludeExtensions.isEmpty() &&
-            (excludeExtensions.contains(namespaceName + ".*") ||
-            excludeExtensions.contains(extensionId))) {
+                (excludeExtensions.contains(namespaceName + ".*") ||
+                        excludeExtensions.contains(extensionId))) {
             return false;
         }
         return includeExtensions.isEmpty() ||
-            includeExtensions.contains(namespaceName + ".*") ||
-            includeExtensions.contains(extensionId);
+                includeExtensions.contains(namespaceName + ".*") ||
+                includeExtensions.contains(extensionId);
     }
 
     @Transactional
-    public List<ExtensionVersion> getExtensionTargetVersions(String namespaceName, String extensionName, String targetPlatform) {
+    public List<ExtensionVersion> getExtensionTargetVersions(
+            String namespaceName,
+            String extensionName,
+            String targetPlatform
+    ) {
         var extension = repositories.findExtension(extensionName, namespaceName);
         if (extension == null) {
             return Collections.<ExtensionVersion>emptyList();
         }
-        return extension.getVersions().stream().filter(v -> targetPlatform.equals(v.getTargetPlatform())).collect(Collectors.toList());
+        return extension.getVersions().stream().filter(v -> targetPlatform.equals(v.getTargetPlatform()))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -196,7 +202,7 @@ public class DataMirrorService {
         var url = storageUtil.getLocation(resource);
         try {
             backgroundRestTemplate.headForHeaders("{canGetVsixUri}", Map.of("canGetVsixUri", url));
-        } catch(Exception e) {
+        } catch (Exception e) {
             logger.error("failed to activate extension, vsix is invalid: {}", url, e);
             return false;
         }
@@ -243,8 +249,7 @@ public class DataMirrorService {
                 user,
                 extension.getNamespace().getName(),
                 extension.getName(),
-                TargetPlatformVersion.of(extVersion.getTargetPlatform(), extVersion.getVersion())
-        );
+                TargetPlatformVersion.of(extVersion.getTargetPlatform(), extVersion.getVersion()));
     }
 
     public void mirrorNamespaceMetadata(String namespaceName) {
@@ -259,7 +264,11 @@ public class DataMirrorService {
             // unverify namespace by changing owner(s) back to contributor
             var namespace = repositories.findNamespace(namespaceName);
             repositories.findMemberships(namespace, NamespaceMembership.ROLE_OWNER)
-                    .forEach(membership -> users.addNamespaceMember(namespace, membership.getUser(), NamespaceMembership.ROLE_CONTRIBUTOR));
+                    .forEach(
+                            membership -> users.addNamespaceMember(
+                                    namespace,
+                                    membership.getUser(),
+                                    NamespaceMembership.ROLE_CONTRIBUTOR));
         }
     }
 

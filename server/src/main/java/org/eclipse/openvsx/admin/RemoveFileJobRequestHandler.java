@@ -9,10 +9,11 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.admin;
 
-import org.eclipse.openvsx.storage.StorageUtilService;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.springframework.stereotype.Component;
+
+import org.eclipse.openvsx.storage.StorageUtilService;
 
 @Component
 public class RemoveFileJobRequestHandler implements JobRequestHandler<RemoveFileJobRequest> {

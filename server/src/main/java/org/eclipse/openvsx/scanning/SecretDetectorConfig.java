@@ -12,14 +12,14 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
 import jakarta.annotation.PostConstruct;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Configuration for secret detection in extension packages.
@@ -163,7 +163,6 @@ public class SecretDetectorConfig {
      */
     @Value("${ovsx.scanning.secret-detection.suppression-markers:}")
     private String suppressionMarkers;
-
 
     /**
      * Timeout for scanning in seconds. If scanning takes longer, it will be aborted.
@@ -335,37 +334,38 @@ public class SecretDetectorConfig {
     public void validate() {
         if (minifiedLineThreshold <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.minified-line-threshold must be positive, got: " + minifiedLineThreshold);
+                    "ovsx.secret-detection.minified-line-threshold must be positive, got: " + minifiedLineThreshold);
         }
 
         if (timeoutSeconds <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.timeout-seconds must be positive, got: " + timeoutSeconds);
+                    "ovsx.secret-detection.timeout-seconds must be positive, got: " + timeoutSeconds);
         }
 
         if (maxFindings <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.max-findings must be positive, got: " + maxFindings);
+                    "ovsx.secret-detection.max-findings must be positive, got: " + maxFindings);
         }
 
         if (timeoutCheckInterval <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.timeout-check-interval must be positive, got: " + timeoutCheckInterval);
+                    "ovsx.secret-detection.timeout-check-interval must be positive, got: " + timeoutCheckInterval);
         }
 
         if (longLineNoSpaceThreshold <= 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.long-line-no-space-threshold must be positive, got: " + longLineNoSpaceThreshold);
+                    "ovsx.secret-detection.long-line-no-space-threshold must be positive, got: "
+                            + longLineNoSpaceThreshold);
         }
 
         if (regexContextChars < 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.regex-context-chars must be >= 0, got: " + regexContextChars);
+                    "ovsx.secret-detection.regex-context-chars must be >= 0, got: " + regexContextChars);
         }
 
         if (debugPreviewChars < 0) {
             throw new IllegalArgumentException(
-                "ovsx.secret-detection.debug-preview-chars must be >= 0, got: " + debugPreviewChars);
+                    "ovsx.secret-detection.debug-preview-chars must be >= 0, got: " + debugPreviewChars);
         }
     }
 }

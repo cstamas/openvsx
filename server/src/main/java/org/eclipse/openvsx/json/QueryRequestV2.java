@@ -32,7 +32,6 @@ public record QueryRequestV2(
                 includeAllVersions.equals("true"),
                 targetPlatform,
                 size,
-                offset
-        );
+                offset);
     }
 }

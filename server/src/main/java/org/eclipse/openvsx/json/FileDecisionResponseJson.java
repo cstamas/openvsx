@@ -12,18 +12,19 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.util.List;
 
 /**
  * Response types for file decision operations.
  */
 public final class FileDecisionResponseJson {
 
-    private FileDecisionResponseJson() {}
+    private FileDecisionResponseJson() {
+    }
 
     @Schema(
         name = "FileDecisionResponse",
@@ -44,14 +45,30 @@ public final class FileDecisionResponseJson {
         @Schema(description = "Detailed results for each file hash")
         private List<FileDecisionResultJson.Create> results;
 
-        public int getProcessed() { return processed; }
-        public void setProcessed(int processed) { this.processed = processed; }
-        public int getSuccessful() { return successful; }
-        public void setSuccessful(int successful) { this.successful = successful; }
-        public int getFailed() { return failed; }
-        public void setFailed(int failed) { this.failed = failed; }
-        public List<FileDecisionResultJson.Create> getResults() { return results; }
-        public void setResults(List<FileDecisionResultJson.Create> results) { this.results = results; }
+        public int getProcessed() {
+            return processed;
+        }
+        public void setProcessed(int processed) {
+            this.processed = processed;
+        }
+        public int getSuccessful() {
+            return successful;
+        }
+        public void setSuccessful(int successful) {
+            this.successful = successful;
+        }
+        public int getFailed() {
+            return failed;
+        }
+        public void setFailed(int failed) {
+            this.failed = failed;
+        }
+        public List<FileDecisionResultJson.Create> getResults() {
+            return results;
+        }
+        public void setResults(List<FileDecisionResultJson.Create> results) {
+            this.results = results;
+        }
     }
 
     @Schema(
@@ -73,13 +90,29 @@ public final class FileDecisionResponseJson {
         @Schema(description = "Detailed results for each file ID")
         private List<FileDecisionResultJson.Delete> results;
 
-        public int getProcessed() { return processed; }
-        public void setProcessed(int processed) { this.processed = processed; }
-        public int getSuccessful() { return successful; }
-        public void setSuccessful(int successful) { this.successful = successful; }
-        public int getFailed() { return failed; }
-        public void setFailed(int failed) { this.failed = failed; }
-        public List<FileDecisionResultJson.Delete> getResults() { return results; }
-        public void setResults(List<FileDecisionResultJson.Delete> results) { this.results = results; }
+        public int getProcessed() {
+            return processed;
+        }
+        public void setProcessed(int processed) {
+            this.processed = processed;
+        }
+        public int getSuccessful() {
+            return successful;
+        }
+        public void setSuccessful(int successful) {
+            this.successful = successful;
+        }
+        public int getFailed() {
+            return failed;
+        }
+        public void setFailed(int failed) {
+            this.failed = failed;
+        }
+        public List<FileDecisionResultJson.Delete> getResults() {
+            return results;
+        }
+        public void setResults(List<FileDecisionResultJson.Delete> results) {
+            this.results = results;
+        }
     }
 }

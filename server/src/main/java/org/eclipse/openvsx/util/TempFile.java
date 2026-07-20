@@ -9,13 +9,13 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.util;
 
-import org.eclipse.openvsx.entities.FileResource;
-import org.eclipse.openvsx.entities.Namespace;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.eclipse.openvsx.entities.FileResource;
+import org.eclipse.openvsx.entities.Namespace;
 
 public class TempFile implements Closeable {
 

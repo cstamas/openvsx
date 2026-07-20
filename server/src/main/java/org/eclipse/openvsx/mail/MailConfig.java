@@ -19,7 +19,7 @@ import org.thymeleaf.templatemode.TemplateMode;
 public class MailConfig {
 
     @Bean
-    public SpringResourceTemplateResolver templateResolver(ApplicationContext applicationContext){
+    public SpringResourceTemplateResolver templateResolver(ApplicationContext applicationContext) {
         var templateResolver = new SpringResourceTemplateResolver();
         templateResolver.setApplicationContext(applicationContext);
         templateResolver.setPrefix("classpath:/mail-templates/");

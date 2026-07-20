@@ -9,18 +9,29 @@
  ********************************************************************************/
 package org.eclipse.openvsx;
 
-import static org.eclipse.openvsx.entities.FileResource.CHANGELOG;
-import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
-import static org.eclipse.openvsx.entities.FileResource.ICON;
-import static org.eclipse.openvsx.entities.FileResource.LICENSE;
-import static org.eclipse.openvsx.entities.FileResource.MANIFEST;
-import static org.eclipse.openvsx.entities.FileResource.README;
-import static org.eclipse.openvsx.entities.FileResource.VSIXMANIFEST;
-import static org.eclipse.openvsx.util.UrlUtil.createApiUrl;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.eclipse.openvsx.accesstoken.AccessTokenService;
 import org.eclipse.openvsx.eclipse.EclipseService;
@@ -54,26 +65,15 @@ import org.eclipse.openvsx.util.NotFoundException;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.util.TimeUtil;
 import org.eclipse.openvsx.util.UrlUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.WebAttributes;
-import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.servlet.http.HttpServletRequest;
+import static org.eclipse.openvsx.entities.FileResource.CHANGELOG;
+import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
+import static org.eclipse.openvsx.entities.FileResource.ICON;
+import static org.eclipse.openvsx.entities.FileResource.LICENSE;
+import static org.eclipse.openvsx.entities.FileResource.MANIFEST;
+import static org.eclipse.openvsx.entities.FileResource.README;
+import static org.eclipse.openvsx.entities.FileResource.VSIXMANIFEST;
+import static org.eclipse.openvsx.util.UrlUtil.createApiUrl;
 
 @RestController
 public class UserAPI {
@@ -134,9 +134,12 @@ public class UserAPI {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ErrorJson getAuthError(HttpServletRequest request) {
-        var authException = users.canLogin() ? request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION) : null;
-        if (!(authException instanceof AuthenticationException))
+        var authException = users.canLogin()
+                ? request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION)
+                : null;
+        if (!(authException instanceof AuthenticationException)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
 
         var code = authException instanceof CodedAuthException ? ((CodedAuthException) authException).getCode() : null;
         return new ErrorJson(((AuthenticationException) authException).getMessage(), code);
@@ -189,7 +192,8 @@ public class UserAPI {
         return repositories.findActiveAccessTokens(user)
                 .map(token -> {
                     var json = token.toAccessTokenJson();
-                    json.setDeleteTokenUrl(createApiUrl(serverUrl, "user", "token", "delete", Long.toString(token.getId())));
+                    json.setDeleteTokenUrl(
+                            createApiUrl(serverUrl, "user", "token", "delete", Long.toString(token.getId())));
                     return json;
                 })
                 .toList();
@@ -202,7 +206,8 @@ public class UserAPI {
     @MutatingOperation
     public ResponseEntity<AccessTokenJson> createAccessToken(@RequestParam(required = false) String description) {
         if (description != null && description.length() > TOKEN_DESCRIPTION_SIZE) {
-            var json = AccessTokenJson.error("The description must not be longer than " + TOKEN_DESCRIPTION_SIZE + " characters.");
+            var json = AccessTokenJson
+                    .error("The description must not be longer than " + TOKEN_DESCRIPTION_SIZE + " characters.");
             return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
         }
         var user = users.findLoggedInUser();
@@ -226,14 +231,14 @@ public class UserAPI {
 
         try {
             return ResponseEntity.ok(tokens.deactivateAccessToken(user, id));
-        } catch(NotFoundException e) {
+        } catch (NotFoundException e) {
             return new ResponseEntity<>(ResultJson.error("Token does not exist."), HttpStatus.NOT_FOUND);
         }
     }
 
     @GetMapping(
-            path = "/user/extensions",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/user/extensions",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public List<ExtensionJson> getOwnExtensions() {
         var user = users.findLoggedInUser();
@@ -271,12 +276,12 @@ public class UserAPI {
     private void enrichWithReviewStatus(ExtensionJson json, ExtensionVersion extVersion) {
         // Look up scan by extension metadata (namespace, name, version, platform)
         var ext = extVersion.getExtension();
-        var scanResult = scanRepository.findFirstByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatformOrderByStartedAtDesc(
-            ext.getNamespace().getName(),
-            ext.getName(),
-            extVersion.getVersion(),
-            extVersion.getTargetPlatform()
-        );
+        var scanResult = scanRepository
+                .findFirstByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatformOrderByStartedAtDesc(
+                        ext.getNamespace().getName(),
+                        ext.getName(),
+                        extVersion.getVersion(),
+                        extVersion.getTargetPlatform());
 
         if (Boolean.TRUE.equals(json.getActive())) {
             // Only mark published if scan result indicates PASSED or no scan result exists (scanning disabled / manual activation)
@@ -347,17 +352,20 @@ public class UserAPI {
                 json.setReviewStatus("under_review");
                 json.setReviewMessage("Your extension could not be published. Please contact support for details.");
                 break;
-            default:
+            default :
                 json.setReviewStatus("under_review");
                 json.setReviewMessage("Your extension is being reviewed. Please contact support for details.");
         }
     }
 
     @GetMapping(
-            path = "/user/extension/{namespaceName}/{extensionName}",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/user/extension/{namespaceName}/{extensionName}",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<ExtensionJson> getOwnExtension(@PathVariable String namespaceName, @PathVariable String extensionName) {
+    public ResponseEntity<ExtensionJson> getOwnExtension(
+            @PathVariable String namespaceName,
+            @PathVariable String extensionName
+    ) {
         var user = users.findLoggedInUser();
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -368,7 +376,8 @@ public class UserAPI {
             var latest = repositories.findLatestVersion(user, namespaceName, extensionName);
             if (latest != null) {
                 json = local.toExtensionVersionJson(latest, null, false);
-                json.setAllTargetPlatformVersions(repositories.findTargetPlatformsGroupedByVersion(latest.getExtension(), user));
+                json.setAllTargetPlatformVersions(
+                        repositories.findTargetPlatformsGroupedByVersion(latest.getExtension(), user));
                 json.setActive(latest.getExtension().isActive());
             } else {
                 var error = "Extension not found: " + NamingUtil.toExtensionId(namespaceName, extensionName);
@@ -381,8 +390,8 @@ public class UserAPI {
     }
 
     @PostMapping(
-            path = "/user/extension/{namespaceName}/{extensionName}/delete",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/user/extension/{namespaceName}/{extensionName}/delete",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> deleteExtension(
@@ -395,11 +404,15 @@ public class UserAPI {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         try {
-            var targets = CollectionUtil.toArray(targetVersions, TargetPlatformVersionJson::toTargetPlatformVersion, TargetPlatformVersion[]::new);
+            var targets = CollectionUtil.toArray(
+                    targetVersions,
+                    TargetPlatformVersionJson::toTargetPlatformVersion,
+                    TargetPlatformVersion[]::new);
             var result = extensions.deleteUserExtension(user, namespaceName, extensionName, targets);
             return ResponseEntity.ok(result);
         } catch (NotFoundException exc) {
-            var json = NamespaceDetailsJson.error("Extension not found: " + NamingUtil.toExtensionId(namespaceName, extensionName));
+            var json = NamespaceDetailsJson
+                    .error("Extension not found: " + NamingUtil.toExtensionId(namespaceName, extensionName));
             return new ResponseEntity<>(json, HttpStatus.NOT_FOUND);
         } catch (ErrorResultException exc) {
             return exc.toResponseEntity();
@@ -430,7 +443,7 @@ public class UserAPI {
             json.setExtensions(extensions);
             var isOwner = membership.getRole().equals(NamespaceMembership.ROLE_OWNER);
             json.setVerified(isOwner || repositories.hasMemberships(namespace, NamespaceMembership.ROLE_OWNER));
-            if(isOwner) {
+            if (isOwner) {
                 json.setMembersUrl(createApiUrl(serverUrl, "user", "namespace", namespace.getName(), "members"));
                 json.setRoleUrl(createApiUrl(serverUrl, "user", "namespace", namespace.getName(), "role"));
                 json.setDetailsUrl(createApiUrl(serverUrl, "user", "namespace", namespace.getName(), "details"));
@@ -464,9 +477,9 @@ public class UserAPI {
     }
 
     @PostMapping(
-            path = "/user/namespace/{namespace}/details/logo",
-            produces = MediaType.APPLICATION_JSON_VALUE,
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+        path = "/user/namespace/{namespace}/details/logo",
+        produces = MediaType.APPLICATION_JSON_VALUE,
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @MutatingOperation
     public ResponseEntity<ResultJson> updateNamespaceDetailsLogo(
@@ -502,7 +515,9 @@ public class UserAPI {
             membershipList.setNamespaceMemberships(memberships.stream().map(NamespaceMembership::toJson).toList());
             return new ResponseEntity<>(membershipList, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(NamespaceMembershipListJson.error("You don't have the permission to see this."), HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(
+                    NamespaceMembershipListJson.error("You don't have the permission to see this."),
+                    HttpStatus.FORBIDDEN);
         }
     }
 
@@ -511,8 +526,12 @@ public class UserAPI {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     @MutatingOperation
-    public ResponseEntity<ResultJson> setNamespaceMember(@PathVariable String namespace, @RequestParam String user,
-            @RequestParam String role, @RequestParam(required = false) String provider) {
+    public ResponseEntity<ResultJson> setNamespaceMember(
+            @PathVariable String namespace,
+            @RequestParam String user,
+            @RequestParam String role,
+            @RequestParam(required = false) String provider
+    ) {
         var requestingUser = users.findLoggedInUser();
         if (requestingUser == null) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -526,8 +545,8 @@ public class UserAPI {
     }
 
     @GetMapping(
-            path = "/user/customers",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/user/customers",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
     public List<CustomerJson> getOwnCustomers() {
         var user = users.findLoggedInUser();
@@ -535,14 +554,18 @@ public class UserAPI {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
 
-        return repositories.findCustomerMemberships(user).map(membership -> membership.getCustomer().toUserJson() ).toList();
+        return repositories.findCustomerMemberships(user).map(membership -> membership.getCustomer().toUserJson())
+                .toList();
     }
 
     @GetMapping(
-            path = "/user/customers/{name}/usage",
-            produces = MediaType.APPLICATION_JSON_VALUE
+        path = "/user/customers/{name}/usage",
+        produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<UsageStatsListJson> getOwnUsageStats(@PathVariable String name, @RequestParam(required = false) String date) {
+    public ResponseEntity<UsageStatsListJson> getOwnUsageStats(
+            @PathVariable String name,
+            @RequestParam(required = false) String date
+    ) {
         try {
             var user = users.findLoggedInUser();
             if (user == null) {

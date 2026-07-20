@@ -12,16 +12,8 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.tika.Tika;
-import org.eclipse.openvsx.util.SizeLimitInputStream;
-
-import java.io.BufferedReader;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,7 +25,16 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
 import com.google.re2j.Pattern;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.tika.Tika;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.eclipse.openvsx.util.SizeLimitInputStream;
 
 /**
  * Scans individual files for secrets using keyword routing and regex validation.
@@ -67,22 +68,24 @@ class SecretDetector {
     private final int keywordContextChars;
     private final int logAllowlistedPreviewLength;
 
-    SecretDetector(@NonNull AhoCorasick keywordMatcher,
-                  @NonNull Map<String, List<SecretRule>> keywordToRules,
-                  @NonNull List<SecretRule> rules,
-                  @Nullable List<Pattern> allowlistPatterns,
-                  @Nullable List<Pattern> excludedPathPatterns,
-                  @Nullable AhoCorasick stopwordMatcher,
-                  @Nullable AhoCorasick excludedExtensionMatcher,
-                  @Nullable AhoCorasick inlineSuppressionMatcher,
-                  @Nullable List<Pattern> skipMimeTypePatterns,
-                  @NonNull EntropyCalculator entropyCalculator,
-                  long maxFileSizeBytes,
-                  int maxLineLength,
-                  int timeoutCheckEveryNLines,
-                  int longLineNoSpaceThreshold,
-                  int keywordContextChars,
-                  int logAllowlistedPreviewLength) {
+    SecretDetector(
+            @NonNull AhoCorasick keywordMatcher,
+            @NonNull Map<String, List<SecretRule>> keywordToRules,
+            @NonNull List<SecretRule> rules,
+            @Nullable List<Pattern> allowlistPatterns,
+            @Nullable List<Pattern> excludedPathPatterns,
+            @Nullable AhoCorasick stopwordMatcher,
+            @Nullable AhoCorasick excludedExtensionMatcher,
+            @Nullable AhoCorasick inlineSuppressionMatcher,
+            @Nullable List<Pattern> skipMimeTypePatterns,
+            @NonNull EntropyCalculator entropyCalculator,
+            long maxFileSizeBytes,
+            int maxLineLength,
+            int timeoutCheckEveryNLines,
+            int longLineNoSpaceThreshold,
+            int keywordContextChars,
+            int logAllowlistedPreviewLength
+    ) {
         this.keywordMatcher = keywordMatcher;
         this.keywordToRules = keywordToRules;
         this.rules = rules;
@@ -101,13 +104,15 @@ class SecretDetector {
         this.logAllowlistedPreviewLength = logAllowlistedPreviewLength;
     }
 
-    boolean scanFile(@NonNull ZipFile zipFile,
-                     @NonNull ZipEntry entry,
-                     @NonNull List<SecretDetector.Finding> findings,
-                     long startTime,
-                     long timeoutMillis,
-                     @NonNull AtomicInteger findingsCount,
-                     @NonNull FindingRecorder recorder) throws IOException {
+    boolean scanFile(
+            @NonNull ZipFile zipFile,
+            @NonNull ZipEntry entry,
+            @NonNull List<SecretDetector.Finding> findings,
+            long startTime,
+            long timeoutMillis,
+            @NonNull AtomicInteger findingsCount,
+            @NonNull FindingRecorder recorder
+    ) throws IOException {
         String filePath = entry.getName();
 
         if (Thread.currentThread().isInterrupted()) {
@@ -138,17 +143,20 @@ class SecretDetector {
         }
 
         // Read the file line by line with a hard byte limit
-        try (InputStream zipStream = zipFile.getInputStream(entry);
-            // Use a limited stream since the entry header may not correctly reflect the file size
-            InputStream limitedStream = new SizeLimitInputStream(zipStream, maxFileSizeBytes);
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(limitedStream, StandardCharsets.UTF_8))) {
+        try (
+                InputStream zipStream = zipFile.getInputStream(entry);
+                // Use a limited stream since the entry header may not correctly reflect the file size
+                InputStream limitedStream = new SizeLimitInputStream(zipStream, maxFileSizeBytes);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(limitedStream, StandardCharsets.UTF_8))
+        ) {
 
             int lineNumber = 0;
             String line;
 
             while ((line = reader.readLine()) != null) {
-                if (lineNumber % timeoutCheckEveryNLines == 0 && System.currentTimeMillis() - startTime > timeoutMillis) {
+                if (lineNumber % timeoutCheckEveryNLines == 0
+                        && System.currentTimeMillis() - startTime > timeoutMillis) {
                     throw new SecretScanningTimeoutException("Secret detection timed out during file: " + filePath);
                 }
 
@@ -169,7 +177,14 @@ class SecretDetector {
                     continue;
                 }
 
-                scanLineWithKeywordMatching(line, line.toLowerCase(), filePath, lineNumber, findings, findingsCount, recorder);
+                scanLineWithKeywordMatching(
+                        line,
+                        line.toLowerCase(),
+                        filePath,
+                        lineNumber,
+                        findings,
+                        findingsCount,
+                        recorder);
             }
         } catch (IOException e) {
             logger.error("Error reading file {}: {}", filePath, e.getMessage());
@@ -183,13 +198,15 @@ class SecretDetector {
      * Scan the line with keyword matching.
      * This is a performance optimization to skip the regex matching for lines that don't contain any keywords.
      */
-    private void scanLineWithKeywordMatching(@NonNull String line,
-                                             @NonNull String lowerLine,
-                                             @NonNull String filePath,
-                                             int lineNumber,
-                                             @NonNull List<SecretDetector.Finding> findings,
-                                             @NonNull AtomicInteger findingsCount,
-                                             @NonNull FindingRecorder recorder) {
+    private void scanLineWithKeywordMatching(
+            @NonNull String line,
+            @NonNull String lowerLine,
+            @NonNull String filePath,
+            int lineNumber,
+            @NonNull List<SecretDetector.Finding> findings,
+            @NonNull AtomicInteger findingsCount,
+            @NonNull FindingRecorder recorder
+    ) {
         if (Thread.currentThread().isInterrupted()) {
             return;
         }
@@ -230,13 +247,15 @@ class SecretDetector {
     /**
      * Scan the line with the given rule's regex pattern
      */
-    private void scanLineWithRule(@NonNull SecretRule rule,
-                                  @NonNull String chunk,
-                                  @NonNull String filePath,
-                                  int lineNumber,
-                                  @NonNull List<SecretDetector.Finding> findings,
-                                  @NonNull AtomicInteger findingsCount,
-                                  @NonNull FindingRecorder recorder) {
+    private void scanLineWithRule(
+            @NonNull SecretRule rule,
+            @NonNull String chunk,
+            @NonNull String filePath,
+            int lineNumber,
+            @NonNull List<SecretDetector.Finding> findings,
+            @NonNull AtomicInteger findingsCount,
+            @NonNull FindingRecorder recorder
+    ) {
         if (Thread.currentThread().isInterrupted()) {
             return;
         }
@@ -274,16 +293,22 @@ class SecretDetector {
                     }
                 }
                 if (allowlisted) {
-                    logger.debug("Skipping rule-allowlisted content in {}:{}: {}",
-                            filePath, lineNumber, secretValue.substring(0, Math.min(logAllowlistedPreviewLength, secretValue.length())));
+                    logger.debug(
+                            "Skipping rule-allowlisted content in {}:{}: {}",
+                            filePath,
+                            lineNumber,
+                            secretValue.substring(0, Math.min(logAllowlistedPreviewLength, secretValue.length())));
                     continue;
                 }
             }
 
             // Check if the secret value is allowlisted by any of the global allowlist patterns
             if (isAllowlistedContent(secretValue)) {
-                logger.debug("Skipping globally allowlisted content in {}:{}: {}",
-                        filePath, lineNumber, secretValue.substring(0, Math.min(logAllowlistedPreviewLength, secretValue.length())));
+                logger.debug(
+                        "Skipping globally allowlisted content in {}:{}: {}",
+                        filePath,
+                        lineNumber,
+                        secretValue.substring(0, Math.min(logAllowlistedPreviewLength, secretValue.length())));
                 continue;
             }
 
@@ -300,8 +325,12 @@ class SecretDetector {
                 entropy = entropyCalculator.calculate(secretValue);
             }
 
-            logger.debug("Secret detected in {}:{} (rule: {}, entropy: {})",
-                    filePath, lineNumber, rule.getId(), entropy);
+            logger.debug(
+                    "Secret detected in {}:{} (rule: {}, entropy: {})",
+                    filePath,
+                    lineNumber,
+                    rule.getId(),
+                    entropy);
 
             var finding = new SecretDetector.Finding(filePath, lineNumber, entropy, secretValue, rule.getId());
             if (!recorder.record(findings, findingsCount, finding)) {
@@ -388,21 +417,26 @@ class SecretDetector {
             return false;
         }
 
-        try (InputStream is = zipFile.getInputStream(entry);
-             BufferedInputStream bis = new BufferedInputStream(is)) {
+        try (
+                InputStream is = zipFile.getInputStream(entry);
+                BufferedInputStream bis = new BufferedInputStream(is)
+        ) {
 
             // Tika.detect() reads only the bytes needed for detection
             String mimeType = tika.detect(bis, entry.getName());
 
             if (mimeType == null) {
-                return false;  // Unknown type, scan it to be safe
+                return false; // Unknown type, scan it to be safe
             }
 
             // Check against configured skip patterns (regex)
             for (Pattern pattern : skipMimeTypePatterns) {
                 if (pattern.matcher(mimeType).find()) {
-                    logger.debug("Skipping file (MIME {} matches pattern {}): {}",
-                            mimeType, pattern.pattern(), entry.getName());
+                    logger.debug(
+                            "Skipping file (MIME {} matches pattern {}): {}",
+                            mimeType,
+                            pattern.pattern(),
+                            entry.getName());
                     return true;
                 }
             }
@@ -444,7 +478,8 @@ class SecretDetector {
          */
         public static Result timedOut(@NonNull List<Finding> partialFindings) {
             if (partialFindings.isEmpty()) {
-                throw new IllegalArgumentException("Cannot create timedOut result with empty findings - throw exception instead");
+                throw new IllegalArgumentException(
+                        "Cannot create timedOut result with empty findings - throw exception instead");
             }
             return new Result(true, true, partialFindings);
         }
@@ -457,17 +492,25 @@ class SecretDetector {
             return new Result(false, false, List.of());
         }
 
-        public boolean isSecretsFound() { return secretsFound; }
-        public boolean isTimedOut() { return timedOut; }
-        public @NonNull List<Finding> getFindings() { return findings; }
+        public boolean isSecretsFound() {
+            return secretsFound;
+        }
+        public boolean isTimedOut() {
+            return timedOut;
+        }
+        public @NonNull List<Finding> getFindings() {
+            return findings;
+        }
 
         public @NonNull String getSummaryMessage() {
             String prefix = timedOut ? "(PARTIAL - timed out) " : "";
             if (!secretsFound) {
                 return prefix + "No secrets detected";
             }
-            return prefix + String.format("Found %d potential secret%s in extension package",
-                findings.size(), findings.size() == 1 ? "" : "s");
+            return prefix + String.format(
+                    "Found %d potential secret%s in extension package",
+                    findings.size(),
+                    findings.size() == 1 ? "" : "s");
         }
     }
 
@@ -481,8 +524,13 @@ class SecretDetector {
         private final @NonNull String redactedSecret;
         private final @NonNull String ruleId;
 
-        Finding(@NonNull String filePath, int lineNumber, double entropy,
-                @Nullable String secretValue, @NonNull String ruleId) {
+        Finding(
+                @NonNull String filePath,
+                int lineNumber,
+                double entropy,
+                @Nullable String secretValue,
+                @NonNull String ruleId
+        ) {
             this.filePath = filePath;
             this.lineNumber = lineNumber;
             this.entropy = entropy;
@@ -490,16 +538,31 @@ class SecretDetector {
             this.ruleId = ruleId;
         }
 
-        public @NonNull String getFilePath() { return filePath; }
-        public int getLineNumber() { return lineNumber; }
-        public double getEntropy() { return entropy; }
-        public @NonNull String getSecretValue() { return redactedSecret; }
-        public @NonNull String getRuleId() { return ruleId; }
+        public @NonNull String getFilePath() {
+            return filePath;
+        }
+        public int getLineNumber() {
+            return lineNumber;
+        }
+        public double getEntropy() {
+            return entropy;
+        }
+        public @NonNull String getSecretValue() {
+            return redactedSecret;
+        }
+        public @NonNull String getRuleId() {
+            return ruleId;
+        }
 
         @Override
         public String toString() {
-            return String.format("Potential secret found in %s:%d (rule: %s, entropy: %f): %s",
-                filePath, lineNumber, ruleId, entropy, redactedSecret);
+            return String.format(
+                    "Potential secret found in %s:%d (rule: %s, entropy: %f): %s",
+                    filePath,
+                    lineNumber,
+                    ruleId,
+                    entropy,
+                    redactedSecret);
         }
 
         private static @NonNull String redactSecret(@Nullable String secret) {

@@ -24,7 +24,7 @@ public class PersistedLog {
     private LocalDateTime timestamp;
 
     @ManyToOne
-    @JoinColumn(name = "user_data", foreignKey=@ForeignKey(name="persisted_log_user_data_fkey"))
+    @JoinColumn(name = "user_data", foreignKey = @ForeignKey(name = "persisted_log_user_data_fkey"))
     private UserData user;
 
     @Column(length = 512)

@@ -12,6 +12,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.scanning;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.re2j.Pattern;
 import jakarta.annotation.PostConstruct;
 import org.jspecify.annotations.NonNull;
@@ -20,13 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Builds and wires the secret-detection primitives once at startup.
@@ -60,7 +60,8 @@ public class SecretDetectorFactory {
             @NonNull SecretRuleLoader ruleLoader,
             @NonNull SecretDetectorConfig config,
             @NonNull ExtensionScanConfig scanConfig,
-            @Nullable GitleaksRulesService gitleaksService) {
+            @Nullable GitleaksRulesService gitleaksService
+    ) {
         this.ruleLoader = ruleLoader;
         this.config = config;
         this.scanConfig = scanConfig;
@@ -124,11 +125,12 @@ public class SecretDetectorFactory {
                 config.getTimeoutCheckInterval(),
                 config.getLongLineNoSpaceThreshold(),
                 config.getRegexContextChars(),
-                config.getDebugPreviewChars()
-        );
+                config.getDebugPreviewChars());
 
-        logger.info("Secret detection initialized: {} rules loaded, {} unique keywords indexed",
-                this.rules.size(), this.keywordToRules.size());
+        logger.info(
+                "Secret detection initialized: {} rules loaded, {} unique keywords indexed",
+                this.rules.size(),
+                this.keywordToRules.size());
     }
 
     /**
@@ -144,7 +146,8 @@ public class SecretDetectorFactory {
         initialize();
     }
 
-    @Nullable SecretDetector getScanner() {
+    @Nullable
+    SecretDetector getScanner() {
         return scanner;
     }
 
@@ -160,7 +163,10 @@ public class SecretDetectorFactory {
         return keywordMatcher;
     }
 
-    private Map<String, List<SecretRule>> buildKeywordIndex(@NonNull List<SecretRule> sourceRules, @NonNull Set<String> allKeywords) {
+    private Map<String, List<SecretRule>> buildKeywordIndex(
+            @NonNull List<SecretRule> sourceRules,
+            @NonNull Set<String> allKeywords
+    ) {
         Map<String, List<SecretRule>> index = new HashMap<>();
 
         for (SecretRule rule : sourceRules) {
@@ -207,13 +213,15 @@ public class SecretDetectorFactory {
      */
     private List<String> getGlobalExcludedExtensions(
             SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
-            @NonNull SecretDetectorConfig config) {
+            @NonNull SecretDetectorConfig config
+    ) {
         List<String> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.fileExtensions != null) {
-            result.addAll(globalAllowlist.fileExtensions.stream()
-                    .map(String::toLowerCase)
-                    .toList());
+            result.addAll(
+                    globalAllowlist.fileExtensions.stream()
+                            .map(String::toLowerCase)
+                            .toList());
         }
 
         return result;
@@ -226,13 +234,15 @@ public class SecretDetectorFactory {
      */
     private List<Pattern> getGlobalExcludedPathPatterns(
             SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
-            @NonNull SecretDetectorConfig config) {
+            @NonNull SecretDetectorConfig config
+    ) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.paths != null) {
-            result.addAll(globalAllowlist.paths.stream()
-                    .map(path -> Pattern.compile(path, Pattern.CASE_INSENSITIVE))
-                    .toList());
+            result.addAll(
+                    globalAllowlist.paths.stream()
+                            .map(path -> Pattern.compile(path, Pattern.CASE_INSENSITIVE))
+                            .toList());
         }
 
         return result;
@@ -244,13 +254,15 @@ public class SecretDetectorFactory {
      */
     private List<Pattern> getGlobalAllowlistPatterns(
             SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
-            @NonNull SecretDetectorConfig config) {
+            @NonNull SecretDetectorConfig config
+    ) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.regexes != null && !globalAllowlist.regexes.isEmpty()) {
-            result.addAll(globalAllowlist.regexes.stream()
-                    .map(regex -> Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
-                    .toList());
+            result.addAll(
+                    globalAllowlist.regexes.stream()
+                            .map(regex -> Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
+                            .toList());
         }
 
         return result;
@@ -262,13 +274,15 @@ public class SecretDetectorFactory {
      */
     private List<String> getGlobalStopwords(
             SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist,
-            @NonNull SecretDetectorConfig config) {
+            @NonNull SecretDetectorConfig config
+    ) {
         List<String> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.stopwords != null) {
-            result.addAll(globalAllowlist.stopwords.stream()
-                    .map(String::toLowerCase)
-                    .toList());
+            result.addAll(
+                    globalAllowlist.stopwords.stream()
+                            .map(String::toLowerCase)
+                            .toList());
         }
 
         return result;
@@ -290,7 +304,8 @@ public class SecretDetectorFactory {
      * Uses case-insensitive matching.
      */
     private List<Pattern> getSkipMimeTypePatterns(
-            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist) {
+            SecretRuleLoader.@Nullable GlobalAllowlist globalAllowlist
+    ) {
         List<Pattern> result = new ArrayList<>();
 
         if (globalAllowlist != null && globalAllowlist.skipMimeTypes != null) {

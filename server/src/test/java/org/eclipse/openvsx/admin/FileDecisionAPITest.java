@@ -13,7 +13,6 @@
 package org.eclipse.openvsx.admin;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.eclipse.openvsx.repositories.RepositoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
@@ -23,11 +22,16 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.eclipse.openvsx.repositories.RepositoryService;
+
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(value = FileDecisionAPI.class, excludeAutoConfiguration = {OAuth2ClientWebSecurityAutoConfiguration.class})
+@WebMvcTest(
+    value = FileDecisionAPI.class,
+    excludeAutoConfiguration = { OAuth2ClientWebSecurityAutoConfiguration.class }
+)
 @AutoConfigureMockMvc(addFilters = false)
 class FileDecisionAPITest {
 
@@ -48,7 +52,8 @@ class FileDecisionAPITest {
         // Always allow the request to pass the admin gate in this test setup.
         when(admins.checkAdminUser()).thenReturn(TestData.adminUser());
 
-        mockMvc.perform(get("/admin/scans/files")
+        mockMvc.perform(
+                get("/admin/scans/files")
                         .param("status", "VALIDATING")
                         .param("publisher", "alpha")
                         .param("namespace", "a")
@@ -61,7 +66,8 @@ class FileDecisionAPITest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("size: parameter must not be negative"));
 
-        mockMvc.perform(get("/admin/scans/files")
+        mockMvc.perform(
+                get("/admin/scans/files")
                         .param("status", "VALIDATING")
                         .param("publisher", "alpha")
                         .param("namespace", "a")
@@ -74,7 +80,8 @@ class FileDecisionAPITest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("size: parameter must not be larger than 100"));
 
-        mockMvc.perform(get("/admin/scans/files")
+        mockMvc.perform(
+                get("/admin/scans/files")
                         .param("status", "VALIDATING")
                         .param("publisher", "alpha")
                         .param("namespace", "a")

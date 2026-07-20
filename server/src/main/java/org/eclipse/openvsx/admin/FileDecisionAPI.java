@@ -12,6 +12,10 @@
  ********************************************************************************/
 package org.eclipse.openvsx.admin;
 
+import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,12 +23,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.eclipse.openvsx.entities.FileDecision;
-import org.eclipse.openvsx.settings.MutatingOperation;
-import org.eclipse.openvsx.json.*;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.util.ErrorResultException;
-import org.eclipse.openvsx.util.TimeUtil;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -33,9 +31,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.Locale;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.entities.FileDecision;
+import org.eclipse.openvsx.json.*;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.settings.MutatingOperation;
+import org.eclipse.openvsx.util.ErrorResultException;
+import org.eclipse.openvsx.util.TimeUtil;
 
 /**
  * REST API for file decision management (allow/block lists).
@@ -74,39 +75,52 @@ public class FileDecisionAPI {
         )
     )
     public ResponseEntity<FileDecisionListJson> getFiles(
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by admin decision type", schema = @Schema(type = "string", allowableValues = {"allowed", "blocked"}))
-        String decision,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by publisher name")
-        String publisher,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by namespace")
-        String namespace,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter by display name, extension name, or file name")
-        String name,
-        @RequestParam(defaultValue = "18")
-        @Min(value = 0, message = "parameter must not be negative")
-        @Max(value = 100, message = "parameter must not be larger than 100")
-        @Parameter(description = "Maximum number of entries to return", schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18"))
-        int size,
-        @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "parameter must not be negative")
-        @Parameter(description = "Number of entries to skip", schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
-        int offset,
-        @RequestParam(defaultValue = "dateDecided")
-        @Parameter(description = "Field to sort by", schema = @Schema(type = "string", allowableValues = {"dateDecided", "fileName", "publisher", "namespace"}, defaultValue = "dateDecided"))
-        String sortBy,
-        @RequestParam(defaultValue = "desc")
-        @Parameter(description = "Sort order", schema = @Schema(type = "string", allowableValues = {"asc", "desc"}, defaultValue = "desc"))
-        String sortOrder,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter files decided on or after this date (ISO 8601 format)")
-        String dateDecidedFrom,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter files decided on or before this date (ISO 8601 format)")
-        String dateDecidedTo
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter by admin decision type",
+                schema = @Schema(type = "string", allowableValues = { "allowed", "blocked" })
+            ) String decision,
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by publisher name") String publisher,
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by namespace") String namespace,
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by display name, extension name, or file name") String name,
+            @RequestParam(defaultValue = "18")
+            @Min(value = 0, message = "parameter must not be negative")
+            @Max(value = 100, message = "parameter must not be larger than 100")
+            @Parameter(
+                description = "Maximum number of entries to return",
+                schema = @Schema(type = "integer", minimum = "0", maximum = "100", defaultValue = "18")
+            ) int size,
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "parameter must not be negative")
+            @Parameter(
+                description = "Number of entries to skip",
+                schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")
+            ) int offset,
+            @RequestParam(defaultValue = "dateDecided")
+            @Parameter(
+                description = "Field to sort by",
+                schema = @Schema(
+                    type = "string",
+                    allowableValues = { "dateDecided", "fileName", "publisher", "namespace" },
+                    defaultValue = "dateDecided"
+                )
+            ) String sortBy,
+            @RequestParam(defaultValue = "desc")
+            @Parameter(
+                description = "Sort order",
+                schema = @Schema(type = "string", allowableValues = { "asc", "desc" }, defaultValue = "desc")
+            ) String sortOrder,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter files decided on or after this date (ISO 8601 format)"
+            ) String dateDecidedFrom,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter files decided on or before this date (ISO 8601 format)"
+            ) String dateDecidedTo
     ) {
         try {
             admins.checkAdminUser();
@@ -121,15 +135,21 @@ public class FileDecisionAPI {
             var pageable = PageRequest.of(pageNumber, size, sort);
 
             var page = repositories.findFileDecisionsFiltered(
-                decision, publisher, namespace, name, decidedFrom, decidedTo, pageable
-            );
+                    decision,
+                    publisher,
+                    namespace,
+                    name,
+                    decidedFrom,
+                    decidedTo,
+                    pageable);
 
             var result = new FileDecisionListJson();
             result.setTotalSize((int) page.getTotalElements());
             result.setOffset(offset);
-            result.setFiles(page.getContent().stream()
-                .map(this::toFileDecisionJson)
-                .collect(Collectors.toList()));
+            result.setFiles(
+                    page.getContent().stream()
+                            .map(this::toFileDecisionJson)
+                            .collect(Collectors.toList()));
 
             return ResponseEntity.ok(result);
         } catch (ErrorResultException exc) {
@@ -157,7 +177,8 @@ public class FileDecisionAPI {
         content = @Content()
     )
     public ResponseEntity<FileDecisionJson> getFileDecision(
-        @PathVariable @Parameter(description = "File decision ID", example = "123") long fileId
+            @PathVariable
+            @Parameter(description = "File decision ID", example = "123") long fileId
     ) {
         try {
             admins.checkAdminUser();
@@ -196,7 +217,7 @@ public class FileDecisionAPI {
         content = @Content()
     )
     public ResponseEntity<FileDecisionResponseJson.Create> makeFileDecisions(
-        @RequestBody FileDecisionRequest.Create request
+            @RequestBody FileDecisionRequest.Create request
     ) {
         try {
             var adminUser = admins.checkAdminUser();
@@ -280,7 +301,7 @@ public class FileDecisionAPI {
         content = @Content()
     )
     public ResponseEntity<FileDecisionResponseJson.Delete> deleteFileDecisions(
-        @RequestBody FileDecisionRequest.Delete request
+            @RequestBody FileDecisionRequest.Delete request
     ) {
         try {
             admins.checkAdminUser();
@@ -344,12 +365,14 @@ public class FileDecisionAPI {
         )
     )
     public ResponseEntity<FileDecisionCountsJson> getFileDecisionCounts(
-        @RequestParam(required = false)
-        @Parameter(description = "Filter files decided on or after this date (ISO 8601 format)")
-        String dateDecidedFrom,
-        @RequestParam(required = false)
-        @Parameter(description = "Filter files decided on or before this date (ISO 8601 format)")
-        String dateDecidedTo
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter files decided on or after this date (ISO 8601 format)"
+            ) String dateDecidedFrom,
+            @RequestParam(required = false)
+            @Parameter(
+                description = "Filter files decided on or before this date (ISO 8601 format)"
+            ) String dateDecidedTo
     ) {
         try {
             admins.checkAdminUser();
@@ -363,8 +386,10 @@ public class FileDecisionAPI {
                 counts.setAllowed((int) repositories.countFileDecisions(FileDecision.ALLOWED));
                 counts.setBlocked((int) repositories.countFileDecisions(FileDecision.BLOCKED));
             } else {
-                counts.setAllowed((int) repositories.countFileDecisionsByDateRange(FileDecision.ALLOWED, decidedFrom, decidedTo));
-                counts.setBlocked((int) repositories.countFileDecisionsByDateRange(FileDecision.BLOCKED, decidedFrom, decidedTo));
+                counts.setAllowed(
+                        (int) repositories.countFileDecisionsByDateRange(FileDecision.ALLOWED, decidedFrom, decidedTo));
+                counts.setBlocked(
+                        (int) repositories.countFileDecisionsByDateRange(FileDecision.BLOCKED, decidedFrom, decidedTo));
             }
             counts.setTotal(counts.getAllowed() + counts.getBlocked());
 
@@ -380,9 +405,8 @@ public class FileDecisionAPI {
             case "allowed" -> FileDecision.ALLOWED;
             case "blocked" -> FileDecision.BLOCKED;
             default -> throw new ErrorResultException(
-                "Invalid decision value: " + decision + ". Must be 'allowed' or 'blocked'",
-                HttpStatus.BAD_REQUEST
-            );
+                    "Invalid decision value: " + decision + ". Must be 'allowed' or 'blocked'",
+                    HttpStatus.BAD_REQUEST);
         };
     }
 
@@ -406,7 +430,8 @@ public class FileDecisionAPI {
         return switch (sortOrder.toLowerCase(Locale.ROOT)) {
             case "asc" -> true;
             case "desc" -> false;
-            default -> throw new ErrorResultException("Unsupported sortOrder value: " + sortOrder, HttpStatus.BAD_REQUEST);
+            default ->
+                throw new ErrorResultException("Unsupported sortOrder value: " + sortOrder, HttpStatus.BAD_REQUEST);
         };
     }
 
@@ -418,9 +443,8 @@ public class FileDecisionAPI {
             return TimeUtil.fromUTCString(raw);
         } catch (Exception e) {
             throw new ErrorResultException(
-                "Invalid ISO date-time for parameter '" + paramName + "': " + raw,
-                HttpStatus.BAD_REQUEST
-            );
+                    "Invalid ISO date-time for parameter '" + paramName + "': " + raw,
+                    HttpStatus.BAD_REQUEST);
         }
     }
 

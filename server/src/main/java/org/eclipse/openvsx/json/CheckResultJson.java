@@ -61,8 +61,10 @@ public class CheckResultJson {
     @Schema(description = "Whether this check was required (errors block publishing). Null for scanner jobs.")
     private Boolean required;
 
-    @Schema(description = "Deep link to the external scanner's own dashboard for this job. " +
-        "Only populated for SCANNER_JOB rows whose scanner configures external-url-template.")
+    @Schema(
+        description = "Deep link to the external scanner's own dashboard for this job. " +
+                "Only populated for SCANNER_JOB rows whose scanner configures external-url-template."
+    )
     @Nullable
     private String externalUrl;
 

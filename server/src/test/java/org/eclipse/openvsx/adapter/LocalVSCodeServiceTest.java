@@ -9,7 +9,20 @@
  ********************************************************************************/
 package org.eclipse.openvsx.adapter;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
@@ -20,29 +33,23 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.*;
 import org.eclipse.openvsx.util.VersionService;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.openvsx.adapter.ExtensionQueryParam.*;
 import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(SpringExtension.class)
-@MockitoBean( types = {
-    VSCodeAPI.class, SimpleMeterRegistry.class, SearchUtilService.class,
-    StorageUtilService.class, ExtensionVersionIntegrityService.class,
-    WebResourceService.class, CacheService.class
-})
+@MockitoBean(
+    types = {
+        VSCodeAPI.class,
+        SimpleMeterRegistry.class,
+        SearchUtilService.class,
+        StorageUtilService.class,
+        ExtensionVersionIntegrityService.class,
+        WebResourceService.class,
+        CacheService.class
+    }
+)
 public class LocalVSCodeServiceTest {
 
     @MockitoBean
@@ -63,7 +70,8 @@ public class LocalVSCodeServiceTest {
         var filter = new ExtensionQueryParam.Filter(List.of(criterion, criterion), 0, 0, 0, 0);
         var param = new ExtensionQueryParam(List.of(filter), 0);
 
-        Mockito.when(repositories.findActiveExtensionsByPublicId(any(), any())).thenReturn(List.of(extension, extension));
+        Mockito.when(repositories.findActiveExtensionsByPublicId(any(), any()))
+                .thenReturn(List.of(extension, extension));
         Mockito.when(repositories.findActiveExtensionVersions(any(), any())).thenReturn(List.of(extensionVersion));
         Mockito.when(versions.getLatest(anyList(), anyBoolean())).thenReturn(extensionVersion);
 
@@ -128,7 +136,14 @@ public class LocalVSCodeServiceTest {
                 WebResourceService webResources,
                 CacheService cache
         ) {
-            return new LocalVSCodeService(repositories, versions, search, storageUtil, integrityService, webResources, cache);
+            return new LocalVSCodeService(
+                    repositories,
+                    versions,
+                    search,
+                    storageUtil,
+                    integrityService,
+                    webResources,
+                    cache);
         }
     }
 

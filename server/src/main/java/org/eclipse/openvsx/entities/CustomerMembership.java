@@ -12,12 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.entities;
 
-import jakarta.persistence.*;
-import org.eclipse.openvsx.json.CustomerMembershipJson;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
+
+import jakarta.persistence.*;
+
+import org.eclipse.openvsx.json.CustomerMembershipJson;
 
 @Entity
 public class CustomerMembership implements Serializable {
@@ -41,8 +42,7 @@ public class CustomerMembership implements Serializable {
     public CustomerMembershipJson toJson() {
         return new CustomerMembershipJson(
                 this.customer.getName(),
-                this.user.toUserJson()
-        );
+                this.user.toUserJson());
     }
 
     public long getId() {
@@ -50,7 +50,7 @@ public class CustomerMembership implements Serializable {
     }
 
     public void setId(long id) {
-		this.id = id;
+        this.id = id;
     }
 
     public UserData getUser() {
@@ -71,8 +71,12 @@ public class CustomerMembership implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         CustomerMembership that = (CustomerMembership) o;
         return id == that.id
                 && Objects.equals(customer, that.customer)

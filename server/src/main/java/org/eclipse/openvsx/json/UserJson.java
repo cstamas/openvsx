@@ -9,13 +9,13 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
+import java.util.List;
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.List;
-import java.util.Objects;
 
 @Schema(
     name = "User",
@@ -178,8 +178,12 @@ public class UserJson extends ResultJson {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             PublisherAgreement that = (PublisherAgreement) o;
             return Objects.equals(status, that.status) &&
                     Objects.equals(version, that.version) &&
@@ -194,8 +198,12 @@ public class UserJson extends ResultJson {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         UserJson userJson = (UserJson) o;
         return Objects.equals(loginName, userJson.loginName)
                 && Objects.equals(tokensUrl, userJson.tokensUrl)
@@ -211,6 +219,16 @@ public class UserJson extends ResultJson {
 
     @Override
     public int hashCode() {
-        return Objects.hash(loginName, tokensUrl, createTokenUrl, role, fullName, avatarUrl, homepage, provider, publisherAgreement, additionalLogins);
+        return Objects.hash(
+                loginName,
+                tokensUrl,
+                createTokenUrl,
+                role,
+                fullName,
+                avatarUrl,
+                homepage,
+                provider,
+                publisherAgreement,
+                additionalLogins);
     }
 }

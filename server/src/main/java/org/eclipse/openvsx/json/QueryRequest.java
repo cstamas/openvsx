@@ -9,15 +9,15 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
-public record QueryRequest (
-    String namespaceName,
-    String extensionName,
-    String extensionVersion,
-    String extensionId,
-    String extensionUuid,
-    String namespaceUuid,
-    boolean includeAllVersions,
-    String targetPlatform,
-    int size,
-    int offset
-){}
+public record QueryRequest(
+        String namespaceName,
+        String extensionName,
+        String extensionVersion,
+        String extensionId,
+        String extensionUuid,
+        String namespaceUuid,
+        boolean includeAllVersions,
+        String targetPlatform,
+        int size,
+        int offset
+) {}

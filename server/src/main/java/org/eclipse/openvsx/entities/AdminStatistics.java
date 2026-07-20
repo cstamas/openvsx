@@ -9,12 +9,12 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.entities;
 
-import org.eclipse.openvsx.json.AdminStatisticsJson;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.*;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import org.eclipse.openvsx.json.AdminStatisticsJson;
 
 @Entity
 @Table(name = "admin_statistics")
@@ -73,21 +73,40 @@ public class AdminStatistics {
 
     public String toCsv() {
         var ratings = 5;
-        var headers = new ArrayList<>(List.of("year", "month", "extensions", "downloads", "downloads_total", "publishers", "average_reviews_per_extension", "namespace_owners"));
-        for(int i = 0; i < ratings; i++) {
+        var headers = new ArrayList<>(
+                List.of(
+                        "year",
+                        "month",
+                        "extensions",
+                        "downloads",
+                        "downloads_total",
+                        "publishers",
+                        "average_reviews_per_extension",
+                        "namespace_owners"));
+        for (int i = 0; i < ratings; i++) {
             headers.add("extensions_by_rating_" + (i + 1));
         }
 
-        var extensionsPublishedAmounts = publishersByExtensionsPublished.keySet().stream().sorted().collect(Collectors.toList());
-        for(var amount : extensionsPublishedAmounts) {
+        var extensionsPublishedAmounts = publishersByExtensionsPublished.keySet().stream().sorted()
+                .collect(Collectors.toList());
+        for (var amount : extensionsPublishedAmounts) {
             headers.add("publishers_published_extensions_" + amount);
         }
 
-        var values = new ArrayList<Number>(List.of(year, month, extensions, downloads, downloadsTotal, publishers, averageReviewsPerExtension, namespaceOwners));
-        for(int i = 0; i  < ratings; i++) {
+        var values = new ArrayList<Number>(
+                List.of(
+                        year,
+                        month,
+                        extensions,
+                        downloads,
+                        downloadsTotal,
+                        publishers,
+                        averageReviewsPerExtension,
+                        namespaceOwners));
+        for (int i = 0; i < ratings; i++) {
             values.add(extensionsByRating.getOrDefault(i + 1, 0));
         }
-        for(var amount : extensionsPublishedAmounts) {
+        for (var amount : extensionsPublishedAmounts) {
             values.add(publishersByExtensionsPublished.get(amount));
         }
 
@@ -100,9 +119,16 @@ public class AdminStatistics {
         return String.join(",", headers) + "\n" + valueStrings;
     }
 
-    private void topMapToCsv(List<String> headers, List<Number> values, Map<String, ? extends Number> topMap, String headerPrefix) {
+    private void topMapToCsv(
+            List<String> headers,
+            List<Number> values,
+            Map<String, ? extends Number> topMap,
+            String headerPrefix
+    ) {
         topMap.entrySet().stream()
-                .sorted(Comparator.<Map.Entry<String, ? extends Number>>comparingLong(entry -> entry.getValue().longValue()).reversed())
+                .sorted(
+                        Comparator.<Map.Entry<String, ? extends Number>>comparingLong(
+                                entry -> entry.getValue().longValue()).reversed())
                 .forEach(entry -> {
                     headers.add(headerPrefix + entry.getKey());
                     values.add(entry.getValue());
@@ -137,7 +163,9 @@ public class AdminStatistics {
                     mapping.setExtensions(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.ExtensionsByRating>comparingInt(er -> er.getRating()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.ExtensionsByRating>comparingInt(er -> er.getRating())
+                                .reversed())
                 .collect(Collectors.toList());
     }
 
@@ -149,7 +177,9 @@ public class AdminStatistics {
                     mapping.setPublishers(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.PublishersByExtensionsPublished>comparingInt(pe -> pe.getExtensionsPublished()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.PublishersByExtensionsPublished>comparingInt(
+                                pe -> pe.getExtensionsPublished()).reversed())
                 .collect(Collectors.toList());
     }
 
@@ -161,7 +191,9 @@ public class AdminStatistics {
                     mapping.setPublishedExtensionVersions(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.TopMostActivePublishingUsers>comparingInt(pe -> pe.getPublishedExtensionVersions()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.TopMostActivePublishingUsers>comparingInt(
+                                pe -> pe.getPublishedExtensionVersions()).reversed())
                 .collect(Collectors.toList());
     }
 
@@ -173,7 +205,9 @@ public class AdminStatistics {
                     mapping.setExtensions(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.TopNamespaceExtensions>comparingInt(pe -> pe.getExtensions()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.TopNamespaceExtensions>comparingInt(pe -> pe.getExtensions())
+                                .reversed())
                 .collect(Collectors.toList());
     }
 
@@ -185,7 +219,9 @@ public class AdminStatistics {
                     mapping.setExtensionVersions(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.TopNamespaceExtensionVersions>comparingInt(pe -> pe.getExtensionVersions()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.TopNamespaceExtensionVersions>comparingInt(
+                                pe -> pe.getExtensionVersions()).reversed())
                 .collect(Collectors.toList());
     }
 
@@ -197,7 +233,9 @@ public class AdminStatistics {
                     mapping.setDownloads(entry.getValue());
                     return mapping;
                 })
-                .sorted(Comparator.<AdminStatisticsJson.TopMostDownloadedExtensions>comparingLong(pe -> pe.getDownloads()).reversed())
+                .sorted(
+                        Comparator.<AdminStatisticsJson.TopMostDownloadedExtensions>comparingLong(
+                                pe -> pe.getDownloads()).reversed())
                 .collect(Collectors.toList());
     }
 
@@ -323,14 +361,42 @@ public class AdminStatistics {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         AdminStatistics that = (AdminStatistics) o;
-        return id == that.id && year == that.year && month == that.month && extensions == that.extensions && downloads == that.downloads && downloadsTotal == that.downloadsTotal && publishers == that.publishers && Double.compare(that.averageReviewsPerExtension, averageReviewsPerExtension) == 0 && namespaceOwners == that.namespaceOwners && Objects.equals(extensionsByRating, that.extensionsByRating) && Objects.equals(publishersByExtensionsPublished, that.publishersByExtensionsPublished) && Objects.equals(topMostActivePublishingUsers, that.topMostActivePublishingUsers) && Objects.equals(topNamespaceExtensions, that.topNamespaceExtensions) && Objects.equals(topNamespaceExtensionVersions, that.topNamespaceExtensionVersions) && Objects.equals(topMostDownloadedExtensions, that.topMostDownloadedExtensions);
+        return id == that.id && year == that.year && month == that.month && extensions == that.extensions
+                && downloads == that.downloads && downloadsTotal == that.downloadsTotal && publishers == that.publishers
+                && Double.compare(that.averageReviewsPerExtension, averageReviewsPerExtension) == 0
+                && namespaceOwners == that.namespaceOwners
+                && Objects.equals(extensionsByRating, that.extensionsByRating)
+                && Objects.equals(publishersByExtensionsPublished, that.publishersByExtensionsPublished)
+                && Objects.equals(topMostActivePublishingUsers, that.topMostActivePublishingUsers)
+                && Objects.equals(topNamespaceExtensions, that.topNamespaceExtensions)
+                && Objects.equals(topNamespaceExtensionVersions, that.topNamespaceExtensionVersions)
+                && Objects.equals(topMostDownloadedExtensions, that.topMostDownloadedExtensions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, year, month, extensions, downloads, downloadsTotal, publishers, averageReviewsPerExtension, namespaceOwners, extensionsByRating, publishersByExtensionsPublished, topMostActivePublishingUsers, topNamespaceExtensions, topNamespaceExtensionVersions, topMostDownloadedExtensions);
+        return Objects.hash(
+                id,
+                year,
+                month,
+                extensions,
+                downloads,
+                downloadsTotal,
+                publishers,
+                averageReviewsPerExtension,
+                namespaceOwners,
+                extensionsByRating,
+                publishersByExtensionsPublished,
+                topMostActivePublishingUsers,
+                topNamespaceExtensions,
+                topNamespaceExtensionVersions,
+                topMostDownloadedExtensions);
     }
 }

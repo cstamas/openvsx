@@ -9,8 +9,9 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.repositories;
 
-import org.eclipse.openvsx.entities.AdminStatistics;
 import org.springframework.data.repository.Repository;
+
+import org.eclipse.openvsx.entities.AdminStatistics;
 
 public interface AdminStatisticsRepository extends Repository<AdminStatistics, Long> {
 

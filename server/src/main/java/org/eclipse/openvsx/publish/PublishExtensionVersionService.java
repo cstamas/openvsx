@@ -11,15 +11,16 @@ package org.eclipse.openvsx.publish;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.resilience.annotation.Retryable;
+import org.springframework.stereotype.Component;
+
 import org.eclipse.openvsx.ExtensionService;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.TempFile;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.resilience.annotation.Retryable;
-import org.springframework.stereotype.Component;
 
 import static org.eclipse.openvsx.cache.CacheService.CACHE_SITEMAP;
 

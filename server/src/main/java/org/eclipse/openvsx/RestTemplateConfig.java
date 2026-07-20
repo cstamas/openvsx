@@ -9,6 +9,8 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -23,8 +25,6 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
-
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class RestTemplateConfig {
@@ -41,7 +41,12 @@ public class RestTemplateConfig {
             @Value("${ovsx.foregroundHttpConnPool.connectTimeout:10000}") int connectTimeout,
             @Value("${ovsx.foregroundHttpConnPool.socketTimeout:10000}") int socketTimeout
     ) {
-        return createHttpConnPoolConfig(maxTotal, defaultMaxPerRoute, connectionRequestTimeout, connectTimeout, socketTimeout);
+        return createHttpConnPoolConfig(
+                maxTotal,
+                defaultMaxPerRoute,
+                connectionRequestTimeout,
+                connectTimeout,
+                socketTimeout);
     }
 
     /**
@@ -56,10 +61,21 @@ public class RestTemplateConfig {
             @Value("${ovsx.backgroundHttpConnPool.connectTimeout:30000}") int connectTimeout,
             @Value("${ovsx.backgroundHttpConnPool.socketTimeout:60000}") int socketTimeout
     ) {
-        return createHttpConnPoolConfig(maxTotal, defaultMaxPerRoute, connectionRequestTimeout, connectTimeout, socketTimeout);
+        return createHttpConnPoolConfig(
+                maxTotal,
+                defaultMaxPerRoute,
+                connectionRequestTimeout,
+                connectTimeout,
+                socketTimeout);
     }
 
-    private HttpConnPoolConfig createHttpConnPoolConfig(int maxTotal, int defaultMaxPerRoute, int connectionRequestTimeout, int connectTimeout, int socketTimeout) {
+    private HttpConnPoolConfig createHttpConnPoolConfig(
+            int maxTotal,
+            int defaultMaxPerRoute,
+            int connectionRequestTimeout,
+            int connectTimeout,
+            int socketTimeout
+    ) {
         PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(maxTotal);
         connectionManager.setDefaultMaxPerRoute(defaultMaxPerRoute);
@@ -67,8 +83,7 @@ public class RestTemplateConfig {
                 connectionManager,
                 connectionRequestTimeout,
                 connectTimeout,
-                socketTimeout
-        );
+                socketTimeout);
     }
 
     @Bean
@@ -87,7 +102,10 @@ public class RestTemplateConfig {
     }
 
     @Bean
-    public RestTemplate nonRedirectingRestTemplate(RestTemplateBuilder builder, HttpConnPoolConfig foregroundHttpConnPool) {
+    public RestTemplate nonRedirectingRestTemplate(
+            RestTemplateBuilder builder,
+            HttpConnPoolConfig foregroundHttpConnPool
+    ) {
         var httpClient = createHttpClientBuilder(foregroundHttpConnPool).disableRedirectHandling().build();
         return builder
                 .requestFactory(() -> {
@@ -117,7 +135,10 @@ public class RestTemplateConfig {
     }
 
     @Bean
-    public RestTemplate backgroundNonRedirectingRestTemplate(RestTemplateBuilder builder, HttpConnPoolConfig backgroundHttpConnPool) {
+    public RestTemplate backgroundNonRedirectingRestTemplate(
+            RestTemplateBuilder builder,
+            HttpConnPoolConfig backgroundHttpConnPool
+    ) {
         var httpClient = createHttpClientBuilder(backgroundHttpConnPool).disableRedirectHandling().build();
         DefaultUriBuilderFactory defaultUriBuilderFactory = new DefaultUriBuilderFactory();
         defaultUriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
@@ -146,7 +167,8 @@ public class RestTemplateConfig {
                 .build();
         httpConnPoolConfig.connectionManager().setDefaultConnectionConfig(connectionConfig);
         var requestConfig = RequestConfig.custom()
-                .setConnectionRequestTimeout(Timeout.of(httpConnPoolConfig.connectionRequestTimeout(), TimeUnit.MILLISECONDS))
+                .setConnectionRequestTimeout(
+                        Timeout.of(httpConnPoolConfig.connectionRequestTimeout(), TimeUnit.MILLISECONDS))
                 .build();
         return HttpClientBuilder
                 .create()
@@ -158,5 +180,6 @@ public class RestTemplateConfig {
             PoolingHttpClientConnectionManager connectionManager,
             int connectionRequestTimeout,
             int connectTimeout,
-            int socketTimeout) {}
+            int socketTimeout
+    ) {}
 }

@@ -12,10 +12,9 @@
  *****************************************************************************/
 package org.eclipse.openvsx.ratelimit;
 
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.entities.Customer;
-import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
-import org.eclipse.openvsx.repositories.RepositoryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -25,7 +24,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.List;
+import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
+import org.eclipse.openvsx.repositories.RepositoryService;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;

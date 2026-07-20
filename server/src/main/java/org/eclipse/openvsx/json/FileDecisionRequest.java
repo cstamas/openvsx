@@ -12,27 +12,26 @@
  ********************************************************************************/
 package org.eclipse.openvsx.json;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Request types for file decision operations.
  */
 public final class FileDecisionRequest {
 
-    private FileDecisionRequest() {}
+    private FileDecisionRequest() {
+    }
 
     @Schema(
         name = "FileDecisionRequest",
         description = "Request body for creating/updating file decisions"
     )
     public record Create(
-        @Schema(description = "List of file hashes to apply the decision to")
-        List<String> fileHashes,
+            @Schema(description = "List of file hashes to apply the decision to") List<String> fileHashes,
 
-        @Schema(description = "Decision to apply: 'allowed' or 'blocked'")
-        String decision
+            @Schema(description = "Decision to apply: 'allowed' or 'blocked'") String decision
     ) {}
 
     @Schema(
@@ -40,7 +39,6 @@ public final class FileDecisionRequest {
         description = "Request body for deleting file decisions"
     )
     public record Delete(
-        @Schema(description = "List of file IDs to delete")
-        List<Long> fileIds
+            @Schema(description = "List of file IDs to delete") List<Long> fileIds
     ) {}
 }

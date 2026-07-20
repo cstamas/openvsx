@@ -9,14 +9,15 @@
  * ****************************************************************************** */
 package org.eclipse.openvsx.cache;
 
+import java.lang.reflect.Method;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.openvsx.entities.Extension;
-import org.eclipse.openvsx.util.NamingUtil;
-import org.eclipse.openvsx.util.VersionAlias;
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
+import org.eclipse.openvsx.entities.Extension;
+import org.eclipse.openvsx.util.NamingUtil;
+import org.eclipse.openvsx.util.VersionAlias;
 
 @Component
 public class ExtensionJsonCacheKeyGenerator implements KeyGenerator {
@@ -28,7 +29,11 @@ public class ExtensionJsonCacheKeyGenerator implements KeyGenerator {
     }
 
     public String generate(String namespaceName, String extensionName, String targetPlatform, String version) {
-        return NamingUtil.toFileFormat(StringUtils.lowerCase(namespaceName), StringUtils.lowerCase(extensionName), targetPlatform, version);
+        return NamingUtil.toFileFormat(
+                StringUtils.lowerCase(namespaceName),
+                StringUtils.lowerCase(extensionName),
+                targetPlatform,
+                version);
     }
 
     public String generateWildcard(Extension extension) {

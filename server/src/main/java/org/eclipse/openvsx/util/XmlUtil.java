@@ -12,6 +12,13 @@
  *****************************************************************************/
 package org.eclipse.openvsx.util;
 
+import java.io.IOException;
+import java.io.StringReader;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,18 +26,12 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
-
 public class XmlUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XmlUtil.class);
 
-    private XmlUtil() {}
+    private XmlUtil() {
+    }
 
     /**
      * Parses the provided string as an XML document using a safe {@code DocumentBuilder}
@@ -59,27 +60,27 @@ public class XmlUtil {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
         String[] featuresToEnable = {
-                // This is the PRIMARY defense. If DTDs (doctypes) are disallowed, almost all
-                // XML entity attacks are prevented
-                // Xerces 2 only - http://xerces.apache.org/xerces2-j/features.html#disallow-doctype-decl
-                "http://apache.org/xml/features/disallow-doctype-decl",
+            // This is the PRIMARY defense. If DTDs (doctypes) are disallowed, almost all
+            // XML entity attacks are prevented
+            // Xerces 2 only - http://xerces.apache.org/xerces2-j/features.html#disallow-doctype-decl
+            "http://apache.org/xml/features/disallow-doctype-decl",
         };
 
         String[] featuresToDisable = {
-                // Xerces 1 - http://xerces.apache.org/xerces-j/features.html#external-general-entities
-                // Xerces 2 - http://xerces.apache.org/xerces2-j/features.html#external-general-entities
-                // JDK7+ - http://xml.org/sax/features/external-general-entities
-                // This feature has to be used together with the following one, otherwise it will not protect you from XXE for sure
-                "http://xml.org/sax/features/external-general-entities",
+            // Xerces 1 - http://xerces.apache.org/xerces-j/features.html#external-general-entities
+            // Xerces 2 - http://xerces.apache.org/xerces2-j/features.html#external-general-entities
+            // JDK7+ - http://xml.org/sax/features/external-general-entities
+            // This feature has to be used together with the following one, otherwise it will not protect you from XXE for sure
+            "http://xml.org/sax/features/external-general-entities",
 
-                // Xerces 1 - http://xerces.apache.org/xerces-j/features.html#external-parameter-entities
-                // Xerces 2 - http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities
-                // JDK7+ - http://xml.org/sax/features/external-parameter-entities
-                // This feature has to be used together with the previous one, otherwise it will not protect you from XXE for sure
-                "http://xml.org/sax/features/external-parameter-entities",
+            // Xerces 1 - http://xerces.apache.org/xerces-j/features.html#external-parameter-entities
+            // Xerces 2 - http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities
+            // JDK7+ - http://xml.org/sax/features/external-parameter-entities
+            // This feature has to be used together with the previous one, otherwise it will not protect you from XXE for sure
+            "http://xml.org/sax/features/external-parameter-entities",
 
-                // Disable external DTDs as well
-                "http://apache.org/xml/features/nonvalidating/load-external-dtd"
+            // Disable external DTDs as well
+            "http://apache.org/xml/features/nonvalidating/load-external-dtd"
         };
 
         for (String feature : featuresToEnable) {

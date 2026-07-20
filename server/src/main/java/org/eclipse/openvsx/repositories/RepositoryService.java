@@ -9,9 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.repositories;
 
-import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
-import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD_SIG;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -19,6 +16,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.util.Streamable;
+import org.springframework.stereotype.Component;
 
 import org.eclipse.openvsx.entities.AdminScanDecision;
 import org.eclipse.openvsx.entities.AdminStatistics;
@@ -52,20 +58,16 @@ import org.eclipse.openvsx.util.ExtensionId;
 import org.eclipse.openvsx.util.NamingUtil;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.web.SitemapRow;
-import org.jspecify.annotations.Nullable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.util.Streamable;
-import org.springframework.stereotype.Component;
+
+import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD;
+import static org.eclipse.openvsx.entities.FileResource.DOWNLOAD_SIG;
 
 @Component
 public class RepositoryService {
 
     private static final int MAX_VERSIONS = 100;
-    private static final Sort VERSIONS_SORT = Sort.by(Sort.Direction.DESC, "semver.major", "semver.minor", "semver.patch")
+    private static final Sort VERSIONS_SORT = Sort
+            .by(Sort.Direction.DESC, "semver.major", "semver.minor", "semver.patch")
             .and(Sort.by(Sort.Direction.ASC, "semver.isPreRelease"))
             .and(Sort.by(Sort.Direction.DESC, "universalTargetPlatform"))
             .and(Sort.by(Sort.Direction.ASC, "targetPlatform"))
@@ -251,38 +253,76 @@ public class RepositoryService {
     }
 
     public ExtensionVersion findVersion(String version, String targetPlatform, String extensionName, String namespace) {
-        return extensionVersionRepo.findByVersionAndTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(version, targetPlatform, extensionName, namespace);
+        return extensionVersionRepo
+                .findByVersionAndTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(
+                        version,
+                        targetPlatform,
+                        extensionName,
+                        namespace);
     }
 
-    public ExtensionVersion findVersionPublishedWithUser(UserData user, String version, String targetPlatform, String extensionName, String namespace) {
-        return extensionVersionRepo.findByPublishedWithUserAndVersionAndTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(user, version, targetPlatform, extensionName, namespace);
+    public ExtensionVersion findVersionPublishedWithUser(
+            UserData user,
+            String version,
+            String targetPlatform,
+            String extensionName,
+            String namespace
+    ) {
+        return extensionVersionRepo
+                .findByPublishedWithUserAndVersionAndTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(
+                        user,
+                        version,
+                        targetPlatform,
+                        extensionName,
+                        namespace);
     }
 
     public Streamable<ExtensionVersion> findVersions(Extension extension) {
-         return extensionVersionRepo.findByExtension(extension);
+        return extensionVersionRepo.findByExtension(extension);
     }
 
     public Streamable<ExtensionVersion> findActiveVersions(Extension extension) {
-         return extensionVersionRepo.findByExtensionAndActiveTrue(extension);
+        return extensionVersionRepo.findByExtensionAndActiveTrue(extension);
     }
 
     public Page<ExtensionVersion> findActiveVersionsSorted(String namespace, String extension, PageRequest page) {
-        return extensionVersionRepo.findByExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(extension, namespace, page.withSort(VERSIONS_SORT));
+        return extensionVersionRepo.findByExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(
+                extension,
+                namespace,
+                page.withSort(VERSIONS_SORT));
     }
 
-    public Page<ExtensionVersion> findActiveVersionsSorted(String namespace, String extension, String targetPlatform, PageRequest page) {
-        return extensionVersionRepo.findByTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(targetPlatform, extension, namespace, page.withSort(VERSIONS_SORT));
+    public Page<ExtensionVersion> findActiveVersionsSorted(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            PageRequest page
+    ) {
+        return extensionVersionRepo.findByTargetPlatformAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(
+                targetPlatform,
+                extension,
+                namespace,
+                page.withSort(VERSIONS_SORT));
     }
 
-    public Page<String> findActiveVersionStringsSorted(String namespace, String extension, String targetPlatform, PageRequest page) {
+    public Page<String> findActiveVersionStringsSorted(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            PageRequest page
+    ) {
         return extensionVersionJooqRepo.findActiveVersionStringsSorted(namespace, extension, targetPlatform, page);
     }
 
     public List<String> findVersionStringsSorted(Extension extension, String targetPlatform, boolean onlyActive) {
-        return extensionVersionJooqRepo.findVersionStringsSorted(extension.getId(), targetPlatform, onlyActive, MAX_VERSIONS);
+        return extensionVersionJooqRepo
+                .findVersionStringsSorted(extension.getId(), targetPlatform, onlyActive, MAX_VERSIONS);
     }
 
-    public Map<Long, List<String>> findActiveVersionStringsSorted(Collection<Long> extensionIds, String targetPlatform) {
+    public Map<Long, List<String>> findActiveVersionStringsSorted(
+            Collection<Long> extensionIds,
+            String targetPlatform
+    ) {
         return extensionVersionJooqRepo.findActiveVersionStringsSorted(extensionIds, targetPlatform, MAX_VERSIONS);
     }
 
@@ -326,7 +366,13 @@ public class RepositoryService {
         return fileResourceRepo.findByStorageType(storageType);
     }
 
-    public FileResource findFileByName(String namespace, String extension, String targetPlatform, String version, String name) {
+    public FileResource findFileByName(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version,
+            String name
+    ) {
         return fileResourceJooqRepo.findByName(namespace, extension, targetPlatform, version, name);
     }
 
@@ -342,7 +388,13 @@ public class RepositoryService {
         return fileResourceRepo.findByExtensionAndType(extVersion, type);
     }
 
-    public FileResource findFileByType(String namespace, String extension, String targetPlatform, String version, String type) {
+    public FileResource findFileByType(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version,
+            String type
+    ) {
         return fileResourceJooqRepo.findByType(namespace, extension, targetPlatform, version, type);
     }
 
@@ -442,8 +494,12 @@ public class RepositoryService {
         return tokenRepo.findById(id);
     }
 
-    public List<PersonalAccessToken> findExpiringAccessTokensWithoutNotification(LocalDateTime expirationTime, Pageable pageable) {
-        return tokenRepo.findByExpiresTimestampLessThanEqualAndActiveTrueAndNotifiedFalseOrderById(expirationTime, pageable);
+    public List<PersonalAccessToken> findExpiringAccessTokensWithoutNotification(
+            LocalDateTime expirationTime,
+            Pageable pageable
+    ) {
+        return tokenRepo
+                .findByExpiresTimestampLessThanEqualAndActiveTrueAndNotifiedFalseOrderById(expirationTime, pageable);
     }
 
     public Streamable<PersistedLog> findAllPersistedLogs() {
@@ -462,11 +518,17 @@ public class RepositoryService {
         return persistedLogRepo.findByTimestampAfterOrderByTimestampDesc(dateTime, pageable);
     }
 
-    public List<String> findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(String storageType, List<String> names) {
+    public List<String> findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(
+            String storageType,
+            List<String> names
+    ) {
         return downloadCountRepo.findAllSucceededDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, names);
     }
 
-    public List<String> findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(String storageType, List<String> names) {
+    public List<String> findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(
+            String storageType,
+            List<String> names
+    ) {
         return downloadCountRepo.findAllFailedDownloadCountProcessedItemsByStorageTypeAndNameIn(storageType, names);
     }
 
@@ -490,7 +552,10 @@ public class RepositoryService {
         return extensionVersionJooqRepo.findAllActiveByExtensionIdAndTargetPlatform(extensionIds, targetPlatform);
     }
 
-    public List<FileResource> findFileResourcesByExtensionVersionIdAndType(Collection<Long> extensionVersionIds, Collection<String> types) {
+    public List<FileResource> findFileResourcesByExtensionVersionIdAndType(
+            Collection<Long> extensionVersionIds,
+            Collection<String> types
+    ) {
         return fileResourceJooqRepo.findAll(extensionVersionIds, types);
     }
 
@@ -510,11 +575,11 @@ public class RepositoryService {
         return adminStatisticCalculationsRepo.countActiveExtensionPublishers();
     }
 
-    public Map<Integer,Integer> countActiveExtensionPublishersGroupedByExtensionsPublished() {
+    public Map<Integer, Integer> countActiveExtensionPublishersGroupedByExtensionsPublished() {
         return adminStatisticCalculationsRepo.countActiveExtensionPublishersGroupedByExtensionsPublished();
     }
 
-    public Map<Integer,Integer> countActiveExtensionsGroupedByExtensionReviewRating() {
+    public Map<Integer, Integer> countActiveExtensionsGroupedByExtensionReviewRating() {
         return adminStatisticCalculationsRepo.countActiveExtensionsGroupedByExtensionReviewRating();
     }
 
@@ -546,8 +611,15 @@ public class RepositoryService {
         return adminStatisticCalculationsRepo.topMostDownloadedExtensions(limit);
     }
 
-    public Streamable<ExtensionVersion> findTargetPlatformVersions(String version, String extensionName, String namespaceName) {
-        return extensionVersionRepo.findByVersionAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(version, extensionName, namespaceName);
+    public Streamable<ExtensionVersion> findTargetPlatformVersions(
+            String version,
+            String extensionName,
+            String namespaceName
+    ) {
+        return extensionVersionRepo.findByVersionAndExtensionNameIgnoreCaseAndExtensionNamespaceNameIgnoreCase(
+                version,
+                extensionName,
+                namespaceName);
     }
 
     public int countVersions(String namespaceName, String extensionName) {
@@ -647,7 +719,12 @@ public class RepositoryService {
         return extensionJooqRepo.findActiveExtensionsForUrls(namespace);
     }
 
-    public ExtensionVersion findExtensionVersion(String namespace, String extension, String targetPlatform, String version) {
+    public ExtensionVersion findExtensionVersion(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version
+    ) {
         return extensionVersionJooqRepo.find(namespace, extension, targetPlatform, version);
     }
 
@@ -655,24 +732,50 @@ public class RepositoryService {
      * Find an extension version regardless of active status.
      * Use this for admin operations on quarantined/inactive extensions.
      */
-    public ExtensionVersion findExtensionVersionIncludingInactive(String namespace, String extension, String targetPlatform, String version) {
+    public ExtensionVersion findExtensionVersionIncludingInactive(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version
+    ) {
         return extensionVersionJooqRepo.findIncludingInactive(namespace, extension, targetPlatform, version);
     }
 
-    public ExtensionVersion findLatestVersionForAllUrls(Extension extension, String targetPlatform, boolean onlyPreRelease, boolean onlyActive) {
+    public ExtensionVersion findLatestVersionForAllUrls(
+            Extension extension,
+            String targetPlatform,
+            boolean onlyPreRelease,
+            boolean onlyActive
+    ) {
         return extensionVersionJooqRepo.findLatestForAllUrls(extension, targetPlatform, onlyPreRelease, onlyActive);
     }
 
-    public ExtensionVersion findLatestVersion(Extension extension, String targetPlatform, boolean onlyPreRelease, boolean onlyActive) {
+    public ExtensionVersion findLatestVersion(
+            Extension extension,
+            String targetPlatform,
+            boolean onlyPreRelease,
+            boolean onlyActive
+    ) {
         return extensionVersionJooqRepo.findLatest(extension, targetPlatform, onlyPreRelease, onlyActive);
     }
 
-    public List<ExtensionVersion> findLatestVersionByTargetPlatform(Extension extension, boolean preReleases, boolean onlyActive) {
+    public List<ExtensionVersion> findLatestVersionByTargetPlatform(
+            Extension extension,
+            boolean preReleases,
+            boolean onlyActive
+    ) {
         return extensionVersionJooqRepo.findLatestVersionByTargetPlatform(extension, preReleases, onlyActive);
     }
 
-    public ExtensionVersion findLatestVersion(String namespaceName, String extensionName, String targetPlatform, boolean onlyPreRelease, boolean onlyActive) {
-        return extensionVersionJooqRepo.findLatest(namespaceName, extensionName, targetPlatform, onlyPreRelease, onlyActive);
+    public ExtensionVersion findLatestVersion(
+            String namespaceName,
+            String extensionName,
+            String targetPlatform,
+            boolean onlyPreRelease,
+            boolean onlyActive
+    ) {
+        return extensionVersionJooqRepo
+                .findLatest(namespaceName, extensionName, targetPlatform, onlyPreRelease, onlyActive);
     }
 
     public List<ExtensionVersion> findLatestVersions(Namespace namespace) {
@@ -747,7 +850,12 @@ public class RepositoryService {
         return membershipJooqRepo.canPublish(user, namespace);
     }
 
-    public String findSignatureKeyPairPublicId(String namespace, String extension, String targetPlatform, String version) {
+    public String findSignatureKeyPairPublicId(
+            String namespace,
+            String extension,
+            String targetPlatform,
+            String version
+    ) {
         return signatureKeyPairJooqRepo.findPublicId(namespace, extension, targetPlatform, version);
     }
 
@@ -763,7 +871,12 @@ public class RepositoryService {
         return membershipRepo.findFirstByNamespaceNameIgnoreCase(namespaceName);
     }
 
-    public ExtensionVersion findLatestReplacement(long extensionId, String targetPlatform, boolean onlyPreRelease, boolean onlyActive) {
+    public ExtensionVersion findLatestReplacement(
+            long extensionId,
+            String targetPlatform,
+            boolean onlyPreRelease,
+            boolean onlyActive
+    ) {
         return extensionVersionJooqRepo.findLatestReplacement(extensionId, targetPlatform, onlyPreRelease, onlyActive);
     }
 
@@ -779,7 +892,12 @@ public class RepositoryService {
         return migrationItemJooqRepo.findRemoveFileResourceTypeResourceMigrationItems(offset, limit);
     }
 
-    public boolean isDeleteAllVersions(@Nullable UserData user, String namespaceName, String extensionName, TargetPlatformVersion... targetVersions) {
+    public boolean isDeleteAllVersions(
+            @Nullable UserData user,
+            String namespaceName,
+            String extensionName,
+            TargetPlatformVersion... targetVersions
+    ) {
         return extensionVersionJooqRepo.isDeleteAllVersions(user, namespaceName, extensionName, targetVersions);
     }
 
@@ -799,8 +917,7 @@ public class RepositoryService {
                 excludeNamespaces,
                 levenshteinThreshold,
                 verifiedOnly,
-                limit
-        );
+                limit);
     }
 
     public List<Namespace> findSimilarNamespacesByLevenshtein(
@@ -815,8 +932,7 @@ public class RepositoryService {
                 excludeNamespaces,
                 levenshteinThreshold,
                 verifiedOnly,
-                limit
-        );
+                limit);
     }
 
     public ExtensionScan saveExtensionScan(ExtensionScan scan) {
@@ -835,14 +951,21 @@ public class RepositoryService {
         var extension = version.getExtension();
         var namespace = extension.getNamespace();
         return extensionScanRepo.findByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatform(
-            namespace.getName(), extension.getName(), version.getVersion(), version.getTargetPlatform());
+                namespace.getName(),
+                extension.getName(),
+                version.getVersion(),
+                version.getTargetPlatform());
     }
 
     public ExtensionScan findLatestExtensionScan(ExtensionVersion version) {
         var extension = version.getExtension();
         var namespace = extension.getNamespace();
-        return extensionScanRepo.findFirstByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatformOrderByStartedAtDesc(
-            namespace.getName(), extension.getName(), version.getVersion(), version.getTargetPlatform());
+        return extensionScanRepo
+                .findFirstByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatformOrderByStartedAtDesc(
+                        namespace.getName(),
+                        extension.getName(),
+                        version.getVersion(),
+                        version.getTargetPlatform());
     }
 
     public Streamable<ExtensionScan> findExtensionScans(Extension extension) {
@@ -871,7 +994,11 @@ public class RepositoryService {
         var extension = version.getExtension();
         var namespace = extension.getNamespace();
         return extensionScanRepo.existsByNamespaceNameAndExtensionNameAndExtensionVersionAndTargetPlatformAndStatus(
-            namespace.getName(), extension.getName(), version.getVersion(), version.getTargetPlatform(), status);
+                namespace.getName(),
+                extension.getName(),
+                version.getVersion(),
+                version.getTargetPlatform(),
+                status);
     }
 
     public Streamable<ExtensionScan> findAllExtensionScans() {
@@ -889,15 +1016,20 @@ public class RepositoryService {
     ) {
         // Convert empty collections to null, and enums to strings for native query
         var statusesParam = (statuses == null || statuses.isEmpty())
-            ? null
-            : statuses.stream().map(ScanStatus::name).toList();
+                ? null
+                : statuses.stream().map(ScanStatus::name).toList();
         var namespaceParam = (namespace == null || namespace.isBlank()) ? null : namespace;
         var publisherParam = (publisher == null || publisher.isBlank()) ? null : publisher;
         var nameParam = (name == null || name.isBlank()) ? null : name;
 
         return extensionScanRepo.findScansFiltered(
-            statusesParam, namespaceParam, publisherParam, nameParam, startedFrom, startedTo, pageable
-        );
+                statusesParam,
+                namespaceParam,
+                publisherParam,
+                nameParam,
+                startedFrom,
+                startedTo,
+                pageable);
     }
 
     public long countScansFiltered(
@@ -910,23 +1042,35 @@ public class RepositoryService {
     ) {
         // Convert enums to strings for native query
         var statusesParam = (statuses == null || statuses.isEmpty())
-            ? null
-            : statuses.stream().map(ScanStatus::name).toList();
+                ? null
+                : statuses.stream().map(ScanStatus::name).toList();
         var namespaceParam = (namespace == null || namespace.isBlank()) ? null : namespace;
         var publisherParam = (publisher == null || publisher.isBlank()) ? null : publisher;
         var nameParam = (name == null || name.isBlank()) ? null : name;
 
         return extensionScanRepo.countScansFiltered(
-            statusesParam, namespaceParam, publisherParam, nameParam, startedFrom, startedTo
-        );
+                statusesParam,
+                namespaceParam,
+                publisherParam,
+                nameParam,
+                startedFrom,
+                startedTo);
     }
 
-    public long countExtensionScansByStatusAndDateRange(ScanStatus status, LocalDateTime startedFrom, LocalDateTime startedTo) {
+    public long countExtensionScansByStatusAndDateRange(
+            ScanStatus status,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo
+    ) {
         return extensionScanRepo.countByStatusAndDateRange(status, startedFrom, startedTo);
     }
 
     public long countExtensionScansByStatusDateRangeAndEnforcement(
-            ScanStatus status, LocalDateTime startedFrom, LocalDateTime startedTo, boolean enforcedOnly) {
+            ScanStatus status,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo,
+            boolean enforcedOnly
+    ) {
         return extensionScanRepo.countByStatusDateRangeAndEnforcement(status, startedFrom, startedTo, enforcedOnly);
     }
 
@@ -946,8 +1090,8 @@ public class RepositoryService {
     ) {
         // Convert enums to strings for native query
         var statusesParam = (statuses == null || statuses.isEmpty())
-            ? null
-            : statuses.stream().map(ScanStatus::name).toList();
+                ? null
+                : statuses.stream().map(ScanStatus::name).toList();
         var namespaceParam = (namespace == null || namespace.isBlank()) ? null : namespace;
         var publisherParam = (publisher == null || publisher.isBlank()) ? null : publisher;
         var nameParam = (name == null || name.isBlank()) ? null : name;
@@ -965,12 +1109,23 @@ public class RepositoryService {
         var filterNeedsReview = adminDecisionFilter != null && adminDecisionFilter.filterNeedsReview();
 
         return extensionScanRepo.findScansFullyFiltered(
-            statusesParam, namespaceParam, publisherParam, nameParam,
-            startedFrom, startedTo, checkTypesParam, applyCheckTypesFilter,
-            scannerNamesParam, applyScannerNamesFilter, enforcedOnly,
-            applyAdminDecisionFilter, filterAllowed, filterBlocked, filterNeedsReview,
-            includeCheckErrors, pageable
-        );
+                statusesParam,
+                namespaceParam,
+                publisherParam,
+                nameParam,
+                startedFrom,
+                startedTo,
+                checkTypesParam,
+                applyCheckTypesFilter,
+                scannerNamesParam,
+                applyScannerNamesFilter,
+                enforcedOnly,
+                applyAdminDecisionFilter,
+                filterAllowed,
+                filterBlocked,
+                filterNeedsReview,
+                includeCheckErrors,
+                pageable);
     }
 
     public long countScansFullyFiltered(
@@ -988,8 +1143,8 @@ public class RepositoryService {
     ) {
         // Convert enums to strings for native query
         var statusesParam = (statuses == null || statuses.isEmpty())
-            ? null
-            : statuses.stream().map(ScanStatus::name).toList();
+                ? null
+                : statuses.stream().map(ScanStatus::name).toList();
         var namespaceParam = (namespace == null || namespace.isBlank()) ? null : namespace;
         var publisherParam = (publisher == null || publisher.isBlank()) ? null : publisher;
         var nameParam = (name == null || name.isBlank()) ? null : name;
@@ -1007,12 +1162,22 @@ public class RepositoryService {
         var filterNeedsReview = adminDecisionFilter != null && adminDecisionFilter.filterNeedsReview();
 
         return extensionScanRepo.countScansFullyFiltered(
-            statusesParam, namespaceParam, publisherParam, nameParam,
-            startedFrom, startedTo, checkTypesParam, applyCheckTypesFilter,
-            scannerNamesParam, applyScannerNamesFilter, enforcedOnly,
-            applyAdminDecisionFilter, filterAllowed, filterBlocked, filterNeedsReview,
-            includeCheckErrors
-        );
+                statusesParam,
+                namespaceParam,
+                publisherParam,
+                nameParam,
+                startedFrom,
+                startedTo,
+                checkTypesParam,
+                applyCheckTypesFilter,
+                scannerNamesParam,
+                applyScannerNamesFilter,
+                enforcedOnly,
+                applyAdminDecisionFilter,
+                filterAllowed,
+                filterBlocked,
+                filterNeedsReview,
+                includeCheckErrors);
     }
 
     public long countScansForStatistics(
@@ -1031,10 +1196,14 @@ public class RepositoryService {
         var scannerNamesParam = applyScannerNamesFilter ? scannerNames : List.of("");
 
         return extensionScanRepo.countForStatistics(
-            status.name(), startedFrom, startedTo,
-            checkTypesParam, applyCheckTypesFilter,
-            scannerNamesParam, applyScannerNamesFilter, enforcedOnly
-        );
+                status.name(),
+                startedFrom,
+                startedTo,
+                checkTypesParam,
+                applyCheckTypesFilter,
+                scannerNamesParam,
+                applyScannerNamesFilter,
+                enforcedOnly);
     }
 
     public long countAdminDecisionsForStatistics(
@@ -1053,9 +1222,14 @@ public class RepositoryService {
         var scannerNamesParam = applyScannerNamesFilter ? scannerNames : List.of("");
 
         return adminScanDecisionRepo.countForStatistics(
-            decision, startedFrom, startedTo, checkTypesParam, applyCheckTypesFilter,
-            scannerNamesParam, applyScannerNamesFilter, enforcedOnly
-        );
+                decision,
+                startedFrom,
+                startedTo,
+                checkTypesParam,
+                applyCheckTypesFilter,
+                scannerNamesParam,
+                applyScannerNamesFilter,
+                enforcedOnly);
     }
 
     public ExtensionValidationFailure saveValidationFailure(ExtensionValidationFailure failure) {
@@ -1130,7 +1304,11 @@ public class RepositoryService {
         return adminScanDecisionRepo.countByDecision(decision);
     }
 
-    public long countAdminScanDecisionsByDateRange(String decision, LocalDateTime startedFrom, LocalDateTime startedTo) {
+    public long countAdminScanDecisionsByDateRange(
+            String decision,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo
+    ) {
         return adminScanDecisionRepo.countByDecisionAndDateRange(decision, startedFrom, startedTo);
     }
 
@@ -1253,8 +1431,13 @@ public class RepositoryService {
         var nameParam = (name == null || name.isBlank()) ? null : name;
 
         return fileDecisionRepo.findFilesFiltered(
-            decisionParam, publisherParam, namespaceParam, nameParam, decidedFrom, decidedTo, pageable
-        );
+                decisionParam,
+                publisherParam,
+                namespaceParam,
+                nameParam,
+                decidedFrom,
+                decidedTo,
+                pageable);
     }
 
     public List<FileDecision> findFileDecisionsByIds(List<Long> ids) {

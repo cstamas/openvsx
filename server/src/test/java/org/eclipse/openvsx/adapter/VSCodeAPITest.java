@@ -9,45 +9,6 @@
  ********************************************************************************/
 package org.eclipse.openvsx.adapter;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import jakarta.persistence.EntityManager;
-import org.eclipse.openvsx.ExtensionValidator;
-import org.eclipse.openvsx.MockTransactionTemplate;
-import org.eclipse.openvsx.UserService;
-import org.eclipse.openvsx.cache.CacheService;
-import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
-import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
-import org.eclipse.openvsx.eclipse.EclipseService;
-import org.eclipse.openvsx.eclipse.EclipseTokenService;
-import org.eclipse.openvsx.entities.*;
-import org.eclipse.openvsx.publish.ExtensionVersionIntegrityService;
-import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.*;
-import org.eclipse.openvsx.security.OAuth2AttributesConfig;
-import org.eclipse.openvsx.security.OAuth2UserServices;
-import org.eclipse.openvsx.security.SecurityConfig;
-import org.eclipse.openvsx.storage.*;
-import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
-import org.eclipse.openvsx.storage.log.DownloadCountService;
-import org.eclipse.openvsx.util.TargetPlatform;
-import org.eclipse.openvsx.util.VersionService;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Streamable;
-import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -58,6 +19,46 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipFile;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.util.Streamable;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import org.eclipse.openvsx.ExtensionValidator;
+import org.eclipse.openvsx.MockTransactionTemplate;
+import org.eclipse.openvsx.UserService;
+import org.eclipse.openvsx.cache.CacheService;
+import org.eclipse.openvsx.cache.FilesCacheKeyGenerator;
+import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
+import org.eclipse.openvsx.eclipse.EclipseService;
+import org.eclipse.openvsx.eclipse.EclipseTokenService;
+import org.eclipse.openvsx.entities.*;
+import org.eclipse.openvsx.metrics.ExtensionDownloadMetrics;
+import org.eclipse.openvsx.publish.ExtensionVersionIntegrityService;
+import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.*;
+import org.eclipse.openvsx.security.OAuth2AttributesConfig;
+import org.eclipse.openvsx.security.OAuth2UserServices;
+import org.eclipse.openvsx.security.SecurityConfig;
+import org.eclipse.openvsx.storage.*;
+import org.eclipse.openvsx.storage.log.DownloadCountService;
+import org.eclipse.openvsx.util.TargetPlatform;
+import org.eclipse.openvsx.util.VersionService;
+
 import static org.eclipse.openvsx.entities.FileResource.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -66,12 +67,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VSCodeAPI.class)
-@MockitoBean( types = {
-    ClientRegistrationRepository.class, GoogleCloudStorageService.class, AzureBlobStorageService.class,
-    AwsStorageService.class, DownloadCountService.class, ExtensionDownloadMetrics.class, CacheService.class, UpstreamVSCodeService.class,
-    VSCodeIdService.class, EclipseService.class, ExtensionValidator.class, SimpleMeterRegistry.class,
-    FileCacheDurationConfig.class, CdnServiceConfig.class
-})
+@MockitoBean(
+    types = {
+        ClientRegistrationRepository.class,
+        GoogleCloudStorageService.class,
+        AzureBlobStorageService.class,
+        AwsStorageService.class,
+        DownloadCountService.class,
+        ExtensionDownloadMetrics.class,
+        CacheService.class,
+        UpstreamVSCodeService.class,
+        VSCodeIdService.class,
+        EclipseService.class,
+        ExtensionValidator.class,
+        SimpleMeterRegistry.class,
+        FileCacheDurationConfig.class,
+        CdnServiceConfig.class
+    }
+)
 class VSCodeAPITest {
 
     @MockitoBean
@@ -94,9 +107,10 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("search-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("search-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("search-yaml-response.json")));
     }
@@ -107,9 +121,10 @@ class VSCodeAPITest {
         var extension = mockSearch(targetPlatform, true);
         mockExtensionVersions(extension, targetPlatform, targetPlatform);
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("search-yaml-query-darwin.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("search-yaml-query-darwin.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("search-yaml-response-darwin.json")));
     }
@@ -117,11 +132,12 @@ class VSCodeAPITest {
     @Test
     void testSearchExcludeBuiltInExtensions() throws Exception {
         var extension = mockSearch(null, "vscode", true);
-        mockExtensionVersions(extension, null,"universal");
+        mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("search-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("search-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("search-yaml-response-builtin-extensions.json")));
     }
@@ -131,9 +147,10 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "darwin-x64", "linux-x64", "alpine-arm64");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("search-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("search-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("search-yaml-response-targets.json")));
     }
@@ -143,9 +160,10 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findid-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findid-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findid-yaml-response.json")));
     }
@@ -156,9 +174,10 @@ class VSCodeAPITest {
         var extension = mockSearch(targetPlatform, true);
         mockExtensionVersions(extension, targetPlatform, targetPlatform);
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findid-yaml-query-alpine.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findid-yaml-query-alpine.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findid-yaml-response-alpine.json")));
     }
@@ -168,9 +187,10 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findid-yaml-duplicate-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findid-yaml-duplicate-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findid-yaml-response.json")));
     }
@@ -178,9 +198,10 @@ class VSCodeAPITest {
     @Test
     void testFindByIdInactive() throws Exception {
         mockSearch(false);
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findid-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findid-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("empty-response.json")));
     }
@@ -190,7 +211,8 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findpublisher-yaml-query.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -202,7 +224,8 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findpublisher-yaml-query-first.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -214,7 +237,8 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findpublisher-yaml-query-last.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -226,7 +250,8 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findpublisher-yaml-query-middle.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -238,7 +263,8 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findpublisher-yaml-query-multiple.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -250,9 +276,10 @@ class VSCodeAPITest {
         var extension = mockSearch(true);
         mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findname-yaml-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findname-yaml-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findname-yaml-response.json")));
     }
@@ -263,9 +290,10 @@ class VSCodeAPITest {
         var extension = mockSearch(targetPlatform, true);
         mockExtensionVersions(extension, targetPlatform, targetPlatform);
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findname-yaml-query-linux.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findname-yaml-query-linux.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findname-yaml-response-linux.json")));
     }
@@ -273,11 +301,12 @@ class VSCodeAPITest {
     @Test
     void testFindByNameDuplicate() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null,"universal");
+        mockExtensionVersions(extension, null, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
-                .content(file("findname-yaml-duplicate-query.json"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
+                        .content(file("findname-yaml-duplicate-query.json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json(file("findname-yaml-response.json")));
     }
@@ -285,9 +314,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeLatestVersionOnly() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-latest-version-only.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -297,9 +327,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeVersions() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-versions.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -309,9 +340,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeVersionProperties() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-version-properties.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -321,9 +353,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeFiles() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-files.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -333,9 +366,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeStatistics() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-statistics.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -345,9 +379,10 @@ class VSCodeAPITest {
     @Test
     void testFindIncludeAssetUri() throws Exception {
         var extension = mockSearch(true);
-        mockExtensionVersions(extension, null, new String[]{"0.5.2", "0.4.0"}, "universal");
+        mockExtensionVersions(extension, null, new String[] { "0.5.2", "0.4.0" }, "universal");
 
-        mockMvc.perform(post("/vscode/gallery/extensionquery")
+        mockMvc.perform(
+                post("/vscode/gallery/extensionquery")
                         .content(file("findname-yaml-query-asset-uri.json"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -362,8 +397,13 @@ class VSCodeAPITest {
         Files.createDirectories(path.getParent());
         Files.writeString(path, "{\"foo\":\"bar\"}");
 
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
-                    "redhat", "vscode-yaml", "0.5.2", "Microsoft.VisualStudio.Code.Manifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "Microsoft.VisualStudio.Code.Manifest"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
@@ -380,8 +420,14 @@ class VSCodeAPITest {
         Files.createDirectories(path.getParent());
         Files.writeString(path, "{\"foo\":\"bar\",\"target\":\"darwin-arm64\"}");
 
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}?targetPlatform={target}",
-                "redhat", "vscode-yaml", "0.5.2", "Microsoft.VisualStudio.Code.Manifest", target))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}?targetPlatform={target}",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "Microsoft.VisualStudio.Code.Manifest",
+                        target))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
@@ -394,8 +440,13 @@ class VSCodeAPITest {
         mockExtensionVersion();
         Mockito.when(repositories.findFileByType("redhat", "vscode-yaml", "universal", "0.5.2", FileResource.MANIFEST))
                 .thenReturn(null);
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
-                    "redhat", "vscode-yaml", "0.5.2", "Microsoft.VisualStudio.Code.Manifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "Microsoft.VisualStudio.Code.Manifest"))
                 .andExpect(status().isNotFound());
     }
 
@@ -406,14 +457,19 @@ class VSCodeAPITest {
         var version = "0.16.6";
         var path = mockWebResourceAsset(namespaceName, extensionName, TargetPlatform.NAME_UNIVERSAL, version);
         var bytes = new byte[0];
-        try(var zip = new ZipFile(path.toFile())) {
+        try (var zip = new ZipFile(path.toFile())) {
             var entry = zip.getEntry("extension/EditorConfig_icon.png");
-            try(var in = zip.getInputStream(entry)) {
+            try (var in = zip.getInputStream(entry)) {
                 bytes = in.readAllBytes();
             }
         }
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
-                namespaceName, extensionName, version, "Microsoft.VisualStudio.Code.WebResources/extension/EditorConfig_icon.png"))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "Microsoft.VisualStudio.Code.WebResources/extension/EditorConfig_icon.png"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
@@ -424,15 +480,25 @@ class VSCodeAPITest {
     @Test
     void testNotWebResourceAsset() throws Exception {
         mockExtensionVersion();
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
-                "redhat", "vscode-yaml", "0.5.2", "Microsoft.VisualStudio.Code.WebResources/img/logo.png"))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "Microsoft.VisualStudio.Code.WebResources/img/logo.png"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void testAssetExcludeBuiltInExtensions() throws Exception {
-        mockMvc.perform(get("/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
-                "vscode", "vscode-yaml", "0.5.2", "Microsoft.VisualStudio.Code.Manifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/asset/{namespace}/{extensionName}/{version}/{assetType}",
+                        "vscode",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "Microsoft.VisualStudio.Code.Manifest"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isBadRequest())
@@ -471,7 +537,13 @@ class VSCodeAPITest {
         Mockito.when(repositories.findFileByType(namespaceName, extensionName, null, version, FileResource.DOWNLOAD))
                 .thenReturn(null);
 
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/img"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/img"))
                 .andExpect(status().isNotFound());
     }
 
@@ -481,7 +553,13 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/img"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/img"))
                 .andExpect(status().isNotFound())
                 .andDo(result -> Files.delete(path));
     }
@@ -492,14 +570,26 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/syntaxes/editorconfig.tmLanguage"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/syntaxes/editorconfig.tmLanguage"))
                 .andExpect(status().isNotFound())
                 .andDo(result -> Files.delete(path));
     }
 
     @Test
     void testBrowseExcludeBuiltInExtensions() throws Exception {
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", "vscode", "bar", "1.3.4", "extension/img"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        "vscode",
+                        "bar",
+                        "1.3.4",
+                        "extension/img"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isBadRequest())
@@ -512,17 +602,22 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}", namespaceName, extensionName, version))
+        mockMvc.perform(
+                get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}", namespaceName, extensionName, version))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[" +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension.vsixmanifest\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/[Content_Types].xml\"" +
-                        "]"
-                ))
+                .andExpect(
+                        content().json(
+                                "[" +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension.vsixmanifest\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/[Content_Types].xml\""
+                                        +
+                                        "]"))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -532,11 +627,20 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension.vsixmanifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension.vsixmanifest"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
+                .andExpect(
+                        content().string(
+                                Matchers.startsWith(
+                                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -546,11 +650,20 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, TargetPlatform.NAME_UNIVERSAL, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension.vsixmanifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension.vsixmanifest"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
+                .andExpect(
+                        content().string(
+                                Matchers.startsWith(
+                                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -560,11 +673,20 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, TargetPlatform.NAME_WIN32_X64, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension.vsixmanifest"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension.vsixmanifest"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
-                .andExpect(content().string(Matchers.startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
+                .andExpect(
+                        content().string(
+                                Matchers.startsWith(
+                                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<PackageManifest Version=\"2.0.0\" xmlns=\"http://schemas.microsoft.com/developer/vsx-schema/2011\" xmlns:d=\"http://schemas.microsoft.com/developer/vsx-schema-design/2011\">")))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -574,23 +696,41 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, TargetPlatform.NAME_UNIVERSAL, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[" +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/node_modules/\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/out/\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/syntaxes/\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/CHANGELOG.md\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/editorconfig.language-configuration.json\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/EditorConfig_icon.png\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/LICENSE.md\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/package.json\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/README.md\"," +
-                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/ThirdPartyNotices.txt\"" +
-                        "]"))
+                .andExpect(
+                        content().json(
+                                "[" +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/node_modules/\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/out/\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/syntaxes/\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/CHANGELOG.md\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/editorconfig.language-configuration.json\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/EditorConfig_icon.png\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/LICENSE.md\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/package.json\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/README.md\","
+                                        +
+                                        "\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/ThirdPartyNotices.txt\""
+                                        +
+                                        "]"))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -600,11 +740,20 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, TargetPlatform.NAME_UNIVERSAL, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/package.json"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/package.json"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
-                .andExpect(content().json("{\"name\":" + extensionName + ",\"publisher\":" + namespaceName + ",\"version\":" + version + "}"))
+                .andExpect(
+                        content().json(
+                                "{\"name\":" + extensionName + ",\"publisher\":" + namespaceName + ",\"version\":"
+                                        + version + "}"))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -614,12 +763,20 @@ class VSCodeAPITest {
         var extensionName = "EditorConfig";
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, TargetPlatform.NAME_UNIVERSAL, version);
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/syntaxes/"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/syntaxes/"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/syntaxes/editorconfig.tmLanguage.json\"]"))
+                .andExpect(
+                        content().json(
+                                "[\"http://localhost/vscode/unpkg/EditorConfig/EditorConfig/0.16.6/extension/syntaxes/editorconfig.tmLanguage.json\"]"))
                 .andDo(result -> Files.delete(path));
     }
 
@@ -630,13 +787,19 @@ class VSCodeAPITest {
         var version = "0.16.6";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
         var bytes = new byte[0];
-        try(var zip = new ZipFile(path.toFile())) {
+        try (var zip = new ZipFile(path.toFile())) {
             var entry = zip.getEntry("extension/EditorConfig_icon.png");
-            try(var in = zip.getInputStream(entry)) {
+            try (var in = zip.getInputStream(entry)) {
                 bytes = in.readAllBytes();
             }
         }
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/EditorConfig_icon.png"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/EditorConfig_icon.png"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
@@ -651,13 +814,19 @@ class VSCodeAPITest {
         var version = "0.16.6-1";
         var path = mockExtensionBrowse(namespaceName, extensionName, version);
         var bytes = new byte[0];
-        try(var zip = new ZipFile(path.toFile())) {
+        try (var zip = new ZipFile(path.toFile())) {
             var entry = zip.getEntry("extension/EditorConfig icon.png");
-            try(var in = zip.getInputStream(entry)) {
+            try (var in = zip.getInputStream(entry)) {
                 bytes = in.readAllBytes();
             }
         }
-        mockMvc.perform(get("/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}", namespaceName, extensionName, version, "extension/EditorConfig icon.png"))
+        mockMvc.perform(
+                get(
+                        "/vscode/unpkg/{namespaceName}/{extensionName}/{version}/{path}",
+                        namespaceName,
+                        extensionName,
+                        version,
+                        "extension/EditorConfig icon.png"))
                 .andExpect(request().asyncStarted())
                 .andDo(MvcResult::getAsyncResult)
                 .andExpect(status().isOk())
@@ -668,25 +837,44 @@ class VSCodeAPITest {
     @Test
     void testDownload() throws Exception {
         mockExtensionVersion();
-        mockMvc.perform(get("/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage",
-                "redhat", "vscode-yaml", "0.5.2"))
+        mockMvc.perform(
+                get(
+                        "/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2"))
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", "http://localhost/vscode/asset/redhat/vscode-yaml/0.5.2/Microsoft.VisualStudio.Services.VSIXPackage"));
+                .andExpect(
+                        header().string(
+                                "Location",
+                                "http://localhost/vscode/asset/redhat/vscode-yaml/0.5.2/Microsoft.VisualStudio.Services.VSIXPackage"));
     }
 
     @Test
     void testDownloadMacOSX() throws Exception {
         mockExtensionVersion("darwin-arm64");
-        mockMvc.perform(get("/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage?targetPlatform={target}",
-                "redhat", "vscode-yaml", "0.5.2", "darwin-arm64"))
+        mockMvc.perform(
+                get(
+                        "/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage?targetPlatform={target}",
+                        "redhat",
+                        "vscode-yaml",
+                        "0.5.2",
+                        "darwin-arm64"))
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", "http://localhost/vscode/asset/redhat/vscode-yaml/0.5.2/Microsoft.VisualStudio.Services.VSIXPackage?targetPlatform=darwin-arm64"));
+                .andExpect(
+                        header().string(
+                                "Location",
+                                "http://localhost/vscode/asset/redhat/vscode-yaml/0.5.2/Microsoft.VisualStudio.Services.VSIXPackage?targetPlatform=darwin-arm64"));
     }
 
     @Test
     void testDownloadExcludeBuiltInExtensions() throws Exception {
-        mockMvc.perform(get("/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage",
-                "vscode", "vscode-yaml", "0.5.2"))
+        mockMvc.perform(
+                get(
+                        "/vscode/gallery/publishers/{namespace}/vsextensions/{extension}/{version}/vspackage",
+                        "vscode",
+                        "vscode-yaml",
+                        "0.5.2"))
                 .andExpect(status().isBadRequest())
                 .andExpect(status().reason("Built-in extension namespace 'vscode' not allowed"));
     }
@@ -714,21 +902,62 @@ class VSCodeAPITest {
         Mockito.when(search.isEnabled())
                 .thenReturn(true);
 
-        var searchOptions = new ISearchService.Options("yaml", null, targetPlatform, 50, 0, "desc", SortBy.RELEVANCE, false, new String[]{builtInExtensionNamespace});
-        var publisherSearchOptions = new ISearchService.Options("", null, targetPlatform, 50, 0, "desc", SortBy.RELEVANCE, false, new String[]{builtInExtensionNamespace}, "redhat");
-        var publisherWithQueryOptions = new ISearchService.Options("yaml", null, targetPlatform, 50, 0, "desc", SortBy.RELEVANCE, false, new String[]{builtInExtensionNamespace}, "redhat");
-        var publisherWithMoreQueryOptions = new ISearchService.Options("yaml config", null, targetPlatform, 50, 0, "desc", SortBy.RELEVANCE, false, new String[]{builtInExtensionNamespace}, "redhat");
-        var searches = List.of(searchOptions, publisherSearchOptions, publisherWithQueryOptions, publisherWithMoreQueryOptions);
-        Mockito.when(search.search(any(ISearchService.Options.class))).thenAnswer((Answer<SearchResult>) invocationOnMock -> {
-            var options = invocationOnMock.getArgument(0, ISearchService.Options.class);
-            if(searches.contains(options)) {
-                return searchResult;
-            } else if (options.requestedSize() == 0) {
-                return new SearchResult();
-            } else {
-                return null;
-            }
-        });
+        var searchOptions = new ISearchService.Options(
+                "yaml",
+                null,
+                targetPlatform,
+                50,
+                0,
+                "desc",
+                SortBy.RELEVANCE,
+                false,
+                new String[] { builtInExtensionNamespace });
+        var publisherSearchOptions = new ISearchService.Options(
+                "",
+                null,
+                targetPlatform,
+                50,
+                0,
+                "desc",
+                SortBy.RELEVANCE,
+                false,
+                new String[] { builtInExtensionNamespace },
+                "redhat");
+        var publisherWithQueryOptions = new ISearchService.Options(
+                "yaml",
+                null,
+                targetPlatform,
+                50,
+                0,
+                "desc",
+                SortBy.RELEVANCE,
+                false,
+                new String[] { builtInExtensionNamespace },
+                "redhat");
+        var publisherWithMoreQueryOptions = new ISearchService.Options(
+                "yaml config",
+                null,
+                targetPlatform,
+                50,
+                0,
+                "desc",
+                SortBy.RELEVANCE,
+                false,
+                new String[] { builtInExtensionNamespace },
+                "redhat");
+        var searches = List
+                .of(searchOptions, publisherSearchOptions, publisherWithQueryOptions, publisherWithMoreQueryOptions);
+        Mockito.when(search.search(any(ISearchService.Options.class)))
+                .thenAnswer((Answer<SearchResult>) invocationOnMock -> {
+                    var options = invocationOnMock.getArgument(0, ISearchService.Options.class);
+                    if (searches.contains(options)) {
+                        return searchResult;
+                    } else if (options.requestedSize() == 0) {
+                        return new SearchResult();
+                    } else {
+                        return null;
+                    }
+                });
 
         var extension = mockExtension();
         List<Extension> results = active ? List.of(extension) : Collections.emptyList();
@@ -747,33 +976,38 @@ class VSCodeAPITest {
     }
 
     private Extension mockExtension() {
-            var namespace = new Namespace();
-            namespace.setId(2);
-            namespace.setPublicId("test-2");
-            namespace.setName("redhat");
+        var namespace = new Namespace();
+        namespace.setId(2);
+        namespace.setPublicId("test-2");
+        namespace.setName("redhat");
 
-            var extension = new Extension();
-            extension.setId(1);
-            extension.setPublicId("test-1");
-            extension.setName("vscode-yaml");
-            extension.setAverageRating(3.0);
-            extension.setReviewCount(10L);
-            extension.setDownloadCount(100);
-            extension.setPublishedDate(LocalDateTime.parse("1999-12-01T09:00"));
-            extension.setLastUpdatedDate(LocalDateTime.parse("2000-01-01T10:00"));
-            extension.setNamespace(namespace);
+        var extension = new Extension();
+        extension.setId(1);
+        extension.setPublicId("test-1");
+        extension.setName("vscode-yaml");
+        extension.setAverageRating(3.0);
+        extension.setReviewCount(10L);
+        extension.setDownloadCount(100);
+        extension.setPublishedDate(LocalDateTime.parse("1999-12-01T09:00"));
+        extension.setLastUpdatedDate(LocalDateTime.parse("2000-01-01T10:00"));
+        extension.setNamespace(namespace);
 
-            return extension;
+        return extension;
     }
 
     private void mockExtensionVersions(Extension extension, String queryTargetPlatform, String... targetPlatforms) {
-        mockExtensionVersions(extension, queryTargetPlatform, new String[]{"0.5.2"}, targetPlatforms);
+        mockExtensionVersions(extension, queryTargetPlatform, new String[] { "0.5.2" }, targetPlatforms);
     }
 
-    private void mockExtensionVersions(Extension extension, String queryTargetPlatform, String[] versions, String... targetPlatforms) {
+    private void mockExtensionVersions(
+            Extension extension,
+            String queryTargetPlatform,
+            String[] versions,
+            String... targetPlatforms
+    ) {
         var id = 2;
         var extVersions = new ArrayList<ExtensionVersion>(targetPlatforms.length);
-        for(var version : versions) {
+        for (var version : versions) {
             for (var targetPlatform : targetPlatforms) {
                 extVersions.add(mockExtensionVersion(extension, id, version, targetPlatform));
                 id++;
@@ -814,7 +1048,7 @@ class VSCodeAPITest {
         var types = List.of(MANIFEST, README, LICENSE, ICON, DOWNLOAD, CHANGELOG, VSIXMANIFEST, DOWNLOAD_SIG);
 
         var files = new ArrayList<FileResource>();
-        for(var extVersion : extensionVersions) {
+        for (var extVersion : extensionVersions) {
             var id = extVersion.getId();
             files.add(mockFileResource(id * 100 + 5, extVersion, "redhat.vscode-yaml-0.5.2.vsix", DOWNLOAD));
             files.add(mockFileResource(id * 100 + 6, extVersion, "package.json", MANIFEST));
@@ -885,7 +1119,13 @@ class VSCodeAPITest {
         extensionFile.setType(FileResource.DOWNLOAD);
         extensionFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, extensionFile.getId())).thenReturn(extensionFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), DOWNLOAD))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        DOWNLOAD))
                 .thenReturn(extensionFile);
 
         var manifestFile = new FileResource();
@@ -895,7 +1135,13 @@ class VSCodeAPITest {
         manifestFile.setType(FileResource.MANIFEST);
         manifestFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, manifestFile.getId())).thenReturn(manifestFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), FileResource.MANIFEST))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        FileResource.MANIFEST))
                 .thenReturn(manifestFile);
         var readmeFile = new FileResource();
         readmeFile.setExtension(extVersion);
@@ -903,7 +1149,13 @@ class VSCodeAPITest {
         readmeFile.setType(FileResource.README);
         readmeFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, readmeFile.getId())).thenReturn(readmeFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), README))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        README))
                 .thenReturn(readmeFile);
         var changelogFile = new FileResource();
         changelogFile.setExtension(extVersion);
@@ -911,7 +1163,13 @@ class VSCodeAPITest {
         changelogFile.setType(FileResource.CHANGELOG);
         changelogFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, changelogFile.getId())).thenReturn(changelogFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), CHANGELOG))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        CHANGELOG))
                 .thenReturn(changelogFile);
         var licenseFile = new FileResource();
         licenseFile.setExtension(extVersion);
@@ -919,7 +1177,13 @@ class VSCodeAPITest {
         licenseFile.setType(FileResource.LICENSE);
         licenseFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, licenseFile.getId())).thenReturn(licenseFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), LICENSE))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        LICENSE))
                 .thenReturn(licenseFile);
         var iconFile = new FileResource();
         iconFile.setExtension(extVersion);
@@ -927,7 +1191,13 @@ class VSCodeAPITest {
         iconFile.setType(FileResource.ICON);
         iconFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, iconFile.getId())).thenReturn(iconFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), ICON))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        ICON))
                 .thenReturn(iconFile);
         var vsixManifestFile = new FileResource();
         vsixManifestFile.setExtension(extVersion);
@@ -935,7 +1205,13 @@ class VSCodeAPITest {
         vsixManifestFile.setType(VSIXMANIFEST);
         vsixManifestFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, vsixManifestFile.getId())).thenReturn(vsixManifestFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), VSIXMANIFEST))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        VSIXMANIFEST))
                 .thenReturn(vsixManifestFile);
         var signatureFile = new FileResource();
         signatureFile.setExtension(extVersion);
@@ -943,15 +1219,38 @@ class VSCodeAPITest {
         signatureFile.setType(FileResource.DOWNLOAD_SIG);
         signatureFile.setStorageType(FileResource.STORAGE_LOCAL);
         Mockito.when(entityManager.find(FileResource.class, signatureFile.getId())).thenReturn(signatureFile);
-        Mockito.when(repositories.findFileByType(namespace.getName(), extension.getName(), targetPlatform, extVersion.getVersion(), DOWNLOAD_SIG))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespace.getName(),
+                        extension.getName(),
+                        targetPlatform,
+                        extVersion.getVersion(),
+                        DOWNLOAD_SIG))
                 .thenReturn(signatureFile);
         Mockito.when(repositories.findFilesByType(anyCollection(), anyCollection())).thenAnswer(invocation -> {
             Collection<ExtensionVersion> extVersions = invocation.getArgument(0);
             var types = invocation.getArgument(1);
-            var expectedTypes = Arrays.asList(FileResource.MANIFEST, FileResource.README, FileResource.LICENSE, FileResource.ICON, FileResource.DOWNLOAD, FileResource.CHANGELOG, VSIXMANIFEST, DOWNLOAD_SIG);
-            return types.equals(expectedTypes) && extVersions.iterator().hasNext() && extVersion.equals(extVersions.iterator().next())
-                    ? Streamable.of(manifestFile, readmeFile, licenseFile, iconFile, extensionFile, changelogFile, vsixManifestFile, signatureFile)
-                    : Streamable.empty();
+            var expectedTypes = Arrays.asList(
+                    FileResource.MANIFEST,
+                    FileResource.README,
+                    FileResource.LICENSE,
+                    FileResource.ICON,
+                    FileResource.DOWNLOAD,
+                    FileResource.CHANGELOG,
+                    VSIXMANIFEST,
+                    DOWNLOAD_SIG);
+            return types.equals(expectedTypes) && extVersions.iterator().hasNext()
+                    && extVersion.equals(extVersions.iterator().next())
+                            ? Streamable.of(
+                                    manifestFile,
+                                    readmeFile,
+                                    licenseFile,
+                                    iconFile,
+                                    extensionFile,
+                                    changelogFile,
+                                    vsixManifestFile,
+                                    signatureFile)
+                            : Streamable.empty();
         });
 
         return extVersion;
@@ -968,16 +1267,24 @@ class VSCodeAPITest {
         return mockExtensionBrowse(namespaceName, extensionName, null, version, true);
     }
 
-    private Path mockExtensionBrowse(String namespaceName, String extensionName, String targetPlatform, String version) throws IOException {
+    private Path mockExtensionBrowse(String namespaceName, String extensionName, String targetPlatform, String version)
+            throws IOException {
         return mockExtensionBrowse(namespaceName, extensionName, targetPlatform, version, true);
     }
 
-    private Path mockWebResourceAsset(String namespaceName, String extensionName, String targetPlatform, String version) throws IOException {
+    private Path mockWebResourceAsset(String namespaceName, String extensionName, String targetPlatform, String version)
+            throws IOException {
         return mockExtensionBrowse(namespaceName, extensionName, targetPlatform, version, false);
     }
 
-    private Path mockExtensionBrowse(String namespaceName, String extensionName, String targetPlatform, String version, boolean browse) throws IOException {
-        if(!TargetPlatform.isValid(targetPlatform)) {
+    private Path mockExtensionBrowse(
+            String namespaceName,
+            String extensionName,
+            String targetPlatform,
+            String version,
+            boolean browse
+    ) throws IOException {
+        if (!TargetPlatform.isValid(targetPlatform)) {
             targetPlatform = TargetPlatform.NAME_UNIVERSAL;
         }
 
@@ -1001,13 +1308,25 @@ class VSCodeAPITest {
         resource.setType(DOWNLOAD);
         resource.setStorageType(STORAGE_LOCAL);
 
-        var path = Path.of("/tmp", namespaceName, extensionName, (!TargetPlatform.isUniversal(targetPlatform) ? targetPlatform : ""), version, resource.getName());
+        var path = Path.of(
+                "/tmp",
+                namespaceName,
+                extensionName,
+                (!TargetPlatform.isUniversal(targetPlatform) ? targetPlatform : ""),
+                version,
+                resource.getName());
         path.toFile().mkdirs();
         try (var in = getClass().getResourceAsStream("../" + vsixFileName)) {
             Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        Mockito.when(repositories.findFileByType(namespaceName, extensionName, browse ? null : targetPlatform, version, DOWNLOAD))
+        Mockito.when(
+                repositories.findFileByType(
+                        namespaceName,
+                        extensionName,
+                        browse ? null : targetPlatform,
+                        version,
+                        DOWNLOAD))
                 .thenReturn(resource);
 
         return path;
@@ -1017,7 +1336,10 @@ class VSCodeAPITest {
     @Import(SecurityConfig.class)
     static class TestConfig {
         @Bean
-        IExtensionQueryRequestHandler extensionQueryRequestHandler(LocalVSCodeService localVSCodeService, UpstreamVSCodeService upstream) {
+        IExtensionQueryRequestHandler extensionQueryRequestHandler(
+                LocalVSCodeService localVSCodeService,
+                UpstreamVSCodeService upstream
+        ) {
             return new DefaultExtensionQueryRequestHandler(localVSCodeService, upstream);
         }
 
@@ -1066,7 +1388,14 @@ class VSCodeAPITest {
                 WebResourceService webResourceService,
                 CacheService cache
         ) {
-            return new LocalVSCodeService(repositories, versionService, search, storageUtil, integrityService, webResourceService, cache);
+            return new LocalVSCodeService(
+                    repositories,
+                    versionService,
+                    search,
+                    storageUtil,
+                    integrityService,
+                    webResourceService,
+                    cache);
         }
 
         @Bean
@@ -1079,7 +1408,14 @@ class VSCodeAPITest {
                 ClientRegistrationRepository clientRegistrationRepository,
                 OAuth2AttributesConfig attributesConfig
         ) {
-            return new UserService(entityManager, repositories, storageUtil, cache, validator, clientRegistrationRepository, attributesConfig);
+            return new UserService(
+                    entityManager,
+                    repositories,
+                    storageUtil,
+                    cache,
+                    validator,
+                    clientRegistrationRepository,
+                    attributesConfig);
         }
 
         @Bean
@@ -1109,8 +1445,7 @@ class VSCodeAPITest {
                     cache,
                     entityManager,
                     fileCacheDurationConfig,
-                    cdnServiceConfig
-            );
+                    cdnServiceConfig);
         }
 
         @Bean
