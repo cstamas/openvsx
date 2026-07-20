@@ -192,4 +192,13 @@ jobs:
           corepack prepare yarn@stable --activate
           yarn install --immutable
 
+      - name: Set up JDK
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: 'temurin'
+          java-version: 25
+
+      - name: Set up JBang
+        uses: jbangdev/setup-jbang@2b1b465a7b75f4222b81426f23a01e013aa7b95c # v0.1.1
+
       - uses: j178/prek-action@e98a699c41eb69ab013a45817a0406469a748f8d # v2.0.5
