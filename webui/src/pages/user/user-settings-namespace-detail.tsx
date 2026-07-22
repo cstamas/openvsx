@@ -135,6 +135,11 @@ export const NamespaceDetail: FunctionComponent<NamespaceDetailProps> = props =>
                         ) : null}
                     </NamespaceHeader>
                 </Grid>
+                {props.namespace.detailsUrl ? (
+                    <Grid item>
+                        <UserNamespaceDetails namespace={props.namespace} />
+                    </Grid>
+                ) : null}
                 {props.namespace.membersUrl ? (
                     <Grid item>
                         <UserNamespaceMemberList
@@ -145,12 +150,8 @@ export const NamespaceDetail: FunctionComponent<NamespaceDetailProps> = props =>
                         />
                     </Grid>
                 ) : null}
-                {props.namespace.detailsUrl ? (
-                    <Grid item>
-                        <UserNamespaceDetails namespace={props.namespace} />
-                    </Grid>
-                ) : null}
-                <UserNamespaceTrustedPublishers namespace={props.namespace} />
+                {/* TODO: gate on a dedicated trustedPublishingUrl once the backend sends it (roleUrl = owner for now) */}
+                {props.namespace.roleUrl ? <UserNamespaceTrustedPublishers namespace={props.namespace} /> : null}
                 <Grid item>
                     <UserNamespaceExtensionListContainer namespace={props.namespace} />
                 </Grid>

@@ -48,9 +48,10 @@ export const UserSettingsTrustedPublishers: FunctionComponent = () => {
     );
     const namespaces = namespacesQuery.data ?? [];
 
-    // the providers probe doubles as the feature/permission check per namespace
-    const providerQueries = useAllTrustedPublisherProviders(namespaces.map(ns => ns.name));
-    const manageableNamespaces = namespaces.filter(
+    // TP is owner-only; only probe owned namespaces. TODO: use a dedicated trustedPublishingUrl once the backend sends it (roleUrl = owner for now).
+    const ownedNamespaces = namespaces.filter(ns => Boolean(ns.roleUrl));
+    const providerQueries = useAllTrustedPublisherProviders(ownedNamespaces.map(ns => ns.name));
+    const manageableNamespaces = ownedNamespaces.filter(
         ns => (providerQueries.providersByNamespace[ns.name] ?? []).length > 0
     );
     const publisherQueries = useAllTrustedPublishers(manageableNamespaces.map(ns => ns.name));
