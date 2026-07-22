@@ -248,7 +248,7 @@ public class TrustedPublishingService {
             throw new NotFoundException();
         }
         if (!repositories.isNamespaceOwner(user, namespace)) {
-            throw new ErrorResultException("You must be an owner of this namespace.");
+            throw new ErrorResultException("You must be an owner of this namespace.", HttpStatus.FORBIDDEN);
         }
         return namespace;
     }
