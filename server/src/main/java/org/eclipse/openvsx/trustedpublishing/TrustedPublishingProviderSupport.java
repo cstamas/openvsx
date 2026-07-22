@@ -33,6 +33,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.web.client.RestClient;
 
+import org.eclipse.openvsx.json.TrustedPublisherInputJson;
 import org.eclipse.openvsx.util.ErrorResultException;
 
 import static java.util.Objects.requireNonNull;
@@ -51,7 +52,7 @@ public abstract class TrustedPublishingProviderSupport {
     protected final String providerName;
     protected final String providerUrl;
     protected final String oidcIssuer;
-    protected final Map<String, String> registrationKeys;
+    protected final List<TrustedPublisherInputJson> registrationInputs;
     protected final RestClient restClient;
 
     private volatile JwtDecoder decoder;
@@ -62,14 +63,14 @@ public abstract class TrustedPublishingProviderSupport {
             String providerName,
             String providerUrl,
             String oidcIssuer,
-            Map<String, String> registrationKeys
+            List<TrustedPublisherInputJson> registrationInputs
     ) {
         this.config = requireNonNull(config);
         this.providerId = requireNonNull(providerId);
         this.providerName = requireNonNull(providerName);
         this.providerUrl = requireNonNull(providerUrl);
         this.oidcIssuer = requireNonNull(oidcIssuer);
-        this.registrationKeys = requireNonNull(registrationKeys);
+        this.registrationInputs = requireNonNull(registrationInputs);
         this.restClient = RestClient.create();
     }
 
@@ -142,10 +143,10 @@ public abstract class TrustedPublishingProviderSupport {
     }
 
     /**
-     * The provider registration keys, it requires.
+     * The provider registration inputs, it requires.
      */
-    public Map<String, String> getRegistrationKeys() {
-        return registrationKeys;
+    public List<TrustedPublisherInputJson> getRegistrationInputs() {
+        return registrationInputs;
     }
 
     /**

@@ -14,6 +14,7 @@ package org.eclipse.openvsx.trustedpublishing.gitlab;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jspecify.annotations.NonNull;
@@ -23,6 +24,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.web.client.RestClientException;
 
+import org.eclipse.openvsx.json.TrustedPublisherInputJson;
 import org.eclipse.openvsx.trustedpublishing.TrustedPublishingConfig;
 import org.eclipse.openvsx.trustedpublishing.TrustedPublishingProviderSupport;
 import org.eclipse.openvsx.util.ErrorResultException;
@@ -49,15 +51,11 @@ public abstract class GitLabTrustedPublishingProviderSupport extends TrustedPubl
     private static final String REG_PROJECT = "project";
     private static final String REG_WORKFLOW = "workflow";
     private static final String REG_ENVIRONMENT = "environment";
-    private static final Map<String, String> REGISTRATION_KEYS = Map.of(
-            REG_NAMESPACE,
-            "Namespace",
-            REG_PROJECT,
-            "Project name",
-            REG_WORKFLOW,
-            "Top-level CI filename",
-            REG_ENVIRONMENT,
-            "Environment name (optional)");
+    private static final List<TrustedPublisherInputJson> REGISTRATION_INPUTS = List.of(
+            TrustedPublisherInputJson.create(REG_NAMESPACE, "Namespace", false),
+            TrustedPublisherInputJson.create(REG_PROJECT, "Project name", false),
+            TrustedPublisherInputJson.create(REG_WORKFLOW, "Top-level CI filename", false),
+            TrustedPublisherInputJson.create(REG_ENVIRONMENT, "Environment name (optional)", true));
 
     protected GitLabTrustedPublishingProviderSupport(
             TrustedPublishingConfig config,
@@ -66,7 +64,7 @@ public abstract class GitLabTrustedPublishingProviderSupport extends TrustedPubl
             String providerUrl,
             String oidcIssuer
     ) {
-        super(config, providerId, providerName, providerUrl, oidcIssuer, REGISTRATION_KEYS);
+        super(config, providerId, providerName, providerUrl, oidcIssuer, REGISTRATION_INPUTS);
     }
 
     @NonNull

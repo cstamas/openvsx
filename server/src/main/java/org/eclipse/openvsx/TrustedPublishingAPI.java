@@ -156,7 +156,7 @@ public class TrustedPublishingAPI {
                                 providerJson.setId(p.getProviderId());
                                 providerJson.setName(p.getProviderName());
                                 providerJson.setUrl(p.getProviderUrl());
-                                providerJson.setRegistrationKeys(p.getRegistrationKeys());
+                                providerJson.setRegistrationInputs(p.getRegistrationInputs());
                                 return providerJson;
                             })
                             .toList());

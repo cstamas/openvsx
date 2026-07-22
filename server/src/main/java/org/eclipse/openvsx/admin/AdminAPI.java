@@ -606,6 +606,7 @@ public class AdminAPI {
             var adminNamespaceUrl = createAdminNamespaceUrl(namespace);
             namespace.setMembersUrl(UrlUtil.createApiUrl(adminNamespaceUrl, "members"));
             namespace.setRoleUrl(UrlUtil.createApiUrl(adminNamespaceUrl, "change-member"));
+            namespace.setTrustedPublishingUrl(UrlUtil.createApiUrl(adminNamespaceUrl, "trusted-publishing"));
             return ResponseEntity.ok(namespace);
         } catch (NotFoundException exc) {
             var json = NamespaceJson.error("Namespace not found: " + namespaceName);

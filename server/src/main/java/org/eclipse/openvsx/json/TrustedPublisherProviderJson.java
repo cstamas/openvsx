@@ -12,7 +12,7 @@
  *****************************************************************************/
 package org.eclipse.openvsx.json;
 
-import java.util.Map;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -35,7 +35,7 @@ public class TrustedPublisherProviderJson extends ResultJson {
 
     private String url;
 
-    private Map<String, String> registrationKeys;
+    private List<TrustedPublisherInputJson> registrationInputs;
 
     public String getId() {
         return id;
@@ -49,8 +49,8 @@ public class TrustedPublisherProviderJson extends ResultJson {
         return url;
     }
 
-    public Map<String, String> getRegistrationKeys() {
-        return registrationKeys;
+    public List<TrustedPublisherInputJson> getRegistrationInputs() {
+        return registrationInputs;
     }
 
     public void setId(String id) {
@@ -65,7 +65,7 @@ public class TrustedPublisherProviderJson extends ResultJson {
         this.url = url;
     }
 
-    public void setRegistrationKeys(Map<String, String> registrationKeys) {
-        this.registrationKeys = registrationKeys;
+    public void setRegistrationInputs(List<TrustedPublisherInputJson> registrationInputs) {
+        this.registrationInputs = registrationInputs;
     }
 }
