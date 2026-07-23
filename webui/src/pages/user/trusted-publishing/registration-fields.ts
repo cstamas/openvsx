@@ -17,7 +17,7 @@ export type ProviderKind = 'github' | 'gitlab' | 'generic';
 export const providerKind = (providerId: string): ProviderKind =>
     providerId === 'github' ? 'github' : providerId.includes('gitlab') ? 'gitlab' : 'generic';
 
-// The server serves registration fields as an unordered key -> label map; impose a stable order.
+// The server serves registration inputs unordered; impose a stable order.
 const REGISTRATION_KEY_ORDER = ['owner', 'repo', 'namespace', 'project', 'workflow', 'environment'];
 
 export const orderRegistrationKeys = (keys: string[]): string[] => {
@@ -27,9 +27,6 @@ export const orderRegistrationKeys = (keys: string[]): string[] => {
     };
     return [...keys].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 };
-
-// No machine-readable "required" flag; optional fields say "optional" in their label.
-export const isRequiredLabel = (label: string): boolean => !/optional/i.test(label);
 
 // Key pairs rendered as a combined "owner / repo" path when both are present.
 export type PathPair = readonly [ownerKey: string, repoKey: string];

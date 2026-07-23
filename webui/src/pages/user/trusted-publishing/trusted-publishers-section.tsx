@@ -18,7 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import { useReportedQuery } from '../../../hooks/use-reported-query';
 import { MainContext } from '../../../context';
-import { Namespace, TrustedPublisher, TrustedPublisherProvider } from '../../../extension-registry-types';
+import { Namespace, TrustedPublisher, TrustedPublisherProvider, UrlString } from '../../../extension-registry-types';
 import { RegisterTrustedPublisherDialog, TrustedPublishingDocsLink } from './register-trusted-publisher-dialog';
 import { PublisherList } from './publisher-list';
 import { TrustedPublisherProviderIcon } from './trusted-publisher-provider-icon';
@@ -49,6 +49,8 @@ const CloseAddPanelButton = styled(IconButton)({
 
 export interface TrustedPublishersSectionProps {
     namespace: string;
+    // base endpoint for this namespace's trusted-publishing requests
+    trustedPublishingUrl: UrlString;
     // extensions selectable when registering
     extensionNames: string[];
     // filters the list and locks registrations to this extension
@@ -61,22 +63,21 @@ export interface TrustedPublishersSectionProps {
 
 export const TrustedPublishersSection: FunctionComponent<TrustedPublishersSectionProps> = props => {
     const { handleError } = useContext(MainContext);
-    const publishersQuery = useReportedQuery(useTrustedPublishers(props.namespace));
-    const deletePublisher = useDeleteTrustedPublisher();
+    const { data: allPublishers = [], isFetching } = useReportedQuery(useTrustedPublishers(props.trustedPublishingUrl));
+    const { mutateAsync: deleteTrustedPublisher, isPending: deleting } = useDeleteTrustedPublisher();
     const [selectedProvider, setSelectedProvider] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
 
     // the list endpoint is namespace-scoped, so extension pages filter client-side
-    const allPublishers = publishersQuery.data ?? [];
     const publishers = props.extensionFilter
         ? allPublishers.filter(publisher => publisher.extension === props.extensionFilter)
         : allPublishers;
-    const loading = publishersQuery.isFetching || deletePublisher.isPending;
+    const loading = isFetching || deleting;
 
     const remove = async (publisher: TrustedPublisher) => {
         try {
-            await deletePublisher.mutateAsync({ namespace: publisher.namespace, id: publisher.id });
+            await deleteTrustedPublisher({ trustedPublishingUrl: props.trustedPublishingUrl, id: publisher.id });
         } catch (err) {
             handleError(err);
         }
@@ -145,7 +146,13 @@ export const TrustedPublishersSection: FunctionComponent<TrustedPublishersSectio
                 initialProvider={selectedProvider}
                 onClose={() => setDialogOpen(false)}
                 onRegistered={() => setShowAdd(false)}
-                namespaces={[{ name: props.namespace, extensionNames: props.extensionNames }]}
+                namespaces={[
+                    {
+                        name: props.namespace,
+                        extensionNames: props.extensionNames,
+                        trustedPublishingUrl: props.trustedPublishingUrl
+                    }
+                ]}
                 namespace={props.namespace}
                 lockedExtension={props.extensionFilter}
                 providers={props.providers}
@@ -156,9 +163,10 @@ export const TrustedPublishersSection: FunctionComponent<TrustedPublishersSectio
 
 export const UserNamespaceTrustedPublishers: FunctionComponent<{ namespace: Namespace }> = ({ namespace }) => {
     const { user } = useContext(MainContext);
+    const { trustedPublishingUrl } = namespace;
     // the providers query doubles as the feature probe: any failure hides the section
-    const providers = useTrustedPublisherProviders(namespace.name).data ?? [];
-    if (!user || providers.length === 0) {
+    const { data: providers = [] } = useTrustedPublisherProviders(trustedPublishingUrl);
+    if (!user || !trustedPublishingUrl || providers.length === 0) {
         return null;
     }
     return (
@@ -168,6 +176,7 @@ export const UserNamespaceTrustedPublishers: FunctionComponent<{ namespace: Name
             </Typography>
             <TrustedPublishersSection
                 namespace={namespace.name}
+                trustedPublishingUrl={trustedPublishingUrl}
                 extensionNames={Object.keys(namespace.extensions)}
                 providers={providers}
                 intro="Let a CI/CD workflow publish this namespace's extensions without a long-lived access token."
@@ -181,9 +190,10 @@ export const ExtensionTrustedPublishers: FunctionComponent<{ namespace: string; 
     namespace,
     extension
 }) => {
-    const { user } = useContext(MainContext);
+    const { user, service } = useContext(MainContext);
+    const trustedPublishingUrl = service.userTrustedPublishingUrl(namespace);
     // the providers query doubles as the feature probe: any failure hides the section
-    const providers = useTrustedPublisherProviders(namespace).data ?? [];
+    const { data: providers = [] } = useTrustedPublisherProviders(trustedPublishingUrl);
     if (!user || providers.length === 0) {
         return null;
     }
@@ -195,6 +205,7 @@ export const ExtensionTrustedPublishers: FunctionComponent<{ namespace: string; 
             </Typography>
             <TrustedPublishersSection
                 namespace={namespace}
+                trustedPublishingUrl={trustedPublishingUrl}
                 extensionNames={[extension]}
                 extensionFilter={extension}
                 providers={providers}

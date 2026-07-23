@@ -14,60 +14,74 @@
 import { useContext } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MainContext } from '../../../context';
-import { TrustedPublisher, TrustedPublisherProvider, TrustedPublisherRequest } from '../../../extension-registry-types';
+import {
+    TrustedPublisher,
+    TrustedPublisherProvider,
+    TrustedPublisherRequest,
+    UrlString
+} from '../../../extension-registry-types';
 import { controllerFromSignal } from '../../../query-client';
 
+// keyed by the namespace's trusted-publishing URL (the endpoint we actually query)
 export const trustedPublisherKeys = {
-    providers: (namespace: string) => ['user', 'trusted-publisher-providers', namespace] as const,
-    publishers: (namespace: string) => ['user', 'trusted-publishers', namespace] as const
+    providers: (trustedPublishingUrl?: UrlString) =>
+        ['user', 'trusted-publisher-providers', trustedPublishingUrl] as const,
+    publishers: (trustedPublishingUrl?: UrlString) => ['user', 'trusted-publishers', trustedPublishingUrl] as const
 };
 
 /**
  * Fails when trusted publishing is disabled server-side or the current user
- * cannot manage the namespace, so an error means "feature unavailable".
+ * cannot manage the namespace, so an error means "feature unavailable". Idle
+ * when there is no URL, since that already means the user cannot manage it.
  */
-export const useTrustedPublisherProviders = (namespace: string) => {
+export const useTrustedPublisherProviders = (trustedPublishingUrl?: UrlString) => {
     const { service } = useContext(MainContext);
     return useQuery({
-        queryKey: trustedPublisherKeys.providers(namespace),
-        queryFn: ({ signal }) => service.getTrustedPublisherProviders(controllerFromSignal(signal), namespace)
+        queryKey: trustedPublisherKeys.providers(trustedPublishingUrl),
+        queryFn: ({ signal }) =>
+            service.getTrustedPublisherProviders(controllerFromSignal(signal), trustedPublishingUrl!),
+        enabled: Boolean(trustedPublishingUrl)
     });
 };
 
-/** Providers of several namespaces at once, keyed by namespace; failed probes yield empty lists. */
-export const useAllTrustedPublisherProviders = (namespaces: string[]) => {
+/** Providers of several namespaces at once, keyed by trusted-publishing URL; failed probes yield empty lists. */
+export const useAllTrustedPublisherProviders = (trustedPublishingUrls: UrlString[]) => {
     const { service } = useContext(MainContext);
     return useQueries({
-        queries: namespaces.map(namespace => ({
-            queryKey: trustedPublisherKeys.providers(namespace),
+        queries: trustedPublishingUrls.map(trustedPublishingUrl => ({
+            queryKey: trustedPublisherKeys.providers(trustedPublishingUrl),
             queryFn: ({ signal }: { signal?: AbortSignal }) =>
-                service.getTrustedPublisherProviders(controllerFromSignal(signal), namespace)
+                service.getTrustedPublisherProviders(controllerFromSignal(signal), trustedPublishingUrl)
         })),
         combine: results => ({
             isLoading: results.some(result => result.isLoading),
-            providersByNamespace: Object.fromEntries(
-                namespaces.map((namespace, index) => [namespace, results[index]?.data ?? []])
+            providersByUrl: Object.fromEntries(
+                trustedPublishingUrls.map((trustedPublishingUrl, index) => [
+                    trustedPublishingUrl,
+                    results[index]?.data ?? []
+                ])
             ) as Record<string, readonly TrustedPublisherProvider[]>
         })
     });
 };
 
-export const useTrustedPublishers = (namespace: string) => {
+export const useTrustedPublishers = (trustedPublishingUrl?: UrlString) => {
     const { service } = useContext(MainContext);
     return useQuery({
-        queryKey: trustedPublisherKeys.publishers(namespace),
-        queryFn: ({ signal }) => service.getTrustedPublishers(controllerFromSignal(signal), namespace)
+        queryKey: trustedPublisherKeys.publishers(trustedPublishingUrl),
+        queryFn: ({ signal }) => service.getTrustedPublishers(controllerFromSignal(signal), trustedPublishingUrl!),
+        enabled: Boolean(trustedPublishingUrl)
     });
 };
 
 /** The publishers of several namespaces flattened into one list. */
-export const useAllTrustedPublishers = (namespaces: string[]) => {
+export const useAllTrustedPublishers = (trustedPublishingUrls: UrlString[]) => {
     const { service } = useContext(MainContext);
     return useQueries({
-        queries: namespaces.map(namespace => ({
-            queryKey: trustedPublisherKeys.publishers(namespace),
+        queries: trustedPublishingUrls.map(trustedPublishingUrl => ({
+            queryKey: trustedPublisherKeys.publishers(trustedPublishingUrl),
             queryFn: ({ signal }: { signal?: AbortSignal }) =>
-                service.getTrustedPublishers(controllerFromSignal(signal), namespace)
+                service.getTrustedPublishers(controllerFromSignal(signal), trustedPublishingUrl)
         })),
         combine: results => ({
             isLoading: results.some(result => result.isLoading),
@@ -80,9 +94,15 @@ export const useRegisterTrustedPublisher = () => {
     const { service } = useContext(MainContext);
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (request: TrustedPublisherRequest) => service.registerTrustedPublisher(request.namespace, request),
-        onSuccess: (_result, request) => {
-            queryClient.invalidateQueries({ queryKey: trustedPublisherKeys.publishers(request.namespace) });
+        mutationFn: ({
+            trustedPublishingUrl,
+            request
+        }: {
+            trustedPublishingUrl: UrlString;
+            request: TrustedPublisherRequest;
+        }) => service.registerTrustedPublisher(trustedPublishingUrl, request),
+        onSuccess: (_result, { trustedPublishingUrl }) => {
+            queryClient.invalidateQueries({ queryKey: trustedPublisherKeys.publishers(trustedPublishingUrl) });
         }
     });
 };
@@ -91,10 +111,10 @@ export const useDeleteTrustedPublisher = () => {
     const { service } = useContext(MainContext);
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ namespace, id }: { namespace: string; id: number }) =>
-            service.deleteTrustedPublisher(namespace, id),
-        onSuccess: (_result, { namespace }) => {
-            queryClient.invalidateQueries({ queryKey: trustedPublisherKeys.publishers(namespace) });
+        mutationFn: ({ trustedPublishingUrl, id }: { trustedPublishingUrl: UrlString; id: number }) =>
+            service.deleteTrustedPublisher(trustedPublishingUrl, id),
+        onSuccess: (_result, { trustedPublishingUrl }) => {
+            queryClient.invalidateQueries({ queryKey: trustedPublisherKeys.publishers(trustedPublishingUrl) });
         }
     });
 };

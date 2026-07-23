@@ -249,6 +249,8 @@ export interface Namespace {
     membersUrl: UrlString;
     roleUrl: UrlString;
     detailsUrl: UrlString;
+    // present only when the current user may manage trusted publishers for this namespace
+    trustedPublishingUrl?: UrlString;
 }
 
 export interface NamespaceDetails {
@@ -263,12 +265,18 @@ export interface NamespaceDetails {
     extensions?: SearchEntry[];
 }
 
+export interface TrustedPublisherInput {
+    key: string;
+    // form label / help text for the field
+    description: string;
+    optional: boolean;
+}
+
 export interface TrustedPublisherProvider {
     id: string;
     name: string;
     url: UrlString;
-    // field key -> form label; a label containing "optional" marks a non-required field
-    registrationKeys: { [key: string]: string };
+    registrationInputs: TrustedPublisherInput[];
 }
 
 export interface TrustedPublisherProviderList {

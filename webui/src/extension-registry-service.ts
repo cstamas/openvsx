@@ -470,39 +470,38 @@ export class ExtensionRegistryService {
         });
     }
 
+    // The trusted-publishing base URL for a namespace in the user context. Callers that hold a
+    // Namespace use its server-provided `trustedPublishingUrl`; the extension page only has a name.
+    userTrustedPublishingUrl(namespace: string): UrlString {
+        return createAbsoluteURL([this.serverUrl, 'user', 'namespace', namespace, 'trusted-publishing']);
+    }
+
     async getTrustedPublisherProviders(
         abortController: AbortController,
-        namespace: string
+        trustedPublishingUrl: UrlString
     ): Promise<Readonly<TrustedPublisherProvider>[]> {
         const result = await sendStrictRequest<TrustedPublisherProviderList>({
             abortController,
             credentials: true,
-            endpoint: createAbsoluteURL([
-                this.serverUrl,
-                'user',
-                'namespace',
-                namespace,
-                'trusted-publishing',
-                'providers'
-            ])
+            endpoint: createAbsoluteURL([trustedPublishingUrl, 'providers'])
         });
         return result.trustedPublisherProviders ?? [];
     }
 
     async getTrustedPublishers(
         abortController: AbortController,
-        namespace: string
+        trustedPublishingUrl: UrlString
     ): Promise<Readonly<TrustedPublisher>[]> {
         const result = await sendStrictRequest<TrustedPublisherList>({
             abortController,
             credentials: true,
-            endpoint: createAbsoluteURL([this.serverUrl, 'user', 'namespace', namespace, 'trusted-publishing'])
+            endpoint: trustedPublishingUrl
         });
         return result.trustedPublishers ?? [];
     }
 
     async registerTrustedPublisher(
-        namespace: string,
+        trustedPublishingUrl: UrlString,
         request: TrustedPublisherRequest
     ): Promise<Readonly<TrustedPublisher>> {
         const csrfResponse = await this.getCsrfToken();
@@ -518,18 +517,11 @@ export class ExtensionRegistryService {
             credentials: true,
             payload: request,
             headers,
-            endpoint: createAbsoluteURL([
-                this.serverUrl,
-                'user',
-                'namespace',
-                namespace,
-                'trusted-publishing',
-                'create'
-            ])
+            endpoint: createAbsoluteURL([trustedPublishingUrl, 'create'])
         });
     }
 
-    async deleteTrustedPublisher(namespace: string, id: number): Promise<Readonly<SuccessResult>> {
+    async deleteTrustedPublisher(trustedPublishingUrl: UrlString, id: number): Promise<Readonly<SuccessResult>> {
         const csrfResponse = await this.getCsrfToken();
         const headers: Record<string, string> = {};
         if (!isError(csrfResponse)) {
@@ -540,15 +532,7 @@ export class ExtensionRegistryService {
             method: 'POST',
             credentials: true,
             headers,
-            endpoint: createAbsoluteURL([
-                this.serverUrl,
-                'user',
-                'namespace',
-                namespace,
-                'trusted-publishing',
-                'delete',
-                `${id}`
-            ])
+            endpoint: createAbsoluteURL([trustedPublishingUrl, 'delete', `${id}`])
         });
     }
 

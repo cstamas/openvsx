@@ -29,15 +29,9 @@ import {
 } from '@mui/material';
 import { handleError } from '../../../utils';
 import { MainContext } from '../../../context';
-import { TrustedPublisherProvider } from '../../../extension-registry-types';
+import { TrustedPublisherProvider, UrlString } from '../../../extension-registry-types';
 import { TrustedPublisherProviderIcon } from './trusted-publisher-provider-icon';
-import {
-    ProviderKind,
-    findRegistrationPathPair,
-    isRequiredLabel,
-    orderRegistrationKeys,
-    providerKind
-} from './registration-fields';
+import { ProviderKind, findRegistrationPathPair, orderRegistrationKeys, providerKind } from './registration-fields';
 import { useRegisterTrustedPublisher } from './use-trusted-publishers';
 
 // hidden when no documentation URL is configured in the page settings
@@ -97,6 +91,8 @@ const fieldHelp = (providerId: string, key: string): ReactNode => FIELD_HELP[pro
 export interface SelectableNamespace {
     name: string;
     extensionNames: string[];
+    // base endpoint for this namespace's trusted-publishing requests
+    trustedPublishingUrl: UrlString;
 }
 
 export interface RegisterTrustedPublisherDialogProps {
@@ -116,10 +112,14 @@ export interface RegisterTrustedPublisherDialogProps {
 
 export const RegisterTrustedPublisherDialog: FunctionComponent<RegisterTrustedPublisherDialogProps> = props => {
     const { open, initialProvider, lockedExtension } = props;
-    const registerPublisher = useRegisterTrustedPublisher();
-    const loading = registerPublisher.isPending;
+    const {
+        mutateAsync: registerTrustedPublisher,
+        isPending: loading,
+        error: registerError,
+        reset: resetRegistration
+    } = useRegisterTrustedPublisher();
     // server-side validation errors (e.g. repository not found) show inside the form
-    const errorMessage = registerPublisher.error ? handleError(registerPublisher.error) : undefined;
+    const errorMessage = registerError ? handleError(registerError) : undefined;
 
     const [namespaceName, setNamespaceName] = useState('');
     const [provider, setProvider] = useState('');
@@ -132,12 +132,13 @@ export const RegisterTrustedPublisherDialog: FunctionComponent<RegisterTrustedPu
             setProvider(initialProvider ?? '');
             setExtension(lockedExtension ?? '');
             setRegistration({});
-            registerPublisher.reset();
+            resetRegistration();
         }
     }, [open, initialProvider, lockedExtension, props.namespace]);
 
     const namespace = props.namespace ?? namespaceName;
-    const extensionNames = props.namespaces.find(ns => ns.name === namespace)?.extensionNames ?? [];
+    const selectedNamespace = props.namespaces.find(ns => ns.name === namespace);
+    const extensionNames = selectedNamespace?.extensionNames ?? [];
 
     const handleClose = () => {
         if (!loading) {
@@ -145,25 +146,29 @@ export const RegisterTrustedPublisherDialog: FunctionComponent<RegisterTrustedPu
         }
     };
 
-    const registrationKeys = props.providers.find(p => p.id === provider)?.registrationKeys ?? {};
-    const orderedKeys = orderRegistrationKeys(Object.keys(registrationKeys));
-    const requiredKeys = orderedKeys.filter(key => isRequiredLabel(registrationKeys[key]));
+    const inputs = props.providers.find(p => p.id === provider)?.registrationInputs ?? [];
+    const inputsByKey = new Map(inputs.map(input => [input.key, input]));
+    const orderedKeys = orderRegistrationKeys(inputs.map(input => input.key));
+    const requiredKeys = orderedKeys.filter(key => !inputsByKey.get(key)?.optional);
     const pathPair = findRegistrationPathPair(orderedKeys);
     const [pathOwnerKey, pathRepoKey] = pathPair ?? [];
     const standaloneKeys = orderedKeys.filter(key => !pathPair?.includes(key));
 
-    const registrationField = (key: string, flex?: number) => (
-        <TextField
-            key={key}
-            required={isRequiredLabel(registrationKeys[key])}
-            fullWidth={flex === undefined}
-            label={registrationKeys[key]}
-            helperText={fieldHelp(provider, key)}
-            value={registration[key] ?? ''}
-            onChange={e => setRegistration(prev => ({ ...prev, [key]: e.target.value }))}
-            sx={flex !== undefined ? { flex } : undefined}
-        />
-    );
+    const registrationField = (key: string, flex?: number) => {
+        const input = inputsByKey.get(key);
+        return (
+            <TextField
+                key={key}
+                required={!input?.optional}
+                fullWidth={flex === undefined}
+                label={input?.description}
+                helperText={fieldHelp(provider, key)}
+                value={registration[key] ?? ''}
+                onChange={e => setRegistration(prev => ({ ...prev, [key]: e.target.value }))}
+                sx={flex !== undefined ? { flex } : undefined}
+            />
+        );
+    };
 
     const canRegister =
         !loading &&
@@ -181,12 +186,14 @@ export const RegisterTrustedPublisherDialog: FunctionComponent<RegisterTrustedPu
                 cleaned[key] = value;
             }
         }
+        const trustedPublishingUrl = selectedNamespace?.trustedPublishingUrl;
+        if (!trustedPublishingUrl) {
+            return;
+        }
         try {
-            await registerPublisher.mutateAsync({
-                provider,
-                namespace,
-                extension,
-                registration: cleaned
+            await registerTrustedPublisher({
+                trustedPublishingUrl,
+                request: { provider, namespace, extension, registration: cleaned }
             });
             props.onRegistered?.();
             props.onClose();

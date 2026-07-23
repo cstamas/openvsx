@@ -12,14 +12,13 @@
  *****************************************************************************/
 
 import { FunctionComponent, useContext, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Box, Button, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { TrustedPublisher, TrustedPublisherProvider } from '../../../extension-registry-types';
+import { Namespace, TrustedPublisher, TrustedPublisherProvider } from '../../../extension-registry-types';
 import { DelayedLoadIndicator } from '../../../components/delayed-load-indicator';
 import { MainContext } from '../../../context';
-import { controllerFromSignal } from '../../../query-client';
 import { useReportedQuery } from '../../../hooks/use-reported-query';
+import { useUserNamespaces } from '../use-user-namespaces';
 import { PublisherList } from './publisher-list';
 import { RegisterTrustedPublisherDialog, TrustedPublishingDocsLink } from './register-trusted-publisher-dialog';
 import {
@@ -32,45 +31,47 @@ import {
 const byNamespaceExtensionId = (a: TrustedPublisher, b: TrustedPublisher): number =>
     a.namespace.localeCompare(b.namespace) || a.extension.localeCompare(b.extension) || a.id - b.id;
 
+// The backend sets trustedPublishingUrl only where the user may manage TP; the guard narrows the type too.
+type TrustedPublishingNamespace = Namespace & { trustedPublishingUrl: string };
+const canManageTrustedPublishers = (ns: Namespace): ns is TrustedPublishingNamespace =>
+    Boolean(ns.trustedPublishingUrl);
+
 // Providers are configured server-side, so the per-namespace lists overlap; keep each id once.
 const dedupeById = (providers: readonly TrustedPublisherProvider[]): TrustedPublisherProvider[] =>
     providers.filter((provider, index, all) => all.findIndex(p => p.id === provider.id) === index);
 
 /** Settings tab showing the trusted publishers of every namespace the user belongs to as one stack. */
 export const UserSettingsTrustedPublishers: FunctionComponent = () => {
-    const { service, user, handleError } = useContext(MainContext);
-    const namespacesQuery = useReportedQuery(
-        useQuery({
-            queryKey: ['user', 'namespaces'],
-            queryFn: ({ signal }) => service.getNamespaces(controllerFromSignal(signal)),
-            enabled: user != null
-        })
-    );
-    const namespaces = namespacesQuery.data ?? [];
+    const { handleError } = useContext(MainContext);
+    const { data: namespaces = [], isLoading: namespacesLoading } = useReportedQuery(useUserNamespaces());
 
-    // TP is owner-only; only probe owned namespaces. TODO: use a dedicated trustedPublishingUrl once the backend sends it (roleUrl = owner for now).
-    const ownedNamespaces = namespaces.filter(ns => Boolean(ns.roleUrl));
-    const providerQueries = useAllTrustedPublisherProviders(ownedNamespaces.map(ns => ns.name));
-    const manageableNamespaces = ownedNamespaces.filter(
-        ns => (providerQueries.providersByNamespace[ns.name] ?? []).length > 0
+    // only probe namespaces the user may manage; the rest have no trustedPublishingUrl
+    const trustedPublishingNamespaces = namespaces.filter(canManageTrustedPublishers);
+    const { providersByUrl, isLoading: providersLoading } = useAllTrustedPublisherProviders(
+        trustedPublishingNamespaces.map(ns => ns.trustedPublishingUrl)
     );
-    const publisherQueries = useAllTrustedPublishers(manageableNamespaces.map(ns => ns.name));
-    const deletePublisher = useDeleteTrustedPublisher();
+    const manageableNamespaces = trustedPublishingNamespaces.filter(
+        ns => (providersByUrl[ns.trustedPublishingUrl] ?? []).length > 0
+    );
+    const { publishers: allPublishers, isLoading: publishersLoading } = useAllTrustedPublishers(
+        manageableNamespaces.map(ns => ns.trustedPublishingUrl)
+    );
+    const { mutateAsync: deleteTrustedPublisher, isPending: deleting } = useDeleteTrustedPublisher();
     const [dialogOpen, setDialogOpen] = useState(false);
 
-    const loading =
-        namespacesQuery.isLoading ||
-        providerQueries.isLoading ||
-        publisherQueries.isLoading ||
-        deletePublisher.isPending;
-    const publishers = [...publisherQueries.publishers].sort(byNamespaceExtensionId);
-    const providers = dedupeById(
-        manageableNamespaces.flatMap(ns => providerQueries.providersByNamespace[ns.name] ?? [])
-    );
+    const loading = namespacesLoading || providersLoading || publishersLoading || deleting;
+    const publishers = [...allPublishers].sort(byNamespaceExtensionId);
+    const providers = dedupeById(manageableNamespaces.flatMap(ns => providersByUrl[ns.trustedPublishingUrl] ?? []));
 
     const remove = async (publisher: TrustedPublisher) => {
+        const trustedPublishingUrl = manageableNamespaces.find(
+            ns => ns.name === publisher.namespace
+        )?.trustedPublishingUrl;
+        if (!trustedPublishingUrl) {
+            return;
+        }
         try {
-            await deletePublisher.mutateAsync({ namespace: publisher.namespace, id: publisher.id });
+            await deleteTrustedPublisher({ trustedPublishingUrl, id: publisher.id });
         } catch (err) {
             handleError(err);
         }
@@ -110,7 +111,7 @@ export const UserSettingsTrustedPublishers: FunctionComponent = () => {
                 <PublisherList
                     publishers={publishers}
                     providers={providers}
-                    loading={deletePublisher.isPending}
+                    loading={deleting}
                     rowDetail='namespace/extension'
                     onDelete={remove}
                 />
@@ -126,7 +127,8 @@ export const UserSettingsTrustedPublishers: FunctionComponent = () => {
                 onClose={() => setDialogOpen(false)}
                 namespaces={manageableNamespaces.map(ns => ({
                     name: ns.name,
-                    extensionNames: Object.keys(ns.extensions)
+                    extensionNames: Object.keys(ns.extensions),
+                    trustedPublishingUrl: ns.trustedPublishingUrl
                 }))}
                 providers={providers}
             />
