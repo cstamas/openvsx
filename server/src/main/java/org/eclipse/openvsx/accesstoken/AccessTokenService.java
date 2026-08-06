@@ -288,7 +288,7 @@ public class AccessTokenService {
         try {
             // token hash salt must not be present in DB (is in config)
             String payload = tokenValue + config.getTokenHashSalt();
-            return "$" + Hex.encodeHexString(
+            return Hex.encodeHexString(
                     DigestUtils.digest(
                             MessageDigest.getInstance(config.getTokenHashAlgorithm()),
                             payload.getBytes(StandardCharsets.UTF_8)));

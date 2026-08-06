@@ -131,12 +131,13 @@ public class AccessTokenConfig {
      * The (instance wide) hash salt string used for personal access tokens.
      * Note: if this instance wide salt changes, all existing/active
      * personal access tokens will become invalid. Salt exists only in configuration,
-     * should never get into database.
+     * should never get into database. Default is empty string, and is not recommended
+     * for production!
      * <p>
      * Property: {@code ovsx.access-token.token-hash-salt}
-     * Default: {@code 'dd21ef8756bbfdcdca01dee19bc514be6b207bbdc1b394b327804fec996ba4ac'}
+     * Default: {@code ''}
      */
-    @Value("${ovsx.access-token.token-hash-salt:dd21ef8756bbfdcdca01dee19bc514be6b207bbdc1b394b327804fec996ba4ac}")
+    @Value("${ovsx.access-token.token-hash-salt:}")
     private String tokenHashSalt;
 
     @Value("${ovsx.data.mirror.enabled:false}")
