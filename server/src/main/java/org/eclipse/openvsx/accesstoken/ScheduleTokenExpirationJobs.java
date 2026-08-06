@@ -39,6 +39,8 @@ public class ScheduleTokenExpirationJobs {
         var expirationEnabled = config.isTokenExpiryEnabled();
         var notificationEnabled = config.isTokenExpiryNotificationEnabled();
 
+        scheduler.enqueue(new HandlerJobRequest<>(UpgradePersonalAccessTokenHandler.class));
+
         if (expirationEnabled) {
             scheduler.enqueue(new HandlerJobRequest<>(LegacyPersonalAccessTokenExpirationHandler.class));
         }

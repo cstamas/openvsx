@@ -12,6 +12,8 @@
  *****************************************************************************/
 package org.eclipse.openvsx.accesstoken;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 
 import jakarta.annotation.PostConstruct;
@@ -116,6 +118,27 @@ public class AccessTokenConfig {
     @Value("${ovsx.access-token.notification-schedule:30 */15 * * * *}")
     private String notificationSchedule;
 
+    /**
+     * The hash algorithm used for personal access tokens.
+     * <p>
+     * Property: {@code ovsx.access-token.token-hash-algorithm}
+     * Default: {@code SHA-256}
+     */
+    @Value("${ovsx.access-token.token-hash-algorithm:SHA-256}")
+    private String tokenHashAlgorithm;
+
+    /**
+     * The (instance wide) hash salt string used for personal access tokens.
+     * Note: if this instance wide salt changes, all existing/active
+     * personal access tokens will become invalid. Salt exists only in configuration,
+     * should never get into database.
+     * <p>
+     * Property: {@code ovsx.access-token.token-hash-salt}
+     * Default: {@code 'dd21ef8756bbfdcdca01dee19bc514be6b207bbdc1b394b327804fec996ba4ac'}
+     */
+    @Value("${ovsx.access-token.token-hash-salt:dd21ef8756bbfdcdca01dee19bc514be6b207bbdc1b394b327804fec996ba4ac}")
+    private String tokenHashSalt;
+
     @Value("${ovsx.data.mirror.enabled:false}")
     private boolean mirrorEnabled;
 
@@ -179,6 +202,14 @@ public class AccessTokenConfig {
         return this.notificationSchedule;
     }
 
+    public @NonNull String getTokenHashAlgorithm() {
+        return tokenHashAlgorithm;
+    }
+
+    public @NonNull String getTokenHashSalt() {
+        return tokenHashSalt;
+    }
+
     @PostConstruct
     public void validate() {
         if (isTokenExpiryEnabled() && mirrorEnabled) {
@@ -208,6 +239,16 @@ public class AccessTokenConfig {
             throw new IllegalArgumentException(
                     "ovsx.access-token.max-token-notifications must be a non-negative number, got: "
                             + maxTokenNotifications);
+        }
+        try {
+            MessageDigest.getInstance(tokenHashAlgorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(
+                    "ovsx.access-token.token-hash-algorithm must be a valid algorithm, got: " + tokenHashAlgorithm,
+                    e);
+        }
+        if (tokenHashSalt == null) {
+            throw new IllegalArgumentException("ovsx.access-token.token-hash-salt must not be null");
         }
     }
 }
