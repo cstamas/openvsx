@@ -243,9 +243,10 @@ public class AccessTokenConfig {
         }
         try {
             MessageDigest.getInstance(tokenHashAlgorithm);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NullPointerException | NoSuchAlgorithmException e) {
             throw new IllegalArgumentException(
-                    "ovsx.access-token.token-hash-algorithm must be a valid algorithm, got: " + tokenHashAlgorithm,
+                    "ovsx.access-token.token-hash-algorithm must be non-null and a valid digest algorithm name, got: "
+                            + tokenHashAlgorithm,
                     e);
         }
         if (tokenHashSalt == null) {
