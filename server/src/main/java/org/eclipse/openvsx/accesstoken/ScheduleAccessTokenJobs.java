@@ -22,14 +22,14 @@ import org.springframework.stereotype.Component;
 import org.eclipse.openvsx.migration.HandlerJobRequest;
 
 @Component
-public class ScheduleTokenExpirationJobs {
+public class ScheduleAccessTokenJobs {
 
-    private final Logger logger = LoggerFactory.getLogger(ScheduleTokenExpirationJobs.class);
+    private final Logger logger = LoggerFactory.getLogger(ScheduleAccessTokenJobs.class);
 
     private final AccessTokenConfig config;
     private final JobRequestScheduler scheduler;
 
-    public ScheduleTokenExpirationJobs(AccessTokenConfig config, JobRequestScheduler scheduler) {
+    public ScheduleAccessTokenJobs(AccessTokenConfig config, JobRequestScheduler scheduler) {
         this.config = config;
         this.scheduler = scheduler;
     }

@@ -134,7 +134,7 @@ public class AccessTokenService {
         if (trustedPublisher != null) {
             // fool-proofing; only TPT token may be created with TP
             if (type != PersonalAccessTokenType.TPT) {
-                throw new IllegalArgumentException("Only TPT token my be created with TP");
+                throw new IllegalArgumentException("Only TPT token may be created with TP");
             }
             // link TP and scope to TP.ext
             token.setTrustedPublisher(trustedPublisher);
@@ -188,9 +188,9 @@ public class AccessTokenService {
     public PersonalAccessToken useAccessToken(String tokenValue, AccessTokenAction accessTokenAction) {
         var token = repositories.findPersonalAccessToken(hashTokenValue(tokenValue));
         if (token == null) {
-            // assume DB contains raw value; fetch and upgrade if found active token
+            // assume DB contains token v0; fetch and upgrade if found active token
             token = repositories.findPersonalAccessToken(tokenValue);
-            if (token != null && token.isActive()) {
+            if (token != null && token.getVersion() != TOKEN_CURRENT_VERSION) {
                 // upgrade token
                 upgradeToken(token);
             }
@@ -270,18 +270,21 @@ public class AccessTokenService {
         var legacyTokens = repositories.findAllPersonalAccessTokensByVersion(TOKEN_VERSION_0);
         int upgradedCount = 0;
         for (var token : legacyTokens) {
-            upgradeToken(token);
-            upgradedCount++;
+            if (upgradeToken(token)) {
+                upgradedCount++;
+            }
         }
         return upgradedCount;
     }
 
-    private void upgradeToken(PersonalAccessToken token) {
-        if (token.getVersion() == TOKEN_CURRENT_VERSION) {
-            throw new IllegalArgumentException("Token is already at the current version");
+    private boolean upgradeToken(PersonalAccessToken token) {
+        if (token.getVersion() != TOKEN_CURRENT_VERSION) {
+            token.setValue(hashTokenValue(token.getValue()));
+            token.setVersion(TOKEN_CURRENT_VERSION);
+            return true;
+        } else {
+            return false;
         }
-        token.setValue(hashTokenValue(token.getValue()));
-        token.setVersion(TOKEN_CURRENT_VERSION);
     }
 
     private String hashTokenValue(String tokenValue) {

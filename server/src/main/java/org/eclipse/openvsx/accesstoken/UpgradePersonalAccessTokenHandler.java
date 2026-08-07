@@ -43,7 +43,7 @@ public class UpgradePersonalAccessTokenHandler implements JobRequestHandler<Hand
 
         int upgraded = tokens.upgradeTokens();
         if (upgraded > 0) {
-            logger.info("Upgraded {} tokens", upgraded);
+            logger.info("Upgraded {} token(s)", upgraded);
         }
     }
 }
