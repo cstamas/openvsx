@@ -129,7 +129,10 @@ public class RelevanceService {
         var extensionId = NamingUtil.toExtensionId(extension);
         logger.debug(">> [{}] CALCULATE RELEVANCE", extensionId);
         var ratingValue = calculateRating(extension, stats) / 5.0;
-        var downloadsValue = extension.getDownloadCount() / stats.downloadRef;
+        // Log scale: download counts span several orders of magnitude, so measuring one against the
+        // largest in the registry leaves everything outside the top few percent indistinguishable
+        // from nothing. See EclipseFdn/open-vsx.org#13014.
+        var downloadsValue = Math.log1p(extension.getDownloadCount()) / stats.downloadRefLog;
         var timestamp = latest.getTimestamp();
         var timestampValue = Duration.between(stats.oldest, timestamp).toSeconds() / stats.timestampRef;
         var ratingTerm = ratingRelevance * limit(ratingValue);
@@ -192,6 +195,14 @@ public class RelevanceService {
 
     public static class SearchStats {
         protected final double downloadRef;
+
+        /**
+         * The download reference on the scale the relevance formula compares against. Kept alongside the
+         * raw maximum rather than replacing it: the raw one is what appears in the diagnostics written
+         * when a relevance comes out invalid, where a log would say much less about the registry.
+         */
+        protected final double downloadRefLog;
+
         protected final double timestampRef;
         protected final LocalDateTime oldest;
         protected final double averageReviewRating;
@@ -200,6 +211,7 @@ public class RelevanceService {
             var now = TimeUtil.getCurrentUTC();
             var oldestTimestamp = repositories.getOldestExtensionTimestamp();
             this.downloadRef = Math.max(repositories.getMaxExtensionDownloadCount(), 1);
+            this.downloadRefLog = Math.log1p(this.downloadRef);
             this.oldest = oldestTimestamp == null ? now : oldestTimestamp;
             this.timestampRef = Duration.between(this.oldest, now).toSeconds() + 60;
             this.averageReviewRating = repositories.getAverageReviewRating();
