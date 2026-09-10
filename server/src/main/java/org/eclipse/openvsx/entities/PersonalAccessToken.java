@@ -238,6 +238,7 @@ public class PersonalAccessToken implements Serializable {
         this.trustedPublisher = trustedPublisher;
     }
 
+    // user uses id comparison to prevent infinite recursion
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -249,7 +250,7 @@ public class PersonalAccessToken implements Serializable {
         PersonalAccessToken that = (PersonalAccessToken) o;
         return id == that.id
                 && active == that.active
-                && Objects.equals(getId(user), getId(that.user)) // use id to prevent infinite recursion
+                && Objects.equals(getId(user), getId(that.user))
                 && Objects.equals(value, that.value)
                 && Objects.equals(createdTimestamp, that.createdTimestamp)
                 && Objects.equals(accessedTimestamp, that.accessedTimestamp)

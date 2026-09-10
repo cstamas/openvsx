@@ -82,6 +82,7 @@ public class NamespaceMembership implements Serializable {
         this.role = role;
     }
 
+    // namespace and user uses id comparison to prevent infinite recursion
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -92,8 +93,8 @@ public class NamespaceMembership implements Serializable {
         }
         NamespaceMembership that = (NamespaceMembership) o;
         return id == that.id
-                && Objects.equals(getId(namespace), getId(that.namespace)) // use id to prevent infinite recursion
-                && Objects.equals(getId(user), getId(that.user)) // use id to prevent infinite recursion
+                && Objects.equals(getId(namespace), getId(that.namespace))
+                && Objects.equals(getId(user), getId(that.user))
                 && Objects.equals(role, that.role);
     }
 

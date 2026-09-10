@@ -204,6 +204,7 @@ public class Extension implements Serializable {
         this.downloadable = downloadable;
     }
 
+    // extension uses id comparison to prevent infinite recursion
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -218,7 +219,7 @@ public class Extension implements Serializable {
                 && downloadCount == extension.downloadCount
                 && Objects.equals(publicId, extension.publicId)
                 && Objects.equals(name, extension.name)
-                && Objects.equals(getId(namespace), getId(extension.namespace)) // use id to prevent infinite recursion
+                && Objects.equals(getId(namespace), getId(extension.namespace))
                 && Objects.equals(versions, extension.versions)
                 && Objects.equals(averageRating, extension.averageRating)
                 && Objects.equals(reviewCount, extension.reviewCount)

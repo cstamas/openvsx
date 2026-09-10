@@ -62,7 +62,7 @@ public class FixMissingFilesJobRequestHandler implements JobRequestHandler<Migra
             return;
         }
         var download = resources.stream().filter(f -> f.getType().equals(FileResource.DOWNLOAD)).findFirst();
-        if (missingFileTypes.stream().anyMatch(t -> t.equals(FileResource.DOWNLOAD)) || download.isEmpty()) {
+        if (download.isEmpty() || missingFileTypes.contains(FileResource.DOWNLOAD)) {
             logger.atInfo()
                     .setMessage("No vsix package available for: {}")
                     .addArgument(() -> NamingUtil.toLogFormat(extVersion))
