@@ -31,6 +31,7 @@ import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.entities.SignatureKeyPair;
 import org.eclipse.openvsx.publish.ExtensionVersionIntegrityService;
 import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.search.SearchExplainService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.*;
 import org.eclipse.openvsx.util.VersionService;
@@ -46,6 +47,7 @@ import static org.mockito.ArgumentMatchers.*;
         VSCodeAPI.class,
         SimpleMeterRegistry.class,
         SearchUtilService.class,
+        SearchExplainService.class,
         StorageUtilService.class,
         ExtensionVersionIntegrityService.class,
         WebResourceService.class,

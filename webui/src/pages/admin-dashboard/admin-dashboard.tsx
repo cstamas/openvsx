@@ -14,10 +14,12 @@ import { styled } from '@mui/material/styles';
 import { Route, Routes, useNavigate } from 'react-router';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ExtensionSharpIcon from '@mui/icons-material/ExtensionSharp';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
+import TroubleshootIcon from '@mui/icons-material/Troubleshoot';
 import HistoryIcon from '@mui/icons-material/History';
 import PeopleIcon from '@mui/icons-material/People';
 import PersonIcon from '@mui/icons-material/Person';
@@ -47,6 +49,10 @@ const ExtensionAdmin = lazy(() => import('./extension-admin').then(m => ({ defau
 const UsageStatsView = lazy(() => import('./usage-stats/usage-stats').then(m => ({ default: m.UsageStatsView })));
 const DataConsistency = lazy(() => import('./consistency/consistency').then(m => ({ default: m.DataConsistency })));
 const SearchIndexAdmin = lazy(() => import('./search-index/search-index').then(m => ({ default: m.SearchIndexAdmin })));
+const SearchExplainAdmin = lazy(() =>
+    import('./search-explain/search-explain').then(m => ({ default: m.SearchExplainAdmin }))
+);
+const StatisticsAdmin = lazy(() => import('./statistics/statistics').then(m => ({ default: m.StatisticsAdmin })));
 
 const navConfig: NavEntry[] = [
     {
@@ -115,6 +121,18 @@ const navConfig: NavEntry[] = [
         name: 'Search Index',
         icon: <ManageSearchIcon />,
         description: 'Inspect the search index and rebuild it'
+    },
+    {
+        path: AdminDashboardRoutes.SEARCH_EXPLAIN,
+        name: 'Search Explain',
+        icon: <TroubleshootIcon />,
+        description: "Run a search and see what each result's score is made of"
+    },
+    {
+        path: AdminDashboardRoutes.STATISTICS,
+        name: 'Statistics',
+        icon: <AssessmentIcon />,
+        description: 'Registry statistics per month, with a CSV export'
     }
 ];
 
@@ -246,12 +264,14 @@ export const AdminDashboard: FunctionComponent<AdminDashboardProps> = props => {
                                     <Route path='/tiers' element={<Tiers />} />
                                     <Route path='/customers' element={<Customers />} />
                                     <Route path='/customers/:customer' element={<CustomerDetails />} />
+                                    <Route path='/statistics' element={<StatisticsAdmin />} />
                                     <Route path='/usage' element={<UsageStatsView />} />
                                     <Route path='/usage/:customer' element={<UsageStatsView />} />
                                     <Route path='/settings' element={<RuntimeSettingsPage />} />
                                     <Route path='/logs' element={<Logs />} />
                                     <Route path='/consistency' element={<DataConsistency />} />
                                     <Route path='/search-index' element={<SearchIndexAdmin />} />
+                                    <Route path='/search-explain' element={<SearchExplainAdmin />} />
                                     {/* Splat so a contributed page can render nested routes; it also matches the bare path. */}
                                     {contributed.map(page => (
                                         <Route key={page.path} path={`${page.path}/*`} element={page.element} />

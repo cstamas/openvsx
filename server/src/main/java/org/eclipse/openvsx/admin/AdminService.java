@@ -96,6 +96,7 @@ public class AdminService {
     private final MailService mail;
     private final LogService logs;
     private final WebUiProperties webUi;
+    private final AdminStatisticsService statistics;
 
     public AdminService(
             RepositoryService repositories,
@@ -111,7 +112,8 @@ public class AdminService {
             JobRequestScheduler scheduler,
             MailService mail,
             LogService logs,
-            WebUiProperties webUi
+            WebUiProperties webUi,
+            AdminStatisticsService statistics
     ) {
         this.repositories = repositories;
         this.extensions = extensions;
@@ -127,6 +129,7 @@ public class AdminService {
         this.mail = mail;
         this.logs = logs;
         this.webUi = webUi;
+        this.statistics = statistics;
     }
 
     @EventListener
@@ -723,12 +726,28 @@ public class AdminService {
 
     public AdminStatistics getAdminStatistics(int year, int month) throws ErrorResultException {
         validateYearAndMonth(year, month);
-        var statistics = repositories.findAdminStatisticsByYearAndMonth(year, month);
-        if (statistics == null) {
-            throw new NotFoundException();
+        var archived = repositories.findAdminStatisticsByYearAndMonth(year, month);
+        if (archived != null) {
+            return archived;
         }
 
-        return statistics;
+        // The archival job only runs on the first of the following month, so the month in progress
+        // never has a stored row. Computing it here is what #235 described and what makes a
+        // dashboard useful today rather than a month from now. Not saved: it is a partial month,
+        // and the job will archive the complete figure in its own time.
+        if (isCurrentMonth(year, month)) {
+            return statistics.computeAdminStatistics(year, month);
+        }
+
+        // A past month with no row was never archived - the job did not run then, and it cannot be
+        // reconstructed after the fact, because every figure but downloads is a snapshot of the
+        // registry as it was.
+        throw new NotFoundException();
+    }
+
+    private boolean isCurrentMonth(int year, int month) {
+        var now = TimeUtil.getCurrentUTC();
+        return year == now.getYear() && month == now.getMonthValue();
     }
 
     private void validateYearAndMonth(int year, int month) {
@@ -739,8 +758,10 @@ public class AdminService {
             throw new ErrorResultException("Month must be a value between 1 and 12", HttpStatus.BAD_REQUEST);
         }
 
+        // The month in progress is allowed: it is served on the fly (see getAdminStatistics). Only
+        // a month that hasn't started yet is rejected.
         var now = TimeUtil.getCurrentUTC();
-        if (year > now.getYear() || (year == now.getYear() && month >= now.getMonthValue())) {
+        if (year > now.getYear() || (year == now.getYear() && month > now.getMonthValue())) {
             throw new ErrorResultException("Combination of year and month lies in the future", HttpStatus.BAD_REQUEST);
         }
     }
