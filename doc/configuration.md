@@ -402,7 +402,7 @@ Whether to use a path-style endpoint where the bucket name is part of the path.
 | Default       |
 | Compatibility | Since 0.1.0
 
-External storage service to use if multiple are active (`azure-blob` or `google-cloud`). All files that are not in the primary service are automatically migrated on application startup.
+External storage service to use if multiple are active (`azure-blob`, `aws` or `google-cloud`). All files that are not in the primary service are automatically migrated on application startup.
 
 | Property      | `ovsx.storage.external-resource-types`
 |---------------|----------------------------------------
@@ -741,7 +741,7 @@ Allowed server endpoints in mirror mode to override disallowed methods, e.g. dis
 | Default       |
 | Compatibility | Since 0.21.0
 
-The extensions to mirror, as `namespace.extension`, comma separated. Empty mirrors everything the upstream registry offers.
+The extensions to mirror, as `namespace.extension` or `namespace.*` for a whole namespace, comma separated. Empty mirrors everything the upstream registry offers. Every version of a matched extension is mirrored; there is no version selector. See [Mirror Mode](mirror.md).
 
 | Property      | `ovsx.data.mirror.exclude-extensions`
 |---------------|-------------------------------------
@@ -749,7 +749,7 @@ The extensions to mirror, as `namespace.extension`, comma separated. Empty mirro
 | Default       |
 | Compatibility | Since 0.21.0
 
-The extensions not to mirror, as `namespace.extension`, comma separated. Applied after `include-extensions`.
+The extensions not to mirror, as `namespace.extension` or `namespace.*` for a whole namespace, comma separated. Takes precedence over `include-extensions` wherever both match.
 
 ## Foreground HTTP Connection Pool
 
