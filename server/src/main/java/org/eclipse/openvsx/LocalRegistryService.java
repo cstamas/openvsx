@@ -138,6 +138,9 @@ public class LocalRegistryService implements IExtensionRegistry {
         this.changesFeedLag = changesFeedLag;
     }
 
+    @Value("${ovsx.analytics.enabled:false}")
+    boolean analyticsEnabled;
+
     @Override
     public NamespaceJson getNamespace(String namespaceName) {
         return getNamespace(namespaceName, false);
@@ -1402,6 +1405,7 @@ public class LocalRegistryService implements IExtensionRegistry {
         json.setMaxExtensionSize(publishingConfig.getMaxContentSize());
         json.setTrustedPublishingAudience(
                 trustedPublishingConfig.isEnabled() ? trustedPublishingConfig.getAudience() : null);
+        json.setAnalyticsEnabled(analyticsEnabled);
         return json;
     }
 

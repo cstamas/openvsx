@@ -28,6 +28,8 @@ import {
     NamespaceMembershipList,
     PublisherInfo,
     RegistryVersion,
+    DownloadSeries,
+    DownloadSeriesInterval,
     SearchEntry,
     LoginProviders,
     ScanResultJson,
@@ -59,6 +61,7 @@ import {
     ConsistencyCheckList,
     ConsistencyFindingList,
     SearchExplain,
+    CacheList,
     SearchIndex,
     AdminStatistics
 } from './extension-registry-types';
@@ -94,6 +97,28 @@ export class ExtensionRegistryService {
         }
 
         return createAbsoluteURL(arr);
+    }
+
+    /**
+     * Fetches the download time series for an extension from the analytics endpoint. The endpoint
+     * only exists when download analytics are enabled server-side (otherwise it responds 404), so
+     * callers should gate on {@link RegistryVersion.analyticsEnabled}. `from`/`to` are UTC dates
+     * (yyyy-MM-dd); `from` is inclusive and `to` is exclusive.
+     */
+    async getExtensionDownloadSeries(
+        abortController: AbortController,
+        params: { namespace: string; name: string; from?: string; to?: string; interval?: DownloadSeriesInterval }
+    ): Promise<Readonly<DownloadSeries>> {
+        const endpoint = createAbsoluteURL(
+            [this.serverUrl, 'api', params.namespace, params.name, 'analytics', 'downloads'],
+            [
+                { key: 'from', value: params.from },
+                { key: 'to', value: params.to },
+                { key: 'interval', value: params.interval }
+            ]
+        );
+        // Non-retriable: retries are owned by the TanStack query that calls this.
+        return sendNonRetriableRequest<DownloadSeries>({ abortController, endpoint });
     }
 
     async getNamespaceDetails(abortController: AbortController, name: string): Promise<Readonly<NamespaceDetails>> {
@@ -789,6 +814,10 @@ export interface AdminService {
     ): Promise<Readonly<AdminStatistics>>;
     getAdminStatisticsCsvUrl(year: number, month: number): string;
     updateSearchIndex(): Promise<Readonly<SuccessResult>>;
+    /** Every cache of every cache manager, with whatever each implementation can report. */
+    getCaches(abortController: AbortController): Promise<Readonly<CacheList>>;
+    /** Clears one cache, or every cache when no cache is named. */
+    clearCaches(cache?: { manager: string; name: string }): Promise<Readonly<SuccessResult>>;
     getConsistencyChecks(abortController: AbortController): Promise<Readonly<ConsistencyCheckList>>;
     getConsistencyFindings(
         abortController: AbortController,
@@ -1660,6 +1689,32 @@ export class AdminServiceImpl implements AdminService {
             method: 'POST',
             credentials: true,
             endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'update-search-index']),
+            headers
+        });
+    }
+
+    async getCaches(abortController: AbortController): Promise<Readonly<CacheList>> {
+        return sendNonRetriableRequest({
+            abortController,
+            credentials: true,
+            endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'caches'])
+        });
+    }
+
+    async clearCaches(cache?: { manager: string; name: string }): Promise<Readonly<SuccessResult>> {
+        const headers = await this.csrfHeaders();
+        // Manager and name travel together or not at all: a cache is only identified by both, and
+        // the server clears everything when neither is given.
+        const query = cache
+            ? [
+                  { key: 'manager', value: cache.manager },
+                  { key: 'cache', value: cache.name }
+              ]
+            : [];
+        return sendStrictRequest({
+            method: 'POST',
+            credentials: true,
+            endpoint: createAbsoluteURL([this.registry.serverUrl, 'admin', 'caches', 'clear'], query),
             headers
         });
     }

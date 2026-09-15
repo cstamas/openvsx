@@ -365,7 +365,20 @@ export interface TargetPlatformVersion {
 export interface RegistryVersion {
     version: string;
     maxExtensionSize?: number;
+    analyticsEnabled?: boolean;
 }
+
+/** One bucket of the download time series: `t` is the UTC bucket start (yyyy-MM-dd). */
+export interface DownloadSeriesPoint {
+    t: string;
+    count: number;
+}
+
+export interface DownloadSeries {
+    points: DownloadSeriesPoint[];
+}
+
+export type DownloadSeriesInterval = 'day' | 'week' | 'month';
 
 export interface LoginProviders {
     loginProviders: Record<string, string>;
@@ -625,6 +638,38 @@ export interface SearchIndex {
     indexedDocuments?: number;
     activeExtensions: number;
     maxResultWindow?: number;
+}
+
+/**
+ * One cache registered in the application. A measurement is absent rather than zero when the
+ * implementation behind the cache cannot report it, so "not measured" stays distinguishable from
+ * "nothing cached".
+ */
+export interface CacheInfo {
+    /**
+     * Bean name of the cache manager this cache belongs to. Cache names are unique only within a
+     * manager, so the manager and the name together are what identify a cache.
+     */
+    manager: string;
+    name: string;
+    implementation: 'caffeine' | 'jcache' | 'redis' | string;
+    /** Absent for implementations that cannot be counted without scanning, such as Redis. */
+    entries?: number;
+    /** Absent when the cache was not configured to record statistics. */
+    hits?: number;
+    misses?: number;
+    /** Hits over lookups, 0 to 1. Absent when nothing has been looked up yet. */
+    hitRate?: number;
+    evictions?: number;
+}
+
+export interface CacheList {
+    /**
+     * Whether the caches count hits and misses at all. When false every statistic is absent because
+     * nothing is counting, not because nothing is happening.
+     */
+    statisticsEnabled: boolean;
+    caches: CacheInfo[];
 }
 
 /** Why a search returned what it returned, in the order it returned it. */

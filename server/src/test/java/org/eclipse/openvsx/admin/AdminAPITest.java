@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -54,6 +55,10 @@ import org.eclipse.openvsx.UserService;
 import org.eclipse.openvsx.accesstoken.AccessTokenConfig;
 import org.eclipse.openvsx.accesstoken.AccessTokenService;
 import org.eclipse.openvsx.adapter.VSCodeIdService;
+import org.eclipse.openvsx.analytics.ingestion.DownloadIngestionProcessor;
+import org.eclipse.openvsx.analytics.ingestion.DownloadRecordSource;
+import org.eclipse.openvsx.cache.CacheInfo;
+import org.eclipse.openvsx.cache.CacheInfoService;
 import org.eclipse.openvsx.cache.CacheService;
 import org.eclipse.openvsx.cache.LatestExtensionVersionCacheKeyGenerator;
 import org.eclipse.openvsx.eclipse.EclipseService;
@@ -106,7 +111,6 @@ import org.eclipse.openvsx.storage.FileCacheDurationConfig;
 import org.eclipse.openvsx.storage.GoogleCloudStorageService;
 import org.eclipse.openvsx.storage.LocalStorageService;
 import org.eclipse.openvsx.storage.StorageUtilService;
-import org.eclipse.openvsx.storage.log.DownloadCountService;
 import org.eclipse.openvsx.trustedpublishing.TrustedPublishingConfig;
 import org.eclipse.openvsx.util.LogService;
 import org.eclipse.openvsx.util.TargetPlatform;
@@ -146,12 +150,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AzureBlobStorageService.class,
         AwsStorageService.class,
         VSCodeIdService.class,
-        DownloadCountService.class,
+        DownloadIngestionProcessor.class,
         ExtensionDownloadMetrics.class,
         CacheService.class,
         PublishExtensionVersionHandler.class,
         SearchUtilService.class,
         SearchExplainService.class,
+        CacheInfoService.class,
         EclipseService.class,
         SimpleMeterRegistry.class,
         FileCacheDurationConfig.class,
@@ -199,6 +204,9 @@ class AdminAPITest {
     // registered as a mock through the @MockitoBean types list above
     @Autowired
     SearchUtilService search;
+
+    @Autowired
+    CacheInfoService caches;
 
     // The document count next to the number of extensions it is built from is the point of this page:
     // an index that quietly lost entries looks exactly like a registry with nothing in it otherwise.
@@ -328,6 +336,125 @@ class AdminAPITest {
                         .with(user("test_user"))
                         .with(csrf().asHeader()))
                 .andExpect(status().isForbidden());
+    }
+
+    // A measurement nobody could take has to stay absent all the way out to the JSON: a cache
+    // reported as zero hits reads as one nothing ever asks for, which is a different claim.
+    @Test
+    void testGetCaches() throws Exception {
+        mockAdminUser();
+        Mockito.when(caches.isStatisticsEnabled()).thenReturn(true);
+        Mockito.when(caches.getCaches()).thenReturn(
+                List.of(
+                        new CacheInfo("localCacheManager", "settings", "caffeine", 12L, 30L, 10L, 0.75, 2L),
+                        new CacheInfo("redisCacheManager", "sitemap", "redis", null, null, null, null, null)));
+
+        mockMvc.perform(
+                get("/admin/caches")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statisticsEnabled").value(true))
+                .andExpect(jsonPath("$.caches[0].manager").value("localCacheManager"))
+                .andExpect(jsonPath("$.caches[0].name").value("settings"))
+                .andExpect(jsonPath("$.caches[0].implementation").value("caffeine"))
+                .andExpect(jsonPath("$.caches[0].entries").value(12))
+                .andExpect(jsonPath("$.caches[0].hits").value(30))
+                .andExpect(jsonPath("$.caches[0].hitRate").value(0.75))
+                .andExpect(jsonPath("$.caches[1].implementation").value("redis"))
+                .andExpect(jsonPath("$.caches[1].entries").doesNotExist())
+                .andExpect(jsonPath("$.caches[1].hitRate").doesNotExist());
+    }
+
+    @Test
+    void testGetCachesNotAdmin() throws Exception {
+        mockNormalUser();
+        mockMvc.perform(
+                get("/admin/caches")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testClearCache() throws Exception {
+        mockAdminUser();
+        Mockito.when(caches.clear("localCacheManager", "settings")).thenReturn(true);
+
+        mockMvc.perform(
+                post("/admin/caches/clear")
+                        .param("manager", "localCacheManager")
+                        .param("cache", "settings")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value("Cleared cache 'settings' of 'localCacheManager'"));
+
+        Mockito.verify(caches).clear("localCacheManager", "settings");
+    }
+
+    // Not a 400: the request is well formed, it just names a cache that is not there - and a typo
+    // has to be told apart from a malformed request by whoever is reading the response.
+    @Test
+    void testClearUnknownCache() throws Exception {
+        mockAdminUser();
+        Mockito.when(caches.clear("localCacheManager", "setting")).thenReturn(false);
+
+        mockMvc.perform(
+                post("/admin/caches/clear")
+                        .param("manager", "localCacheManager")
+                        .param("cache", "setting")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("No cache 'setting' is registered with 'localCacheManager'."));
+    }
+
+    // Half a name is not a cache: the same name can be registered with more than one manager, so
+    // acting on one parameter alone would have to guess which cache was meant.
+    @Test
+    void testClearCacheWithoutItsManager() throws Exception {
+        mockAdminUser();
+
+        mockMvc.perform(
+                post("/admin/caches/clear")
+                        .param("cache", "settings")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.error")
+                                .value("Provide both 'manager' and 'cache', or neither to clear all caches."));
+
+        Mockito.verify(caches, Mockito.never()).clear(Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(caches, Mockito.never()).clearAll();
+    }
+
+    @Test
+    void testClearAllCaches() throws Exception {
+        mockAdminUser();
+        Mockito.when(caches.clearAll()).thenReturn(7);
+
+        mockMvc.perform(
+                post("/admin/caches/clear")
+                        .with(user("admin_user").authorities(new SimpleGrantedAuthority(("ROLE_ADMIN"))))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value("Cleared 7 cache(s)"));
+
+        Mockito.verify(caches).clearAll();
+    }
+
+    @Test
+    void testClearCachesNotAdmin() throws Exception {
+        mockNormalUser();
+        mockMvc.perform(
+                post("/admin/caches/clear")
+                        .with(user("test_user"))
+                        .with(csrf().asHeader()))
+                .andExpect(status().isForbidden());
+
+        Mockito.verify(caches, Mockito.never()).clearAll();
     }
 
     @Test
@@ -3002,7 +3129,8 @@ class AdminAPITest {
                 AzureBlobStorageService azureStorage,
                 LocalStorageService localStorage,
                 AwsStorageService awsStorage,
-                DownloadCountService downloadCountService,
+                ObjectProvider<DownloadRecordSource> ingestionSources,
+                DownloadIngestionProcessor ingestionProcessor,
                 ExtensionDownloadMetrics downloadMetrics,
                 SearchUtilService search,
                 CacheService cache,
@@ -3017,7 +3145,8 @@ class AdminAPITest {
                     azureStorage,
                     localStorage,
                     awsStorage,
-                    downloadCountService,
+                    ingestionSources,
+                    ingestionProcessor,
                     downloadMetrics,
                     search,
                     cache,

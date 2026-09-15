@@ -65,6 +65,53 @@ Maximum number of author-declared tags to keep from a published package. Tags be
 
 Maximum number of internal tags - the ones the packaging tool generates, such as `__ext_yml` - to keep from a published package. Counted separately from the author's own tags; a negative value keeps all of them.
 
+## Server URL
+
+Where this registry is reachable, which is what the absolute URLs in a response - download
+links, icons, an extension's API URLs - are built from.
+
+Distinct from `ovsx.webui.url` below: that is where the web UI is served, which is the same host
+in the usual deployment but need not be, and is the upstream registry rather than this one in a
+mirror.
+
+| Deployment | What to set |
+|---|---|
+| One public hostname, TLS terminated by a reverse proxy | `ovsx.server.url`, e.g. `https://openvsx.example` |
+| Served under a path, e.g. `https://example.com/openvsx` | `ovsx.server.url`, including the path |
+| No proxy, the server itself is on the internet | `ovsx.server.url`; `ovsx.server.trusted-proxies` may be emptied to ignore the forwarded headers outright |
+| The proxy reaches the server from a public address, e.g. a cloud load balancer | `ovsx.server.url`; or add that address to `ovsx.server.trusted-proxies` |
+| A mirror | `ovsx.server.url` is the mirror's own URL, not `ovsx.upstream.url` or `ovsx.webui.url` |
+| Several hostnames answered by one registry | Leave `ovsx.server.url` unset, and make sure the proxy *overwrites* `X-Forwarded-Host` rather than passing on what the client sent |
+| Local development | Nothing: the server is reached over loopback, which is trusted by default |
+
+If the URLs in a response name an **internal host or port**, the proxy is not in
+`ovsx.server.trusted-proxies` and its headers are being ignored; the server logs a warning naming
+both properties the first time that happens. If they name a **host nobody configured**, the proxy is
+passing on the client's `X-Forwarded-Host` instead of overwriting it, and `ovsx.server.url` is the
+answer. Either way the wrong URLs are cached, so flush the caches after fixing it.
+
+| Property      | `ovsx.server.url`
+|---------------|---------------------
+| Type          | string
+| Default       |
+| Compatibility | Since 1.2.0
+
+The absolute URL this registry is served at, e.g. `https://openvsx.example`, or `https://example.com/openvsx` when it is served under a path. Setting it takes the base URL out of the request altogether: the `X-Forwarded-*` headers are ignored, whoever sends them and however the proxies in front are configured, every node in a cluster agrees on what it emits, and the response cache holds one entry per extension rather than one per host that was asked for. Set it on any deployment reachable from the open web.
+
+Empty by default, which derives the base URL from each request and is only as trustworthy as `ovsx.server.trusted-proxies` is correct for the deployment.
+
+| Property      | `ovsx.server.trusted-proxies`
+|---------------|-----------------------------
+| Type          | string[]
+| Default       | `127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,fc00::/7,fe80::/10`
+| Compatibility | Since 1.2.0
+
+The peers whose `X-Forwarded-Host`, `X-Forwarded-Proto` and `X-Forwarded-Prefix` headers are read at all, as IP addresses or CIDR ranges, comma separated. Only consulted when `ovsx.server.url` is empty. The default is the loopback and private ranges, the same set Tomcat's `RemoteIpValve` trusts, because that is where a reverse proxy sits in a container or cluster deployment; a request from anywhere else is a client talking to this server directly and its forwarded headers are ignored.
+
+Needs extending for a proxy that reaches this server from a public address - a cloud load balancer not on the same private network is the usual case - or the registry starts emitting internal-host URLs, and logs a warning naming both properties when it does. `*` reads the headers from every peer.
+
+This decides whose headers are read, not whether their contents can be believed: a proxy that relays the client's `X-Forwarded-Host` instead of overwriting it is trusted here and still forwarding a value the client chose, so prefer `ovsx.server.url`.
+
 ## Web UI
 
 | Property      | `ovsx.webui.url`
@@ -363,7 +410,7 @@ Whether to use a path-style endpoint where the bucket name is part of the path.
 | Default       |
 | Compatibility | Since 0.1.0
 
-External storage service to use if multiple are active (`azure-blob` or `google-cloud`). All files that are not in the primary service are automatically migrated on application startup.
+External storage service to use if multiple are active (`azure-blob`, `aws` or `google-cloud`). All files that are not in the primary service are automatically migrated on application startup.
 
 | Property      | `ovsx.storage.external-resource-types`
 |---------------|----------------------------------------
@@ -475,6 +522,14 @@ The schedule in crontab format to run the AWS download logs job.
 | Compatibility | Since 0.34.0
 
 How many log objects to list per request while reading download logs from the bucket.
+
+| Property      | `ovsx.logs.aws.archive-prefix`
+|---------------|-------------------------------
+| Type          | string
+| Default       |
+| Compatibility | Unreleased
+
+Where to keep a processed log file instead of only deleting it. When set, the file is copied to this prefix within the same bucket before the original is removed; when empty, the default, a processed file is deleted outright.
 
 ## Azure Download Logs
 
@@ -694,7 +749,7 @@ Allowed server endpoints in mirror mode to override disallowed methods, e.g. dis
 | Default       |
 | Compatibility | Since 0.21.0
 
-The extensions to mirror, as `namespace.extension`, comma separated. Empty mirrors everything the upstream registry offers.
+The extensions to mirror, as `namespace.extension` or `namespace.*` for a whole namespace, comma separated. Empty mirrors everything the upstream registry offers. Every version of a matched extension is mirrored; there is no version selector. See [Mirror Mode](mirror.md).
 
 | Property      | `ovsx.data.mirror.exclude-extensions`
 |---------------|-------------------------------------
@@ -702,7 +757,7 @@ The extensions to mirror, as `namespace.extension`, comma separated. Empty mirro
 | Default       |
 | Compatibility | Since 0.21.0
 
-The extensions not to mirror, as `namespace.extension`, comma separated. Applied after `include-extensions`.
+The extensions not to mirror, as `namespace.extension` or `namespace.*` for a whole namespace, comma separated. Takes precedence over `include-extensions` wherever both match.
 
 ## Foreground HTTP Connection Pool
 
@@ -888,7 +943,7 @@ Which browser origins may read this registry's public, unauthenticated surface.
 |---------------|--------------------------
 | Type          | string[]
 | Default       | `*`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 The origins allowed to read the registry API, the VS Code gallery adapter and the static documents from a browser, comma separated; `*` for any. Any by default, because that surface exists to be consumed by clients that are not this registry's own web UI. Clients that are not browsers never consult it. Worth narrowing, or emptying to register no public CORS mappings at all, on a registry that is not meant to be read from the open web. Never sent with credentials, whatever it names.
 
@@ -911,6 +966,16 @@ Whether to run an embedded Redis server. Useful for development and small deploy
 | Compatibility | Since 0.29.0
 
 Whether to use Redis for caching. Caffeine (in-memory cache) is used by default.
+
+| Property      | `ovsx.caching.statistics.enabled`
+|---------------|-------------------------
+| Type          | boolean
+| Default       | `false`
+| Compatibility | Unreleased
+
+Whether the caches count hits, misses and evictions, which the admin dashboard's Caches page reports. Off by default: every cache implementation counts on the lookup path, so it is paid on every cache read for numbers nothing consults unless somebody is looking at that page. Changing it takes a restart, since the counting is configured when each cache is built.
+
+With it off, the page still shows each cache and its entry count and can still clear them; only the hit, miss, hit rate and eviction columns are empty. They are shown as absent rather than as zero, so a cache that is not counted cannot be mistaken for one that is never hit.
 
 | Property      | `ovsx.caching.files-extension.tti`
 |---------------|-------------------------
@@ -1196,7 +1261,7 @@ Time to live duration for settings read from the database. A short one, because 
 |---------------|----------------------------------------------
 | Type          | long
 | Default       | `10485760`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 Largest web resource file, in bytes, that is cached at all. A file above this is served without being cached, so that one very large resource cannot evict everything else. Does not apply to Redis cache manager.
 
@@ -1204,7 +1269,7 @@ Largest web resource file, in bytes, that is cached at all. A file above this is
 |---------------|-----------------------------------------------
 | Type          | long
 | Default       | `2147483648`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 Total size, in bytes, of the cached web resource files. Each entry weighs its file size rather than counting as one, so this bounds the disk the cache occupies rather than the number of files in it. Does not apply to Redis cache manager.
 
@@ -1286,7 +1351,7 @@ with a long-lived personal access token. Disabled by default.
 |---------------|---------------------------------
 | Type          | boolean
 | Default       | `false`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 Whether trusted publishing is enabled at all.
 
@@ -1294,7 +1359,7 @@ Whether trusted publishing is enabled at all.
 |---------------|------------------------------------------
 | Type          | string[]
 | Default       | `github`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 The providers that may be used, comma separated. Each id must be `github` or one of the configured GitLab instances.
 
@@ -1302,7 +1367,7 @@ The providers that may be used, comma separated. Each id must be `github` or one
 |---------------|--------------------------------
 | Type          | map
 | Default       |
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 The GitLab instances, keyed by provider id, each with a name, a URL and an OIDC issuer. The public instance is configured out of the box; any other one is added here and becomes usable once its id is listed in `active-providers`. Configuring the id of the default instance replaces it whole rather than patching single fields, so such an entry carries the name and URL itself.
 
@@ -1310,7 +1375,7 @@ The GitLab instances, keyed by provider id, each with a name, a URL and an OIDC 
 |---------------|----------------------------------
 | Type          | string
 | Default       | `${ovsx.webui.url}`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 The audience to expect in the OIDC ID token. Defaults to the web UI URL of this instance.
 
@@ -1318,7 +1383,7 @@ The audience to expect in the OIDC ID token. Defaults to the web UI URL of this 
 |---------------|------------------------------------------
 | Type          | ISO 8601 duration
 | Default       | `PT5M`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 How long an issued publishing token is valid. Must be positive: a token that never expires is the long-lived credential trusted publishing exists to avoid. Ordinary personal access tokens use `ovsx.access-token.expiration` instead.
 
@@ -1326,7 +1391,7 @@ How long an issued publishing token is valid. Must be positive: a token that nev
 |---------------|-----------------------------------------------
 | Type          | string[]
 | Default       | `x5u,x5c,jku,jwk`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 JWT headers rejected in an ID token, comma separated. Each of these points at a key the token itself supplies, which would let a token vouch for its own signature.
 
@@ -1403,7 +1468,7 @@ The cron schedule of the job to notify about expiring access tokens.
 |---------------|----------------------------------------
 | Type          | string
 | Default       | `SHA-256`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 The hash algorithm personal access tokens are stored under.
 
@@ -1411,7 +1476,7 @@ The hash algorithm personal access tokens are stored under.
 |---------------|-------------------------------------
 | Type          | string
 | Default       |
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 A secret mixed into the token hash, so that a leaked `personal_access_token.value` column is useless on its own. It is a secret, not a salt - the token values are 256 random bits each - so keep it out of anywhere a non-secret would go, and generate it with something like `openssl rand -base64 32`. The same pepper covers every token, so changing it invalidates all of them at once unless the old one is kept in `token-hash-previous-peppers`. Empty by default, which mixes in nothing and is not recommended in production.
 
@@ -1419,7 +1484,7 @@ A secret mixed into the token hash, so that a leaked `personal_access_token.valu
 |---------------|-----------------------------------------------
 | Type          | string[]
 | Default       |
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 Peppers to fall back to, in order, when a token does not match under the current one, so that rotating a pepper does not invalidate every existing token. A token migrates to the current pepper as it is used; when to drop an old one is the operator's call, since a token that is never used never migrates. Comma separated, so a pepper must not contain a comma.
 
@@ -1427,7 +1492,7 @@ Peppers to fall back to, in order, when a token does not match under the current
 |---------------|------------------------------------------------
 | Type          | boolean
 | Default       | `false`
-| Compatibility | Unreleased
+| Compatibility | Since 1.2.0
 
 Whether a token hashed without any pepper is still accepted. This is what lets a pepper be introduced for the first time without invalidating every existing token; it is the unpeppered member of `token-hash-previous-peppers`, kept separate because an empty entry in a comma separated list cannot be written unambiguously.
 
@@ -1490,3 +1555,79 @@ The `Subject` header for the access token expired email. This email is sent to a
 | Compatibility | Since 0.33.0
 
 Name of the [Thymeleaf](https://www.thymeleaf.org) template to use for the access token expired email. Templates should be put into the `mail-templates` classpath directory.
+
+## Download Analytics
+
+Download analytics keeps its time-series data in a **separate** database from the registry, migrated on its own and requiring the [TimescaleDB](https://www.timescale.com) extension. Disabled by default; when disabled, none of its beans are created and the registry database is untouched.
+
+| Property      | `ovsx.analytics.enabled`
+|---------------|-------------------------
+| Type          | boolean
+| Default       | `false`
+| Compatibility | Unreleased
+
+Whether to enable download analytics. When `false`, the time-series datasource, its migrations and its jOOQ context are not created at all, and none of the settings below are read.
+
+| Property      | `ovsx.analytics.settled-cache.ttl`
+|---------------|-------------------------
+| Type          | ISO 8601 duration
+| Default       | `PT1H`
+| Compatibility | Unreleased
+
+How long the settled part of a download series is held in memory before being read again. Settled ranges are older than `ovsx.analytics.settling-margin` and so do not normally change, which is what makes caching them safe.
+
+Nothing invalidates this cache. A backfill, a replayed log file or a manual refresh of the time-series aggregate therefore stays invisible for up to this long, on the node that cached it — the data is right in the database and stale in the response. Set it to `PT0S` to bypass the cache entirely, which is what a development setup wants and what the bundled dev configuration does. Zero is the smallest value it accepts: a negative duration is rejected at startup.
+
+It is a per-node, in-memory cache, so in a cluster each node expires on its own schedule.
+
+| Property      | `ovsx.analytics.settling-margin`
+|---------------|-------------------------
+| Type          | ISO 8601 duration
+| Default       | `PT2H`
+| Compatibility | Unreleased
+
+How far back from now a download series is treated as settled. Buckets older than this are answered from a cached query and buckets newer than it are read live, so the margin is the point at which the series stops being re-read on every request.
+
+It exists because the time-series aggregate is materialized on a delay: its refresh policy leaves the most recent hour unmaterialized, and the margin keeps the series from settling on a bucket that has not caught up yet. Raising it holds more of the recent range on the live path; lowering it settles sooner. It must not be negative, which would place the boundary in the future, and startup fails if it is.
+
+Note that the buckets on either side of the boundary carry the same counts — the margin decides how a range is read, not what it contains.
+
+| Property      | `ovsx.analytics.datasource.url`
+|---------------|-------------------------
+| Type          | string
+| Default       |
+| Compatibility | Unreleased
+
+JDBC URL of the time-series database, e.g. `jdbc:postgresql://localhost:5433/openvsx_timeseries`. Required when analytics are enabled: startup fails if it is not set, because reaching that point means analytics were asked for and a missing URL is a mistake rather than a way to opt out. It must not point at the registry database, whose schema is migrated separately and does not need the `timescaledb` extension.
+
+| Property      | `ovsx.analytics.datasource.username`
+|---------------|-------------------------
+| Type          | string
+| Default       |
+| Compatibility | Unreleased
+
+User name for the time-series database. Optional: when unset, nothing is passed to the pool and the driver resolves it its own way, from a URL parameter, `.pgpass` or IAM.
+
+| Property      | `ovsx.analytics.datasource.password`
+|---------------|-------------------------
+| Type          | string
+| Default       |
+| Compatibility | Unreleased
+
+Password for the time-series database. Optional, on the same terms as the user name above.
+
+| Property      | `ovsx.analytics.datasource.maximum-pool-size`
+|---------------|-------------------------
+| Type          | int
+| Default       | `5`
+| Compatibility | Unreleased
+
+Maximum size of the time-series connection pool. Must be at least 1. Enabling analytics gives a deployment a **second** pool, so size this against the time-series server's `max_connections` together with the registry pool rather than in isolation.
+
+| Property      | `ovsx.analytics.datasource.connection-timeout`
+|---------------|-------------------------
+| Type          | long
+| Default       | `2000`
+| Compatibility | Unreleased
+
+How long to wait for a connection from the time-series pool, in milliseconds. Deliberately far below Hikari's own 30 seconds: analytics writes happen on the download-serving path, so an unreachable time-series database has to fail fast enough for the caller to swallow the error rather than holding a request thread. Must be greater than 250ms — the validation timeout is derived at half this value with a 250ms floor, and Hikari rejects a validation timeout that is not below the connection timeout.

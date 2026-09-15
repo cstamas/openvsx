@@ -6,6 +6,13 @@ This change log covers only the frontend library (webui) of Open VSX.
 
 ### Added
 
+- Add a "Caches" page to the admin dashboard: every cache registered in the application with what it holds, how often it is hit and how much it has evicted, and a way to clear one or all of them without restarting the server. A measurement the cache implementation cannot report is shown as a dash rather than a zero, so "not measured" stays distinguishable from "nothing cached"
+- Add a weekly downloads card to the extension detail page, shown only when the registry reports download analytics as enabled: the last 7 days' downloads, a sparkline of the weekly totals for the year behind it, and the period the headline covers. Hovering moves a marker line and reads out that week instead, and the card shows a skeleton in the same shape while the series loads. The figure names its unit, the curve is filled from zero and carries a description naming the per-week unit, so it is not read as a running total
+
+## [v1.2.0] (10/09/2026)
+
+### Added
+
 - Add a `/publish` page and turn the navbar's Publish button into a drop target: a file drag anywhere in the app turns the button into a drop area, and every `.vsix` package dropped on it — or on the publish page's own drop area — is queued and uploaded straight away, with no confirmation dialog. The page shows the queue as a line of extension cards — a skeleton while a package uploads, the real card once the registry accepts it, labelled with whatever the registry did with it — and keeps polling anything left under review or still missing its icon
 - Export `PublishButton`, which carries the publish link, its `p` shortcut and the app's `.vsix` drop target in one component, so a deployment with its own menu content keeps drag-and-drop publishing
 - Add a "Data Consistency" page to the admin dashboard (#1622): a live overview of every registered consistency check's finding count, with actions to refresh it and to fix findings one at a time or all at once
@@ -25,6 +32,7 @@ This change log covers only the frontend library (webui) of Open VSX.
 - **Breaking:** `elements.claimNamespace` now receives `{ namespace, extension?, sx? }` instead of `{ extension, sx? }`. The namespace settings page offers the same claim action and has no extension to pass, so implementations must read the namespace from `namespace` rather than `extension.namespace`
 - Publishing goes through TanStack Query: `publishExtension` and `createNamespace` are mutation hooks (`usePublishExtension`, `useCreateNamespace`), and both service methods lose their `AbortController` parameter — writes are no longer aborted, and retries are the query client's to own. The user's extension list is a query too (`useUserExtensions`), read by the settings tab and by the publish queue as it follows a package, so a card appears in the list as soon as the registry has the package
 - `ExtensionCard` accepts an `Extension` as well as a `SearchEntry`, and takes optional `to`, `linkState`, `overlay`, `footerStart`, `dimmed`, `tone` and `iconPending` props so other surfaces can reuse it instead of copying it
+- Show an extension card's rating as one star and the score rather than five stars, and no rating at all on an extension nobody has reviewed. Five icons could not shrink, so beside a long download count the count spilled out of the card
 
 ### Added
 
