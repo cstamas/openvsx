@@ -24,6 +24,7 @@ import org.eclipse.openvsx.entities.Extension;
 import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.repositories.RepositoryService;
+import org.eclipse.openvsx.util.AfterCommitExecutor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.openvsx.cache.CacheService.CACHE_EXTENSION_JSON;
@@ -49,7 +50,14 @@ class CacheServiceEvictionTest {
                 new ExtensionJsonCacheKeyGenerator(),
                 new LatestExtensionVersionCacheKeyGenerator(),
                 new LatestExtensionVersionsByPlatformCacheKeyGenerator(),
-                Mockito.mock(FilesCacheKeyGenerator.class));
+                Mockito.mock(FilesCacheKeyGenerator.class),
+                // inline, so these tests stay about which way an eviction goes rather than when
+                new AfterCommitExecutor() {
+                    @Override
+                    public void execute(Runnable task) {
+                        task.run();
+                    }
+                });
     }
 
     private static Extension extension(int versions) {
@@ -185,5 +193,30 @@ class CacheServiceEvictionTest {
                 .map(java.util.regex.Pattern::quote)
                 .collect(java.util.stream.Collectors.joining(".*"));
         return key.matches(regex);
+    }
+
+    /**
+     * The versions are a lazy association, so reading them is a query. A pattern clear is told the
+     * extension's name and nothing else, and loading them for it would put back on the request the
+     * work the pattern clear exists to take off it.
+     */
+    @Test
+    void leavesTheVersionsUnreadWhereThePatternClearDoesNotNeedThem() {
+        Mockito.when(cacheManager.getCache(CACHE_EXTENSION_JSON)).thenReturn(Mockito.mock(RedisCache.class));
+        var extension = Mockito.spy(extension(3));
+
+        service().evictExtensionJsons(extension);
+
+        verify(extension, never()).getVersions();
+    }
+
+    @Test
+    void readsTheVersionsWhereTheKeysHaveToBeGuessed() {
+        Mockito.when(cacheManager.getCache(CACHE_EXTENSION_JSON)).thenReturn(Mockito.mock(Cache.class));
+        var extension = Mockito.spy(extension(3));
+
+        service().evictExtensionJsons(extension);
+
+        verify(extension, Mockito.atLeastOnce()).getVersions();
     }
 }
