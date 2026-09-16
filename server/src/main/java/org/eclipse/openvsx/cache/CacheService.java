@@ -130,9 +130,9 @@ public class CacheService {
         var extensionName = extension.getName();
         // Read now, evict later: what the eviction needs has to be read while there is still a
         // persistence context, because the task runs without one. Only what it needs, though - a
-        // cache that clears by pattern is told the extension's name and nothing else, so the
+        // cache that clears by key prefix is told the extension's name and nothing else, so the
         // versions, a lazy association, are not loaded at all.
-        var versions = clearsByPattern(cacheManager.getCache(CACHE_EXTENSION_JSON))
+        var versions = clearsByKeyPrefix(cacheManager.getCache(CACHE_EXTENSION_JSON))
                 ? List.<String>of()
                 : extension.getVersions().stream().map(ExtensionVersion::getVersion).toList();
         afterCommit.execute(() -> evictExtensionJsons(namespaceName, extensionName, versions));
@@ -143,9 +143,9 @@ public class CacheService {
         if (cache == null) {
             return; // cache is not created
         }
-        // Redis can drop every key for this extension in one scan, instead of the (versions x target
-        // platforms) guesses below - see clearByPattern.
-        if (clearByPattern(cache, extensionJsonCacheKey.generateWildcard(namespaceName, extensionName))) {
+        // one scan of the keys the cache holds, instead of the (versions x target platforms) guesses
+        // below - see clearByKeyPrefix
+        if (clearByKeyPrefix(cache, extensionJsonCacheKey.generatePrefix(namespaceName, extensionName))) {
             return;
         }
 
@@ -211,7 +211,7 @@ public class CacheService {
             return;
         }
 
-        if (clearByPattern(cache, latestExtensionVersionCacheKey.generateWildcard(namespaceName, extensionName))) {
+        if (clearByKeyPrefix(cache, latestExtensionVersionCacheKey.generatePrefix(namespaceName, extensionName))) {
             return;
         }
 
@@ -254,20 +254,38 @@ public class CacheService {
     }
 
     /**
-     * Drops every key matching {@code pattern}, where the cache can do that, and says whether it did.
+     * Drops the keys of one extension - those starting with {@code prefix} - and says whether it could.
      * <p>
-     * Only Redis can: it scans its own keyspace, so one round trip replaces the thousands of guesses
-     * the callers fall back to - an extension with 200 versions costs 2600 evictions of keys that
-     * mostly do not exist. It also cannot miss, where guessing can: a version that was just deleted
-     * is no longer among the ones a caller would enumerate.
-     * <p>
-     * {@link RedisCache#clear(String)} rather than the writer behind {@link Cache#getNativeCache()},
-     * because it runs the pattern through the cache's own key prefix first; a pattern built here
-     * would match nothing, since the stored keys are prefixed with the cache name.
+     * This is what replaces guessing. The fallback enumerates every key it can imagine, which is
+     * {@code (3 aliases + versions) x 13 target platforms} evictions of keys that mostly do not
+     * exist - 2600 of them for an extension with 200 versions - and it can still miss the ones it did
+     * not think of, such as a version that was just deleted and is no longer among those the caller
+     * can enumerate. Asking a cache what it actually holds is both cheaper and complete.
+     * <ul>
+     *     <li>Redis scans its own keyspace. {@link RedisCache#clear(String)} rather than the writer
+     *     behind {@link Cache#getNativeCache()}, because it runs the pattern through the cache's own
+     *     key prefix first; a pattern built here would match nothing.</li>
+     *     <li>The local caches are Caffeine, reached either directly or through the JCache API, and
+     *     their key set is scanned. Through the native cache in both cases: iterating a
+     *     {@code javax.cache.Cache} walks entries rather than keys, and its iterator copies each
+     *     value and refreshes each entry's access expiry on the way past - work this has no use for,
+     *     over values as large as an extension's JSON.</li>
+     * </ul>
+     * Scanning is bounded by what the cache holds, where guessing is bounded by versions times target
+     * platforms, so which is cheaper depends on the extension. Completeness does not: guessing cannot
+     * evict a key it did not think of, such as that of a version which was just deleted.
      */
-    private boolean clearByPattern(Cache cache, String pattern) {
+    private boolean clearByKeyPrefix(Cache cache, String prefix) {
         if (cache instanceof RedisCache redisCache) {
-            redisCache.clear(pattern);
+            redisCache.clear(prefix + "*");
+            return true;
+        }
+
+        var caffeineCache = caffeineCacheOf(cache);
+        if (caffeineCache != null) {
+            // weakly consistent, which is all this needs: an entry written while it runs belongs to
+            // the state after the change, and one removed under it is already gone
+            caffeineCache.asMap().keySet().removeIf(key -> startsWith(key, prefix));
             return true;
         }
 
@@ -275,11 +293,38 @@ public class CacheService {
     }
 
     /**
-     * Whether {@link #clearByPattern} would take this cache - which decides what a caller has to read
-     * from the entity before handing the eviction over.
+     * The Caffeine cache behind a Spring one, however it is wrapped: directly for the file and
+     * settings caches, and through the JCache API for the ones a publish evicts.
      */
-    private static boolean clearsByPattern(@Nullable Cache cache) {
-        return cache instanceof RedisCache;
+    private static com.github.benmanes.caffeine.cache.@Nullable Cache<Object, Object> caffeineCacheOf(Cache cache) {
+        var nativeCache = cache.getNativeCache();
+        if (nativeCache instanceof com.github.benmanes.caffeine.cache.Cache<?, ?>) {
+            @SuppressWarnings("unchecked")
+            var caffeineCache = (com.github.benmanes.caffeine.cache.Cache<Object, Object>) nativeCache;
+            return caffeineCache;
+        }
+        if (nativeCache instanceof javax.cache.Cache<?, ?> jCache) {
+            @SuppressWarnings("unchecked")
+            var caffeineCache = (com.github.benmanes.caffeine.cache.Cache<Object, Object>) jCache
+                    .unwrap(com.github.benmanes.caffeine.cache.Cache.class);
+            return caffeineCache;
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether {@link #clearByKeyPrefix} would take this cache - which decides what a caller has to
+     * read from the entity before handing the eviction over. Every cache in use here can, so the
+     * versions are in practice never loaded for an eviction; the guessing is what is left for a
+     * cache that is neither.
+     */
+    private static boolean clearsByKeyPrefix(@Nullable Cache cache) {
+        return cache != null && (cache instanceof RedisCache || caffeineCacheOf(cache) != null);
+    }
+
+    private static boolean startsWith(Object key, String prefix) {
+        return key instanceof String name && name.startsWith(prefix);
     }
 
     private void invalidateCache(String cacheName) {

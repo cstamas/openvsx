@@ -12,12 +12,19 @@
  ********************************************************************************/
 package org.eclipse.openvsx.cache;
 
+import javax.cache.Caching;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.jcache.configuration.CaffeineConfiguration;
+import com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.jcache.JCacheCache;
 import org.springframework.data.redis.cache.RedisCache;
 
 import org.eclipse.openvsx.entities.Extension;
@@ -86,7 +93,52 @@ class CacheServiceEvictionTest {
         verify(cache, never()).evictIfPresent(any());
     }
 
-    // 200 versions x 13 target platforms plus the aliases: the guessing this replaces.
+    // The local caches hold what they hold: asking them is cheaper than guessing, and complete.
+    @Test
+    void dropsOnlyTheExtensionsOwnKeysFromACaffeineCache() {
+        var nativeCache = Caffeine.newBuilder().build();
+        var keys = new ExtensionJsonCacheKeyGenerator();
+        nativeCache.put(keys.generate("foo", "bar", "universal", "1.0.0"), "evicted");
+        nativeCache.put(keys.generate("foo", "bar", "linux-x64", "2.0.0"), "evicted");
+        nativeCache.put(keys.generate("foo", "bar2", "universal", "1.0.0"), "kept");
+        nativeCache.put(keys.generate("foo", "bar-baz", "universal", "1.0.0"), "kept");
+        nativeCache.put(keys.generate("other", "bar", "universal", "1.0.0"), "kept");
+        Mockito.when(cacheManager.getCache(CACHE_EXTENSION_JSON))
+                .thenReturn(new CaffeineCache(CACHE_EXTENSION_JSON, nativeCache));
+
+        // no versions loaded: neither cached version is a key the guessing fallback could name
+        service().evictExtensionJsons(extension(0));
+
+        assertThat(nativeCache.asMap().values()).containsOnly("kept");
+        assertThat(nativeCache.asMap()).hasSize(3);
+    }
+
+    // What extension.json is actually kept in, when Redis is off: a JCache over Caffeine.
+    @Test
+    void dropsOnlyTheExtensionsOwnKeysFromAJCacheBackedCache() {
+        try (
+                var provider = Caching.getCachingProvider(CaffeineCachingProvider.class.getName());
+                var manager = provider.getCacheManager()
+        ) {
+            var nativeCache = manager
+                    .createCache(CACHE_EXTENSION_JSON, new CaffeineConfiguration<Object, Object>());
+            var keys = new ExtensionJsonCacheKeyGenerator();
+            nativeCache.put(keys.generate("foo", "bar", "universal", "1.0.0"), "evicted");
+            nativeCache.put(keys.generate("foo", "bar2", "universal", "1.0.0"), "kept");
+            nativeCache.put(keys.generate("foo", "bar-baz", "universal", "1.0.0"), "kept");
+            Mockito.when(cacheManager.getCache(CACHE_EXTENSION_JSON)).thenReturn(new JCacheCache(nativeCache));
+
+            // no versions loaded, so a key for 1.0.0 is one the guessing fallback could not name:
+            // it is evicted here only because the cache was scanned
+            service().evictExtensionJsons(extension(0));
+
+            assertThat(nativeCache.get(keys.generate("foo", "bar", "universal", "1.0.0"))).isNull();
+            assertThat(nativeCache.get(keys.generate("foo", "bar2", "universal", "1.0.0"))).isEqualTo("kept");
+            assertThat(nativeCache.get(keys.generate("foo", "bar-baz", "universal", "1.0.0"))).isEqualTo("kept");
+        }
+    }
+
+    // Guessing is what is left for a cache that is neither, which in practice is a test double.
     @Test
     void guessesTheKeysWhereTheCacheCannotScan() {
         var cache = Mockito.mock(Cache.class);
@@ -218,5 +270,27 @@ class CacheServiceEvictionTest {
         service().evictExtensionJsons(extension);
 
         verify(extension, Mockito.atLeastOnce()).getVersions();
+    }
+
+    /**
+     * Through the native cache rather than the JCache API, because a {@code javax.cache.Cache}
+     * iterator walks entries rather than keys: per entry it copies the value and refreshes the access
+     * expiry, neither of which an eviction has any use for.
+     */
+    @Test
+    void reachesPastTheJCacheApiRatherThanIteratingIt() {
+        var nativeCache = Caffeine.newBuilder().build();
+        var keys = new ExtensionJsonCacheKeyGenerator();
+        nativeCache.put(keys.generate("foo", "bar", "universal", "1.0.0"), "evicted");
+        var jCache = Mockito.mock(javax.cache.Cache.class);
+        Mockito.when(jCache.unwrap(com.github.benmanes.caffeine.cache.Cache.class)).thenReturn(nativeCache);
+        var cache = Mockito.mock(Cache.class);
+        Mockito.when(cache.getNativeCache()).thenReturn(jCache);
+        Mockito.when(cacheManager.getCache(CACHE_EXTENSION_JSON)).thenReturn(cache);
+
+        service().evictExtensionJsons(extension(0));
+
+        assertThat(nativeCache.asMap()).isEmpty();
+        verify(jCache, never()).iterator();
     }
 }
