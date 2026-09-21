@@ -10,13 +10,13 @@ property says which release introduced it.
 
 ## Getting Started
 
-You can quickly spin up an Open VSX server and webui by [cloning the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and running the [`build.sh`](../deploy/docker/build.sh) script. Additionally you need a [PostgreSQL](https://www.postgresql.org) instance and an [Elasticsearch](https://www.elastic.co/elasticsearch/) instance. To use the user and admin sections of the webui, you need to configure an [OAuth2](configuration.md#oauth2) provider. To disable login you need to remove the `spring.security.oauth2` block in the [application.yml](../deploy/docker/configuration/application.yml) file. For troubleshooting and further configuration, see issue [#703](https://github.com/eclipse/openvsx/issues/703).
+You can quickly spin up an Open VSX server and webui by [cloning the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and running the [`build.sh`](../deploy/docker/build.sh) script, then following [deploy/docker/README.md](../deploy/docker/README.md) to run it with a mounted `application.yml`. Additionally you need a [PostgreSQL](https://www.postgresql.org) instance and an [Elasticsearch](https://www.elastic.co/elasticsearch/) instance. To use the user and admin sections of the webui, you need to configure an [OAuth2](configuration.md#oauth2) provider. To disable login you need to remove the `spring.security.oauth2` block in the [application.yml](../deploy/docker/configuration/application.yml) file. For troubleshooting and further configuration, see issue [#703](https://github.com/eclipse/openvsx/issues/703).
 
 ## Configuring application.yml
 
 The Open VSX server is configured using an `application.yml` file. See the [Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config) for more information on this configuration format.
 
-The server application will automatically load the configuration file if you put it into the directory `/home/openvsx/server/config` of the server image. There are several ways to do this, e.g. you can extend the Docker image or use a Kubernetes ConfigMap.
+The server application will automatically load the configuration file if you put it into the directory `/home/openvsx/server/config` of the server image. The published `openvsx-server` image ships with no configuration baked in, so the same image is reused across environments by mounting `application.yml` into that directory at container start - a bind-mounted file with Docker, a ConfigMap with Kubernetes or OpenShift. Extending the image with a `COPY` is also possible, but then a config change requires rebuilding the image.
 
 You can use all configuration properties offered by Spring to set up your deployment. In particular, you need to [configure a datasource](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-connect-to-production-database) to connect the application with the database.
 

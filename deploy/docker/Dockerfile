@@ -24,7 +24,6 @@ ARG OPENVSX_VERSION
 ENV VERSION=$OPENVSX_VERSION
 
 RUN git clone --branch ${VERSION} --depth 1 https://github.com/eclipse-openvsx/openvsx.git /workdir
-COPY ./configuration /workdir/configuration
 
 RUN cd webui \
   && yarn install --immutable \
@@ -33,9 +32,5 @@ RUN cd webui \
 
 # Main image derived from openvsx-server
 FROM ghcr.io/eclipse-openvsx/openvsx-server:${OPENVSX_VERSION}
-ARG OPENVSX_VERSION
 
 COPY --from=builder --chown=openvsx:openvsx /workdir/webui/static/ BOOT-INF/classes/static/
-COPY --from=builder --chown=openvsx:openvsx /workdir/configuration/application.yml config/
-
-RUN sed -i "s/<OPENVSX_VERSION>/$OPENVSX_VERSION/g" config/application.yml

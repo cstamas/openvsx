@@ -122,6 +122,111 @@ objects:
     resources:
       requests:
         storage: ${EXTENSIONS_STORAGE_CAPACITY}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: openvsx-server-config
+    namespace: "${NAMESPACE}"
+  data:
+    application.yml: |
+      logging:
+        pattern:
+          level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+
+      server:
+        port: 8080
+        jetty:
+          threads:
+            max-queue-capacity: 100
+
+      spring:
+        application:
+          name: openvsx-server
+        autoconfigure:
+          exclude:
+           - org.springframework.boot.zipkin.autoconfigure.ZipkinAutoConfiguration
+        profiles:
+          include: ovsx
+        cache:
+          jcache:
+            config: classpath:ehcache.xml
+        datasource:
+          url: jdbc:postgresql://postgresql:5432/openvsx
+          username: openvsx
+          password: openvsx
+        flyway:
+          baseline-on-migrate: true
+          baseline-version: 0.1.0
+          baseline-description: JobRunr tables
+        jpa:
+          open-in-view: false
+          properties:
+            hibernate:
+              dialect: org.hibernate.dialect.PostgreSQLDialect
+          hibernate:
+            ddl-auto: none
+        session:
+          store-type: jdbc
+          jdbc:
+            initialize-schema: never
+        thymeleaf:
+          check-template-location: false
+
+      management:
+        health:
+          probes:
+            enabled: true
+        endpoints:
+          web:
+            exposure:
+              include:
+                - health
+                - metrics
+                - prometheus
+        metrics:
+          distribution:
+            percentiles-histogram:
+              http:
+                server:
+                  requests: true
+                client:
+                  requests: true
+
+      springdoc:
+        model-and-view-allowed: true
+        api-docs:
+          version: openapi_3_0
+        swagger-ui:
+          path: /swagger-ui
+          docExpansion: list
+          operationsSorter: alpha
+          supportedSubmitMethods:
+            - get
+
+      jobrunr:
+        job-scheduler:
+          enabled: true
+        background-job-server:
+          enabled: true
+          worker-count: 2
+        dashboard:
+          enabled: false
+        database:
+          type: sql
+        miscellaneous:
+          allow-anonymous-data-usage: false
+
+      bucket4j:
+        enabled: false
+
+      ovsx:
+        databasesearch:
+          enabled: false
+        integrity:
+          key-pair: create # create, renew, delete, 'undefined'
+        storage:
+          local:
+            directory: /tmp/extensions
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -180,10 +285,16 @@ objects:
             volumeMounts:
               - name: extensions-storage
                 mountPath: /tmp/extensions
+              - name: config
+                mountPath: /home/openvsx/server/config
+                readOnly: true
         volumes:
         - name: extensions-storage
           persistentVolumeClaim:
             claimName: extensions-pvc
+        - name: config
+          configMap:
+            name: openvsx-server-config
 - apiVersion: v1
   kind: Service
   metadata:

@@ -32,14 +32,9 @@ RUN cd webui \
 
 # Main image derived from openvsx-server
 FROM ghcr.io/eclipse-openvsx/openvsx-server:${OPENVSX_VERSION}
-ARG OPENVSX_VERSION
 
 COPY --from=builder --chown=openvsx:openvsx /workdir/webui/dist/ BOOT-INF/classes/static/
-COPY /application.yml config/
 
-USER root
-RUN sed -i "s/OPENVSX_VERSION/${OPENVSX_VERSION}/g" config/application.yml
-USER openvsx
 # Local storage:
 RUN \
   mkdir -p /tmp/extensions && \
