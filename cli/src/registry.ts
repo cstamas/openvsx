@@ -10,13 +10,15 @@
 
 import * as http from 'http';
 import * as fs from 'fs';
+import { pipeline, Writable } from 'stream';
 import * as followRedirects from 'follow-redirects';
 import { RegistryOptions } from './registry-options';
-import { rejectError, statusError, withStatus } from './util';
+import { DEFAULT_TIMEOUT, redactUrl, rejectError, statusError, withStatus } from './util';
 
 export const DEFAULT_URL = 'https://open-vsx.org';
 export const DEFAULT_NAMESPACE_SIZE = 1024;
 export const DEFAULT_PUBLISH_SIZE = 512 * 1024 * 1024;
+export { DEFAULT_TIMEOUT };
 export const DEFAULT_TOKEN_REQUEST_SIZE = 8 * 1024;
 export const DEFAULT_DELETE_SIZE = 64 * 1024;
 
@@ -25,6 +27,7 @@ export class Registry {
     readonly url: string;
     readonly maxNamespaceSize: number;
     readonly maxPublishSize: number;
+    readonly timeout: number;
     readonly username?: string;
     readonly password?: string;
 
@@ -38,6 +41,7 @@ export class Registry {
 
         this.maxNamespaceSize = options.maxNamespaceSize ?? DEFAULT_NAMESPACE_SIZE;
         this.maxPublishSize = options.maxPublishSize ?? DEFAULT_PUBLISH_SIZE;
+        this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
         this.username = options.username;
         this.password = options.password;
     }
@@ -207,27 +211,59 @@ export class Registry {
 
     download(file: string, url: URL): Promise<void> {
         return new Promise((resolve, reject) => {
-            const stream = fs.createWriteStream(file);
+            // Written beside the target and renamed into place on success, so the caller's path holds
+            // either what it held before or the whole download, never part of one. Deferring the open
+            // until the status is known is not enough on its own: a connection dropped mid-body has
+            // already truncated the file by then, and `get` is handed a path the user chose.
+            const partial = `${file}.part`;
+            let stream: fs.WriteStream | undefined;
+
+            // Claimed synchronously, before the cleanup that has to happen before rejecting. A timeout
+            // mid-body drives both the request's error handler and pipeline's callback, and each used
+            // to wait on its own fs.rm - so whichever landed first decided what the caller was told,
+            // and the partial was removed twice.
+            let failed = false;
+            const fail = (err: Error) => {
+                if (failed) {
+                    return;
+                }
+                failed = true;
+                stream?.destroy();
+                fs.rm(partial, { force: true }, () => reject(err));
+            };
+
             const requestOptions = this.getRequestOptions();
             const request = this.getProtocol(url)
                                 .request(url, requestOptions, response => {
-                response.on('end', () => {
-                    if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode > 299)) {
-                        reject(statusError(response));
+                if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode > 299)) {
+                    response.resume();
+                    reject(statusError(response));
+                    return;
+                }
+
+                stream = fs.createWriteStream(partial);
+
+                // pipeline rather than response.pipe: pipe installs its own error handler on the
+                // source, so a connection dropped mid-body is swallowed - the write stream is never
+                // ended, nothing settles, and the caller waits for a file that will never arrive.
+                // pipeline propagates that error and tears both ends down. Its callback also waits
+                // for the file to close, which matters in its own right: a write stream opens and
+                // flushes asynchronously, so the last byte having arrived says nothing about the
+                // file being on disk.
+                pipeline(response, stream, (err: NodeJS.ErrnoException | null) => {
+                    if (err) {
+                        fail(err);
+                    } else if (!response.complete) {
+                        // A body cut short still ends the stream cleanly; `complete` is what tells
+                        // that apart from having received all of it.
+                        fail(new Error(`The connection closed before the whole of ${redactUrl(url)} was received.`));
                     } else {
-                        resolve();
+                        fs.rename(partial, file, renameErr => renameErr ? fail(renameErr) : resolve());
                     }
                 });
-                response.pipe(stream);
             });
-            stream.on('error', (err: Error) => {
-                request.abort();
-                reject(err);
-            });
-            request.on('error', (err: Error) => {
-                stream.close();
-                reject(err);
-            });
+            request.on('error', (err: Error) => fail(err));
+            this.failOnTimeout(request, url, fail);
             request.end();
         });
     }
@@ -238,6 +274,7 @@ export class Registry {
             const request = this.getProtocol(url)
                                 .request(url, requestOptions, this.getJsonResponse<T>(resolve, reject));
             request.on('error', reject);
+            this.failOnTimeout(request, url, reject);
             request.end();
         });
     }
@@ -248,6 +285,7 @@ export class Registry {
             const request = this.getProtocol(url)
                                 .request(url, requestOptions, this.getJsonResponse<T>(resolve, reject));
             request.on('error', reject);
+            this.failOnTimeout(request, url, reject);
             request.write(content);
             request.end();
         });
@@ -260,13 +298,14 @@ export class Registry {
             const request = this.getProtocol(url)
                                 .request(url, requestOptions, this.getJsonResponse<T>(resolve, reject));
             stream.on('error', (err: Error) => {
-                request.abort();
+                request.destroy();
                 reject(err);
             });
             request.on('error', (err: Error) => {
                 stream.close();
                 reject(err);
             });
+            this.failOnTimeout(request, url, reject);
             stream.on('open', () => stream.pipe(request));
         });
     }
@@ -286,6 +325,28 @@ export class Registry {
         return url.protocol === 'https:' ? followRedirects.https : followRedirects.http;
     }
 
+    /**
+     * Node's `timeout` option only raises an event - the request stays open, which is why a server
+     * that accepts a connection and then says nothing used to hold a command open indefinitely.
+     * Destroying the request with an error routes through the error handling each caller already
+     * has, so a stalled request rejects the way any other failure does. With a timeout of zero the
+     * event never fires and this does nothing.
+     */
+    // Typed on Writable because both http.ClientRequest and follow-redirects' wrapper are ones, and
+    // all this needs is the timeout event and destroy.
+    private failOnTimeout(request: Writable, url: URL, fail: (err: Error) => void): void {
+        request.on('timeout', () => {
+            // Reported before the request is torn down, rather than by destroying it with the error.
+            // Destroying raises errors of its own - ECONNRESET on the response, a premature close
+            // from pipeline - and node guarantees no order between those and the request's own. In
+            // practice the request's arrives first, so this is belt and braces rather than the thing
+            // that stops the wrong error being reported; that is the caller claiming the failure
+            // before it does any asynchronous cleanup.
+            fail(new Error(`No response from ${redactUrl(url)} for ${this.timeout} ms.`));
+            request.destroy();
+        });
+    }
+
     private getRequestOptions(method?: string, headers?: http.OutgoingHttpHeaders, maxBodyLength?: number): http.RequestOptions {
         if (this.username && this.password) {
             headers ??= {};
@@ -295,7 +356,8 @@ export class Registry {
         return {
             method,
             headers,
-            maxBodyLength
+            maxBodyLength,
+            timeout: this.timeout
         } as http.RequestOptions;
     }
 
@@ -303,6 +365,11 @@ export class Registry {
         return response => {
             response.setEncoding('utf-8');
             let json = '';
+            // A connection lost after the headers have arrived ends the response without 'end' ever
+            // firing, so without this the promise is never settled and the command waits on a body
+            // that is not coming. The configured timeout would eventually rescue it, but rejecting
+            // here reports what actually happened instead of thirty seconds of silence.
+            response.on('error', reject);
             response.on('data', chunk => json += chunk);
             response.on('end', () => {
                 if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode > 299)) {

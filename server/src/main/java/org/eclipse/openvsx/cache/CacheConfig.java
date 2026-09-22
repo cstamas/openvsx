@@ -36,8 +36,10 @@ import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.cache.BatchStrategies;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.*;
 import redis.clients.jedis.*;
@@ -56,19 +58,34 @@ import static org.eclipse.openvsx.cache.CacheService.*;
 @EnableCaching(proxyTargetClass = true)
 public class CacheConfig {
 
+    /**
+     * Keys per SCAN round trip when clearing by pattern. A larger batch means fewer round trips and a
+     * longer pause inside Redis for each one; this is the order of magnitude the Redis documentation
+     * suggests, and these caches hold thousands of keys rather than millions.
+     */
+    private static final int SCAN_BATCH_SIZE = 256;
+
     protected final Logger logger = LoggerFactory.getLogger(CacheConfig.class);
+
+    /**
+     * Whether the caches count hits, misses and evictions for the admin dashboard. Off by default:
+     * every implementation here counts on the lookup path, so this is paid on every cache read for
+     * numbers nothing consults unless somebody is looking at the dashboard.
+     */
+    @Value("${ovsx.caching.statistics.enabled:false}")
+    boolean statisticsEnabled;
 
     @Bean
     public Cache<Object, Object> extensionCache(
             @Value("${ovsx.caching.files-extension.tti:PT1H}") Duration timeToIdle,
             @Value("${ovsx.caching.files-extension.max-size:20}") long maxSize
     ) {
-        return Caffeine.newBuilder()
-                .removalListener(new ExpiredFileListener())
-                .expireAfterAccess(timeToIdle)
-                .maximumSize(maxSize)
-                .scheduler(Scheduler.systemScheduler())
-                .recordStats()
+        return recordStatsIfEnabled(
+                Caffeine.newBuilder()
+                        .removalListener(new ExpiredFileListener())
+                        .expireAfterAccess(timeToIdle)
+                        .maximumSize(maxSize)
+                        .scheduler(Scheduler.systemScheduler()))
                 .build();
     }
 
@@ -85,13 +102,13 @@ public class CacheConfig {
         // total bytes stay within maxTotalSize (a file's real size still counts when it's the larger
         // of the two), and the entry count stays within maxEntries (its floor share of the budget).
         var floorWeight = maxEntries > 0 ? Math.ceilDiv(maxTotalSize, maxEntries) : 0;
-        return Caffeine.newBuilder()
-                .removalListener(new ExpiredFileListener())
-                .expireAfterAccess(timeToIdle)
-                .maximumWeight(maxTotalSize)
-                .weigher(new FileSizeWeigher(floorWeight))
-                .scheduler(Scheduler.systemScheduler())
-                .recordStats()
+        return recordStatsIfEnabled(
+                Caffeine.newBuilder()
+                        .removalListener(new ExpiredFileListener())
+                        .expireAfterAccess(timeToIdle)
+                        .maximumWeight(maxTotalSize)
+                        .weigher(new FileSizeWeigher(floorWeight))
+                        .scheduler(Scheduler.systemScheduler()))
                 .build();
     }
 
@@ -100,11 +117,11 @@ public class CacheConfig {
             @Value("${ovsx.caching.files-browse.tti:PT1H}") Duration timeToIdle,
             @Value("${ovsx.caching.files-browse.max-size:50}") long maxSize
     ) {
-        return Caffeine.newBuilder()
-                .expireAfterAccess(timeToIdle)
-                .maximumSize(maxSize)
-                .scheduler(Scheduler.systemScheduler())
-                .recordStats()
+        return recordStatsIfEnabled(
+                Caffeine.newBuilder()
+                        .expireAfterAccess(timeToIdle)
+                        .maximumSize(maxSize)
+                        .scheduler(Scheduler.systemScheduler()))
                 .build();
     }
 
@@ -112,16 +129,13 @@ public class CacheConfig {
     public @Qualifier("fileCacheManager") CacheManager fileCacheManager(
             Cache<Object, Object> extensionCache,
             Cache<Object, Object> webResourceCache,
-            Cache<Object, Object> browseCache,
-            Cache<Object, Object> settingCache
+            Cache<Object, Object> browseCache
     ) {
         logger.info("Configure file cache manager");
         CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
         caffeineCacheManager.registerCustomCache(CACHE_EXTENSION_FILES, extensionCache);
         caffeineCacheManager.registerCustomCache(CACHE_WEB_RESOURCE_FILES, webResourceCache);
         caffeineCacheManager.registerCustomCache(CACHE_BROWSE_EXTENSION_FILES, browseCache);
-        caffeineCacheManager.registerCustomCache(CACHE_SETTING, settingCache);
-
         return caffeineCacheManager;
     }
 
@@ -129,10 +143,10 @@ public class CacheConfig {
     public Cache<Object, Object> settingCache(
             @Value("${ovsx.caching.setting.ttl:PT1M}") Duration timeToIdle
     ) {
-        return Caffeine.newBuilder()
-                .expireAfterWrite(timeToIdle)
-                .scheduler(Scheduler.systemScheduler())
-                .recordStats()
+        return recordStatsIfEnabled(
+                Caffeine.newBuilder()
+                        .expireAfterWrite(timeToIdle)
+                        .scheduler(Scheduler.systemScheduler()))
                 .build();
     }
 
@@ -253,6 +267,13 @@ public class CacheConfig {
         return new JCacheCacheManager(cacheManager);
     }
 
+    @SuppressWarnings("unchecked")
+    private Caffeine<Object, Object> recordStatsIfEnabled(Caffeine<?, ?> builder) {
+        // Caffeine's builder mutates in place and returns itself, so this is the same instance either
+        // way; the generics only move because recordStats returns the builder's own type.
+        return (Caffeine<Object, Object>) (statisticsEnabled ? builder.recordStats() : builder);
+    }
+
     private CaffeineConfiguration<Object, Object> createCaffeineConfiguration(
             Duration duration,
             long maxSize,
@@ -260,6 +281,9 @@ public class CacheConfig {
     ) {
         var configuration = new CaffeineConfiguration<>();
         configuration.setMaximumSize(OptionalLong.of(maxSize));
+        // Counted in the JCache layer rather than in the Caffeine cache underneath, and only
+        // reachable over JMX, which is how CacheInfoService reads it for the admin dashboard.
+        configuration.setStatisticsEnabled(statisticsEnabled);
         if (tti) {
             configuration.setExpireAfterAccess(OptionalLong.of(duration.toNanos()));
         } else {
@@ -295,7 +319,14 @@ public class CacheConfig {
 
         var sharedMapper = JsonMapper.shared();
 
-        return RedisCacheManager.builder(redisConnectionFactory)
+        // A cache writer built from the connection factory alone clears by pattern with KEYS, which
+        // blocks the server for as long as it takes to walk the whole keyspace - and clearing by
+        // pattern is exactly what an eviction does here, on every publish and every review. SCAN
+        // walks it in batches instead, so the server stays responsive between them.
+        var cacheWriter = RedisCacheWriter
+                .nonLockingRedisCacheWriter(redisConnectionFactory, BatchStrategies.scan(SCAN_BATCH_SIZE));
+
+        var builder = RedisCacheManager.builder(cacheWriter)
                 .withCacheConfiguration(
                         CACHE_AVERAGE_REVIEW_RATING,
                         redisCacheConfig(new JacksonJsonRedisSerializer<>(Double.class), averageReviewRatingTtl))
@@ -338,8 +369,14 @@ public class CacheConfig {
                                         sharedMapper,
                                         sharedMapper.getTypeFactory()
                                                 .constructParametricType(List.class, String.class)),
-                                maliciousExtensionsTtl))
-                .build();
+                                maliciousExtensionsTtl));
+        if (statisticsEnabled) {
+            // Counted by the cache writer rather than by Redis, and off unless asked for, which is
+            // how CacheInfoService reads hits and misses for the admin dashboard.
+            builder.enableStatistics();
+        }
+
+        return builder.build();
     }
 
     private <T> RedisCacheConfiguration redisCacheConfig(RedisSerializer<T> serializer, Duration ttl) {

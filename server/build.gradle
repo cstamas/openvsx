@@ -200,7 +200,11 @@ jooq {
                 name = 'org.jooq.meta.postgres.PostgresDatabase'
                 inputSchema = 'public'
                 includes = '.*'
-                excludes = 'jobrunr.*'
+                // jobrunr's and flyway's own bookkeeping tables. They are owned by those tools,
+                // nothing here queries them, and flyway_schema_history in particular only exists in
+                // a database flyway has already migrated - so generating it makes the committed
+                // output depend on how the schema was built rather than on the migrations.
+                excludes = 'jobrunr.*|flyway_schema_history'
                 includeRoutines = false
             }
             target {
@@ -251,7 +255,10 @@ spotless {
         // formatter step below so the braces it adds get properly indented/positioned
         addStep(AddBracesFixStep.create())
 
-        eclipse('4.40').configFile('config/eclipse-java-formatter.xml')
+        // no lockfile is bundled yet for 4.41 in spotless-lib-extra, so this provisions jdt.core
+        // live from Eclipse's P2 repository instead of a pinned/reproducible dependency set - see
+        // AGENTS.md's "The formatter's versions have one source of truth"
+        eclipse('4.41').configFile('config/eclipse-java-formatter.xml')
 
         // shared with scripts/ClosingBraceFix.java (the jbang path) via buildSrc,
         // see buildSrc/src/main/java/ClosingBraceFixStep.java
@@ -281,6 +288,14 @@ test {
     // observed as an OutOfMemoryError during unrelated context bootstrapping on CI.
     jvmArgs = ['--enable-native-access=ALL-UNNAMED', '-Xmx6144m', '-Xshare:off'] // due to https://github.com/netty/netty/issues/15161
     useJUnitPlatform()
+
+    // registry tests run on plain postgres, analytics tests on timescale/timescaledb; override
+    // either image with -Dovsx.test.postgres.image=... / -Dovsx.test.timeseries.image=...
+    ['ovsx.test.postgres.image', 'ovsx.test.timeseries.image'].each { property ->
+        if (System.getProperty(property) != null) {
+            systemProperty property, System.getProperty(property)
+        }
+    }
 }
 
 tasks.register('unitTests', Test) {

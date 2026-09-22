@@ -1,9 +1,9 @@
 # JBang-fmt arguments
 # To invoke:
 # * check only (fails with exit code 1 if code not properly formatted):
-#   `jbang jbang-fmt@jbangdev @jbang-fmt.args --check`
+#   `jbang jbang-fmt@jbangdev @config/jbang-fmt.args --check`
 # * apply
-#   `jbang jbang-fmt@jbangdev @jbang-fmt.args`
+#   `jbang jbang-fmt@jbangdev @config/jbang-fmt.args`
 #
 # Configuration:
 # * apply custom eclipse style

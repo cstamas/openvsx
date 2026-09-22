@@ -1,6 +1,6 @@
 {
     "name": "openvsx-webui",
-    "version": "1.2.0-dev.0",
+    "version": "1.2.0",
     "description": "User interface for Eclipse Open VSX",
     "keywords": [
         "react",
@@ -106,11 +106,12 @@
         "rollup-plugin-visualizer": "^7.0.1",
         "typescript": "^5.9.0",
         "vite": "^8.2.1",
-        "vitest": "^4.1.10"
+        "vitest": "^4.1.11"
     },
     "scripts": {
         "clean": "rimraf lib && rimraf dist",
         "build": "tsc -p ./configs/lib.tsconfig.json && yarn run lint",
+        "tsc": "tsc -p ./configs/app.tsconfig.json",
         "test": "vitest run",
         "smoke-tests": "playwright install && playwright test --config=./configs/playwright.config.ts",
         "lint": "eslint -c eslint.config.mjs src configs test '*'",

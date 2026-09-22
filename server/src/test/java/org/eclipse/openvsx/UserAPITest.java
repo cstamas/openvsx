@@ -56,6 +56,7 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.scanning.ExtensionScanPersistenceService;
 import org.eclipse.openvsx.scanning.ExtensionScanService;
 import org.eclipse.openvsx.scanning.NamespaceOwnershipCheckScanner;
+import org.eclipse.openvsx.search.SearchExplainService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.search.SimilarityCheckService;
 import org.eclipse.openvsx.search.SimilarityConfig;
@@ -70,6 +71,7 @@ import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.TargetPlatformVersion;
 import org.eclipse.openvsx.util.UUIDService;
 import org.eclipse.openvsx.util.VersionService;
+import org.eclipse.openvsx.web.WebUiProperties;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -93,6 +95,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ExtensionValidator.class,
         SimpleMeterRegistry.class,
         SearchUtilService.class,
+        SearchExplainService.class,
         PublishExtensionVersionHandler.class,
         JobRequestScheduler.class,
         VersionService.class,
@@ -1259,6 +1262,7 @@ class UserAPITest {
                     similarityCheckService,
                     new PublishingConfig(),
                     new TrustedPublishingConfig(),
+                    new WebUiProperties(),
                     Duration.ofSeconds(30));
         }
 
