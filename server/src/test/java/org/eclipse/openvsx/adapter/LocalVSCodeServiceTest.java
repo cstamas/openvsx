@@ -15,6 +15,7 @@ import java.util.List;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -34,6 +35,7 @@ import org.eclipse.openvsx.repositories.RepositoryService;
 import org.eclipse.openvsx.search.SearchExplainService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.*;
+import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.VersionService;
 import org.eclipse.openvsx.web.WebUiProperties;
 
@@ -85,9 +87,16 @@ public class LocalVSCodeServiceTest {
         assertThat(result.results()).hasSize(1);
     }
 
+    private int originalMaxPreReleaseVersions;
+
+    @BeforeEach
+    void captureMaxPreReleaseVersions() {
+        originalMaxPreReleaseVersions = vsCodeService.maxPreReleaseVersions;
+    }
+
     @AfterEach
     void resetMaxPreReleaseVersions() {
-        vsCodeService.maxPreReleaseVersions = -1;
+        vsCodeService.maxPreReleaseVersions = originalMaxPreReleaseVersions;
     }
 
     @Test
@@ -153,6 +162,51 @@ public class LocalVSCodeServiceTest {
 
         Mockito.verify(repositories, Mockito.times(1)).findActiveExtensionVersions(any(), any(), anyInt());
         Mockito.verify(repositories, Mockito.times(1)).findLatestVersions(any(), any());
+    }
+
+    @Test
+    void testExtensionQuery_latestVersionOnlyWithTargetPlatform_skipsActiveVersionsFetch() {
+        var extension = mockExtension();
+        var extensionVersion = mockExtensionVersion(extension, 1, "0.1.0", TargetPlatform.NAME_LINUX_X64);
+
+        var criteria = List.of(
+                new ExtensionQueryParam.Criterion(Criterion.FILTER_EXTENSION_ID, "test-1"),
+                new ExtensionQueryParam.Criterion(Criterion.FILTER_TARGET, TargetPlatform.NAME_LINUX_X64));
+        var filter = new ExtensionQueryParam.Filter(criteria, 0, 0, 0, 0);
+        var param = new ExtensionQueryParam(List.of(filter), FLAG_INCLUDE_LATEST_VERSION_ONLY);
+
+        Mockito.when(repositories.findActiveExtensionsByPublicId(any(), any()))
+                .thenReturn(List.of(extension));
+        Mockito.when(repositories.findLatestVersions(any(), eq(TargetPlatform.NAME_LINUX_X64)))
+                .thenReturn(List.of(extensionVersion));
+
+        var result = vsCodeService.extensionQuery(param, 10);
+
+        Mockito.verify(repositories, Mockito.never()).findActiveExtensionVersions(any(), any(), anyInt());
+        Mockito.verify(repositories, Mockito.times(1)).findLatestVersions(any(), eq(TargetPlatform.NAME_LINUX_X64));
+        assertThat(result.results()).hasSize(1);
+    }
+
+    @Test
+    void testExtensionQuery_latestVersionOnlyNoTargetPlatform_stillFetchesActiveVersions() {
+        var extension = mockExtension();
+        var extensionVersion = mockExtensionVersion(extension, 1, "0.1.0", "linux");
+
+        var criterion = new ExtensionQueryParam.Criterion(Criterion.FILTER_EXTENSION_ID, "test-1");
+        var filter = new ExtensionQueryParam.Filter(List.of(criterion), 0, 0, 0, 0);
+        var param = new ExtensionQueryParam(List.of(filter), FLAG_INCLUDE_LATEST_VERSION_ONLY);
+
+        Mockito.when(repositories.findActiveExtensionsByPublicId(any(), any()))
+                .thenReturn(List.of(extension));
+        Mockito.when(repositories.findActiveExtensionVersions(any(), any(), anyInt()))
+                .thenReturn(List.of(extensionVersion));
+        Mockito.when(versions.getLatest(anyList(), anyBoolean())).thenReturn(extensionVersion);
+
+        vsCodeService.extensionQuery(param, 10);
+
+        // Deliberate limitation, not an oversight: without a concrete target platform, the
+        // fast path does not apply, so the full active-version fetch still runs.
+        Mockito.verify(repositories, Mockito.times(1)).findActiveExtensionVersions(any(), any(), anyInt());
     }
 
     // ---------- UTILITY ----------//
