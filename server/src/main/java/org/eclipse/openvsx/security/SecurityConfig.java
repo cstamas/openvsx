@@ -67,7 +67,9 @@ public class SecurityConfig {
                                         "/vscode/**",
                                         "/documents/**",
                                         "/admin/api/**",
-                                        "/admin/report"))
+                                        "/admin/report",
+                                        // authenticated with the edge's shared secret
+                                        "/internal/edge/usage"))
                         .permitAll()
                         .requestMatchers(pathMatchers("/admin/**"))
                         .hasAuthority("ROLE_ADMIN")
@@ -88,7 +90,8 @@ public class SecurityConfig {
                                         // authenticated with a personal access token, not with a session
                                         "/api/*/*/delete",
                                         "/vscode/**",
-                                        "/admin/api/**")))
+                                        "/admin/api/**",
+                                        "/internal/edge/usage")))
                 .exceptionHandling(configurer -> configurer.authenticationEntryPoint(new Http403ForbiddenEntryPoint()));
 
         if (userServices.canLogin()) {

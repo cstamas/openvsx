@@ -1,0 +1,30 @@
+# Fastly Compute manifest. The `local_server` section is only read by `fastly compute serve`;
+# the deployed service links a KV store and a secret store named `ratelimit`, a backend named
+# `origin` and an HTTPS logging endpoint named `usage` (see doc/configuration.md).
+manifest_version = 3
+name = "openvsx-edge"
+description = "Attributes and rate limits Open VSX traffic at the edge"
+language = "javascript"
+authors = []
+
+[scripts]
+build = "npm run build"
+post_init = "npm install"
+
+[local_server]
+
+  [local_server.backends.origin]
+    url = "http://127.0.0.1:8080"
+
+  [[local_server.kv_stores.ratelimit]]
+    key = "ratelimit-config"
+    file = "local/ratelimit-config.json"
+
+  [[local_server.kv_stores.ratelimit]]
+    # sha256("dev-blocked-token"); blocked until 2100, so X-RateLimit-Token: dev-blocked-token gets a 429
+    key = "block:blocked"
+    data = "4102444800"
+
+  [[local_server.secret_stores.ratelimit]]
+    key = "edge-shared-secret"
+    data = "dev-edge-secret"

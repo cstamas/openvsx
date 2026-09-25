@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "customers": [
+        { "name": "local", "cidrs": ["127.0.0.1/32"], "tokenHashes": [] },
+        { "name": "blocked", "cidrs": [], "tokenHashes": ["1073914a577ebb6c3e467709c7e8556a42875491203cbdad26b708c8a97488b5"] }
+    ]
+}

@@ -191,8 +191,15 @@ ovsx:
     ip-address-function: '(getHeader("X-Forwarded-For")?: getRemoteAddr()).split(",")[0].trim()'
     usage-stats:
       job-schedule: '*/30 * * * *'
+    # count and block customer traffic in a Fastly Compute service (edge/); the shared secret must
+    # match the one in the service's secret store
+    edge:
+      enabled: false
+      shared-secret: dev-edge-secret
+      fastly-api-token: ''
+      kv-store-id: ''
     filters:
-      - url: '/(api|vscode)/.*'
+      - url: '^(?!/actuator/|/internal/).*'
         http-response-headers:
           Access-Control-Allow-Origin: '*'
           Access-Control-Expose-Headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After

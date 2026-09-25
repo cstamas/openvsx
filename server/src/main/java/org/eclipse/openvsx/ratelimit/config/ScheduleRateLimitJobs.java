@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.eclipse.openvsx.migration.HandlerJobRequest;
 import org.eclipse.openvsx.ratelimit.jobs.CalculateDailyUsageStatsHandler;
 import org.eclipse.openvsx.ratelimit.jobs.CollectUsageStatsHandler;
+import org.eclipse.openvsx.ratelimit.jobs.UnblockEdgeCustomersHandler;
 
 @Component
 public class ScheduleRateLimitJobs {
@@ -57,6 +58,17 @@ public class ScheduleRateLimitJobs {
         } else {
             scheduler.deleteRecurringJob("collect-usage-stats");
             scheduler.deleteRecurringJob("calculate-daily-usage-stats");
+        }
+
+        if (rateLimitProperties != null && rateLimitProperties.getEdge().isEnabled()) {
+            var unblockSchedule = rateLimitProperties.getEdge().getUnblockSchedule();
+            logger.info("Scheduling unblock edge customers job with schedule '{}'", unblockSchedule);
+            scheduler.scheduleRecurrently(
+                    "unblock-edge-customers",
+                    unblockSchedule,
+                    new HandlerJobRequest<>(UnblockEdgeCustomersHandler.class));
+        } else {
+            scheduler.deleteRecurringJob("unblock-edge-customers");
         }
     }
 }

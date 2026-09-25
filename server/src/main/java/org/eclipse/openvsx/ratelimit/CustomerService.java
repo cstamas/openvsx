@@ -70,6 +70,15 @@ public class CustomerService {
         return repositories.findCustomerById(id);
     }
 
+    @Cacheable(
+        value = RateLimitCacheService.CACHE_CUSTOMER,
+        key = "'name:' + #name",
+        cacheManager = RateLimitCacheService.CACHE_MANAGER
+    )
+    public Optional<Customer> getCustomerByName(String name) {
+        return Optional.ofNullable(repositories.findCustomer(name));
+    }
+
     public Optional<Customer> getCustomerByIpAddress(String ipAddress) {
         var address = new IPAddressString(ipAddress).getAddress();
         var ip = address != null ? address.toIPv4() : null;

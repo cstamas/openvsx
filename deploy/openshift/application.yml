@@ -121,6 +121,17 @@ ovsx:
   # from headers the client sends. See doc/configuration.md, Server URL.
   #  server:
   #    url: https://openvsx.example
+  # dynamic tier-based rate limiting, needs a Redis/Valkey cluster; see doc/configuration.md
+  rate-limit:
+    enabled: false
+    filters:
+      - url: '^(?!/actuator/|/internal/).*'
+    # count and block customer traffic in a Fastly Compute service (edge/)
+    edge:
+      enabled: false
+      shared-secret: ''
+      fastly-api-token: ''
+      kv-store-id: ''
   storage:
     local:
       directory: /tmp/extensions

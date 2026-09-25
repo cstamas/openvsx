@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.eclipse.openvsx.accesstoken.AccessTokenAction;
 import org.eclipse.openvsx.accesstoken.AccessTokenService;
 import org.eclipse.openvsx.entities.Customer;
+import org.eclipse.openvsx.ratelimit.config.EdgeProperties;
 import org.eclipse.openvsx.ratelimit.config.RateLimitConfig;
 import org.eclipse.openvsx.ratelimit.config.RateLimitProperties;
 
@@ -64,6 +65,25 @@ public class IdentityService {
 
     public ResolvedIdentity resolveIdentity(HttpServletRequest request) {
         String ipAddress = getIPAddress(request);
+
+        var edge = rateLimitProperties.getEdge();
+        if (edge.isTrusted(request.getHeader(EdgeProperties.HEADER_SECRET))) {
+            // only a verified edge may name the client; otherwise the client could name itself
+            var edgeClientIp = request.getHeader(EdgeProperties.HEADER_CLIENT_IP);
+            if (edgeClientIp != null && !edgeClientIp.isBlank()) {
+                ipAddress = edgeClientIp.trim();
+            }
+
+            var edgeCustomer = request.getHeader(EdgeProperties.HEADER_CUSTOMER);
+            if (edgeCustomer != null && !edgeCustomer.isEmpty()) {
+                var customer = customerService.getCustomerByName(edgeCustomer);
+                if (customer.isPresent()) {
+                    return forCustomer(customer.get(), ipAddress, true);
+                }
+                logger.warn("Edge resolved unknown customer {}, resolving on the origin", edgeCustomer);
+            }
+        }
+
         String cacheKey = null;
 
         Optional<Customer> customer = Optional.empty();
@@ -74,7 +94,7 @@ public class IdentityService {
             if (customerId.isPresent()) {
                 customer = customerService.getCustomerById(customerId.get());
                 if (customer.isPresent()) {
-                    cacheKey = "customer_" + customer.get().getName();
+                    cacheKey = customerKey(customer.get());
                 }
             }
         }
@@ -93,7 +113,7 @@ public class IdentityService {
         if (customer.isEmpty()) {
             customer = customerService.getCustomerByIpAddress(ipAddress);
             if (customer.isPresent() && cacheKey == null) {
-                cacheKey = "customer_" + customer.get().getName();
+                cacheKey = customerKey(customer.get());
             }
         }
 
@@ -116,6 +136,24 @@ public class IdentityService {
                 customer.orElse(null),
                 tierService.getFreeTier().orElse(null),
                 tierService.getSafetyTier().orElse(null));
+    }
+
+    /**
+     * The identity of a request attributed to {@code customer}, as used for requests the edge
+     * reported. Shares the bucket key with {@link #resolveIdentity} so both debit one bucket.
+     */
+    public ResolvedIdentity forCustomer(Customer customer, String ipAddress, boolean countedAtEdge) {
+        return new ResolvedIdentity(
+                ipAddress,
+                customerKey(customer),
+                customer,
+                tierService.getFreeTier().orElse(null),
+                tierService.getSafetyTier().orElse(null),
+                countedAtEdge);
+    }
+
+    private static String customerKey(Customer customer) {
+        return "customer_" + customer.getName();
     }
 
     private String getIPAddress(HttpServletRequest request) {

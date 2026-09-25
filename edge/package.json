@@ -1,0 +1,18 @@
+{
+    "name": "openvsx-edge",
+    "version": "0.1.0",
+    "description": "Fastly Compute service that attributes and rate limits Open VSX traffic at the edge",
+    "license": "EPL-2.0",
+    "private": true,
+    "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "build": "js-compute-runtime src/index.js bin/main.wasm",
+        "test": "node --test 'test/**/*.test.js'"
+    },
+    "dependencies": {
+        "@fastly/js-compute": "^3.46.0"
+    }
+}
