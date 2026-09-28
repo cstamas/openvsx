@@ -121,20 +121,50 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Set up JDK
-      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-      with:
-        distribution: 'temurin'
-        java-version: 25
-
     - name: Get all changed server files
       id: changed_server_files
       uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
       with:
         files: server/**
 
+    - name: Set up JDK
+      if: steps.changed_server_files.outputs.any_changed == 'true'
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    # Caches Gradle User Home (dependencies, build-output cache); avoid also using setup-java's own
+    # `cache: gradle`, the two can interfere. Only writes cache entries on the default branch - PR
+    # runs, forks included, only read. Does not cover server/.gradle/configuration-cache, see below.
+    - name: Setup Gradle
+      if: steps.changed_server_files.outputs.any_changed == 'true'
+      uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # zizmor: ignore[cache-poisoning] v6.3.0, PR-write-scoped, see comment above
+
+    # GRADLE_ENCRYPTION_KEY (set on the Run Server Tests step below) is what actually protects this;
+    # skipping the restore for fork PRs too is just an optimization, since they couldn't decrypt the
+    # entries anyway.
+    - name: Cache Gradle configuration cache
+      if: steps.changed_server_files.outputs.any_changed == 'true' &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] v6.1.0, see comment above
+      with:
+        path: server/.gradle/configuration-cache
+        key: gradle-configuration-cache-${{ runner.os }}-${{ hashFiles('server/**/*.gradle', 'server/gradle.properties', 'server/gradle/libs.versions.toml', 'server/gradle/wrapper/gradle-wrapper.properties', 'server/buildSrc/**') }}
+        restore-keys: |
+          gradle-configuration-cache-${{ runner.os }}-
+
     - name: Run Server Tests
       if: steps.changed_server_files.outputs.any_changed == 'true'
+      env:
+        # Gradle's own encryption for the configuration cache, keyed by a fixed secret rather than the
+        # per-machine key it generates by default (which wouldn't survive across separate CI runs
+        # anyway). This is the real boundary against a fork PR reading server/.gradle/configuration-cache
+        # above: GitHub never exposes secrets to fork pull_request runs, so a fork can restore the cache
+        # bytes but not decrypt them - unlike an `if:` in this file, which a fork PR can just edit away.
+        # Scoped to this step alone, not the whole job, so unrelated actions (checkout, Docker,
+        # changed-files) never see it.
+        GRADLE_ENCRYPTION_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       run: server/gradlew --no-daemon -p server check
 
     - name: Log in to the Container registry
