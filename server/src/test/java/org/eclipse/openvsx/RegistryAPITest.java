@@ -1830,6 +1830,23 @@ class RegistryAPITest {
                 .andExpect(status().isOk());
     }
 
+    /**
+     * A blank parameter would otherwise reach {@code VerifyPublishVersion}, whose constructor rejects
+     * it with an IllegalArgumentException the endpoint does not catch - a client mistake reported as
+     * a server error.
+     */
+    @Test
+    void testSizeLimitRejectsABlankNamespace() throws Exception {
+        mockMvc.perform(get("/api/-/size-limit?namespace={ns}&extension={ext}&token={token}", "", "bar", "my_token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSizeLimitRejectsABlankExtension() throws Exception {
+        mockMvc.perform(get("/api/-/size-limit?namespace={ns}&extension={ext}&token={token}", "foo", "", "my_token"))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void testVerifyTokenNoNamespace() throws Exception {
         mockAccessToken();
@@ -3911,7 +3928,7 @@ class RegistryAPITest {
                     cache,
                     integrityService,
                     similarityCheckService,
-                    publishingConfig,
+                    TestSizeLimits.atConfigDefault(),
                     trustedPublishingConfig,
                     new WebUiProperties(),
                     CHANGES_FEED_LAG);
@@ -3955,7 +3972,6 @@ class RegistryAPITest {
 
         @Bean
         ExtensionService extensionService(
-                PublishingConfig publishingConfig,
                 EntityManager entityManager,
                 RepositoryService repositories,
                 SearchUtilService search,
@@ -3967,7 +3983,7 @@ class RegistryAPITest {
                 ExtensionScanPersistenceService scanPersistenceService
         ) {
             return new ExtensionService(
-                    publishingConfig,
+                    TestSizeLimits.atConfigDefault(),
                     entityManager,
                     repositories,
                     search,

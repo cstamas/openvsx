@@ -24,6 +24,7 @@ import {
     DialogTitle,
     Paper,
     Stack,
+    TextField,
     Typography
 } from '@mui/material';
 import type { Settings } from '../../extension-registry-types';
@@ -40,19 +41,43 @@ interface NotificationState {
 }
 
 const NOTIFICATION_TIMEOUT = 2000;
+const BYTES_PER_MB = 1024 * 1024;
 
-const SETTINGS: Record<keyof Settings, { title: string; description: string }> = {
+/**
+ * The settings rendered as toggles. Keyed by the boolean members of `Settings` only: a numeric
+ * setting such as `maxExtensionSize` has its own control and must not be routed through the toggle
+ * handler, which would write a boolean into it.
+ */
+type BooleanSettingKey = {
+    [K in keyof Settings]: Settings[K] extends boolean ? K : never;
+}[keyof Settings];
+
+const SETTINGS: Record<BooleanSettingKey, { title: string; description: string }> = {
     readOnly: {
         title: 'Read-only mode',
         description: 'Blocks write operations while keeping browsing, search, and downloads available.'
     }
 };
 
+/** The settings whose value differs from what the server last reported. */
+const changedSettings = (draft: Settings, current: Settings): Partial<Settings> =>
+    (Object.keys(draft) as (keyof Settings)[]).reduce<Partial<Settings>>((changed, key) => {
+        if (draft[key] !== current[key]) {
+            // the key and its value come from the same object, so the pair is sound; the cast is only
+            // needed because TypeScript widens the value to a union across all keys
+            (changed as Record<string, unknown>)[key] = draft[key];
+        }
+        return changed;
+    }, {});
+
 export const RuntimeSettingsPage: FC = () => {
     const { data: settings, isLoading: loading, error: loadError } = useSettings();
     const { mutate: saveSettings, isPending: saving } = useUpdateSettings();
 
     const [draftSettings, setDraftSettings] = useState<Settings | null>(null);
+    // The field holds what was typed, not the draft's number rendered back. Deriving it meant an
+    // emptied field parsed as 0 and was immediately rewritten as "0", so it could not be cleared.
+    const [sizeInput, setSizeInput] = useState('');
     const [errorDismissed, setErrorDismissed] = useState(false);
     const [notifications, setNotifications] = useState<NotificationState[]>([]);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -62,6 +87,7 @@ export const RuntimeSettingsPage: FC = () => {
     useEffect(() => {
         if (settings) {
             setDraftSettings(settings);
+            setSizeInput(String(settings.maxExtensionSize / BYTES_PER_MB));
         }
     }, [settings]);
 
@@ -96,26 +122,56 @@ export const RuntimeSettingsPage: FC = () => {
     };
 
     const handleFlagChange = useCallback(
-        (key: keyof Settings) => (_event: ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        (key: BooleanSettingKey) => (_event: ChangeEvent<HTMLInputElement>, checked: boolean) => {
             setDraftSettings(current => (current ? { ...current, [key]: checked } : current));
             clearSaved();
         },
         [clearSaved]
     );
 
+    const handleMaxExtensionSizeChange = useCallback(
+        (event: ChangeEvent<HTMLInputElement>) => {
+            const typed = event.target.value;
+            setSizeInput(typed);
+            // Number, not parseInt: parseInt stops at the first non-digit, so 1.5 would be stored as
+            // 1 MB and 1e3 as 1 MB while the field kept showing what was typed. An empty field is not
+            // zero either - Number('') is - so it is held as invalid until something is typed.
+            const mb = typed.trim() === '' ? Number.NaN : Number(typed);
+            const bytes = Number.isFinite(mb) ? mb * BYTES_PER_MB : Number.NaN;
+            setDraftSettings(current => (current ? { ...current, maxExtensionSize: bytes } : current));
+            clearSaved();
+        },
+        [clearSaved]
+    );
+
+    const maxExtensionSizeChanged =
+        draftSettings !== null && settings != null && draftSettings.maxExtensionSize !== settings.maxExtensionSize;
+
     const hasChanges =
         draftSettings !== null &&
         settings != null &&
-        (Object.keys(SETTINGS) as (keyof Settings)[]).some(k => draftSettings[k] !== settings[k]);
+        ((Object.keys(SETTINGS) as BooleanSettingKey[]).some(k => draftSettings[k] !== settings[k]) ||
+            maxExtensionSizeChanged);
+
+    // Only validated once the admin has actually edited it, because only then is it sent. The server
+    // stores the limit as a long, and one beyond JavaScript's safe-integer range would otherwise fail
+    // this check on arrival and block every unrelated setting from being saved.
+    const maxExtensionSizeValid =
+        draftSettings === null ||
+        !maxExtensionSizeChanged ||
+        (Number.isSafeInteger(draftSettings.maxExtensionSize) && draftSettings.maxExtensionSize > 0);
 
     const handleSaveClick = () => setConfirmOpen(true);
 
     const handleConfirmClose = () => setConfirmOpen(false);
 
     const handleConfirmSave = useCallback(() => {
-        if (!draftSettings) return;
+        if (!draftSettings || !settings) return;
         setConfirmOpen(false);
-        saveSettings(draftSettings, {
+        // Only what this admin actually changed. Sending the whole object would carry every other
+        // setting as this page last read it, silently reverting anything someone else changed in the
+        // meantime. It does not help when two people edit the same setting - the last save still wins.
+        saveSettings(changedSettings(draftSettings, settings), {
             onSuccess: flashSaved,
             onError: err => {
                 addNotification({
@@ -123,7 +179,7 @@ export const RuntimeSettingsPage: FC = () => {
                 });
             }
         });
-    }, [draftSettings, saveSettings, addNotification, flashSaved]);
+    }, [draftSettings, settings, saveSettings, addNotification, flashSaved]);
 
     return (
         <>
@@ -147,7 +203,7 @@ export const RuntimeSettingsPage: FC = () => {
                     variant='outlined'
                     elevation={0}
                     sx={{ overflow: 'hidden', borderColor: hasChanges ? 'red' : 'grey' }}>
-                    {(Object.entries(SETTINGS) as [keyof Settings, { title: string; description: string }][]).map(
+                    {(Object.entries(SETTINGS) as [BooleanSettingKey, { title: string; description: string }][]).map(
                         ([key, flag]) => (
                             <SettingsItem
                                 key={key}
@@ -162,11 +218,34 @@ export const RuntimeSettingsPage: FC = () => {
                     )}
                 </Paper>
 
+                <Paper variant='outlined' elevation={0} sx={{ p: 3 }}>
+                    <Typography variant='subtitle1' gutterBottom>
+                        Default max extension size
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                        The largest extension package accepted for publishing when no namespace or extension override
+                        applies.
+                    </Typography>
+                    <TextField
+                        label='Max extension size (MB)'
+                        type='number'
+                        value={sizeInput}
+                        onChange={handleMaxExtensionSizeChange}
+                        disabled={loading || saving || !draftSettings}
+                        error={!maxExtensionSizeValid}
+                        helperText={
+                            maxExtensionSizeValid ? undefined : 'Must be a whole number of bytes, greater than 0'
+                        }
+                        inputProps={{ min: '1' }}
+                        sx={{ maxWidth: 240 }}
+                    />
+                </Paper>
+
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <SaveButton
                         size='large'
                         saved={saveSuccess}
-                        disabled={!hasChanges || saving}
+                        disabled={!hasChanges || saving || !maxExtensionSizeValid}
                         onClick={handleSaveClick}
                     />
                 </Box>

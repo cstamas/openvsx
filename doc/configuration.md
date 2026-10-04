@@ -35,11 +35,23 @@ Whether published extensions are required to have a license. If active, unlicens
 
 | Property      | `ovsx.publishing.max-content-size`
 |---------------|-----------------------------------
-| Type          | int
+| Type          | long
 | Default       | `512 * 1024 * 1024` = `512MB`
 | Compatibility | Since 0.31.0
 
-The maximum content size the server accepts when publishing an extension.
+The maximum content size the server accepts when publishing an extension. This is the fallback default only: once an admin sets the **Default max extension size** on the admin dashboard's Settings page, the stored value shadows this property on every node and editing the configuration file no longer has any effect. See [Extension size limits](#extension-size-limits) below.
+
+| Property      | `ovsx.publishing.max-override-size`
+|---------------|-----------------------------------
+| Type          | long
+| Default       | `1024 * 1024 * 1024` = `1GB`
+| Compatibility | Since 1.3.0
+
+The ceiling on any single size override. The admin API refuses an override above it, so no override can raise a namespace past this. Must be greater than zero.
+
+It bounds overrides and nothing else. The registry-wide default has no upper bound of its own - the Settings page accepts any value above zero - so a registry whose default is set higher than this gives every namespace a limit above it without an override being involved.
+
+Set it at or above the limit most namespaces get, that is the runtime default or `ovsx.publishing.max-content-size` when no runtime default has been set. The two are deliberately not compared at startup - a deployment already running a larger `max-content-size` than this property's default has to keep starting - but a value below the effective default means no override can raise a limit above it - only overrides that tighten a namespace below the default remain possible. It does not affect the limit that gets enforced: the stream-time ceiling is derived from the default and the overrides that exist, never from this property.
 
 | Property      | `ovsx.publishing.unsupported-icon-formats`
 |---------------|-----------------------------------
@@ -64,6 +76,43 @@ Maximum number of author-declared tags to keep from a published package. Tags be
 | Compatibility | Since 1.1.0
 
 Maximum number of internal tags - the ones the packaging tool generates, such as `__ext_yml` - to keep from a published package. Counted separately from the author's own tags; a negative value keeps all of them.
+
+### Extension size limits
+
+Four things decide how large a package a publisher may upload. In order of precedence, the first one that applies wins:
+
+1. **An extension override** - a limit set for one extension on the admin dashboard's *Size overrides* page.
+2. **A namespace override** - a limit set for a whole namespace on the same page, used when the extension has no override of its own.
+3. **The runtime default** - the *Default max extension size* field on the admin dashboard's *Settings* page.
+4. **`ovsx.publishing.max-content-size`** - the configured fallback, used until an admin sets the runtime default.
+
+Four consequences worth knowing:
+
+- **The runtime default shadows the configuration file, one way.** Once the Settings field is set, that value is stored in the database and used on every node. Editing `ovsx.publishing.max-content-size` afterwards changes nothing until the stored setting is removed. A registry whose admins never touch the field behaves exactly as it did before overrides existed.
+- **Every override is bounded by `ovsx.publishing.max-override-size` when it is written.** The admin API refuses to store an override above that ceiling, so no namespace can be granted an unlimited upload size through the dashboard. The bound is checked on create and update only: lowering the property afterwards leaves any override already above it stored and enforced, so bringing those down means editing them on the Size overrides page.
+- **Overrides are only granted to verified namespaces.** The admin API refuses to create one for an unverified namespace. An existing override is not revoked if the namespace later loses verification - it stays in force, and is listed on the Size overrides page like any other. The page does not currently distinguish one whose namespace has since become unverified, so reviewing those means checking the namespaces themselves.
+- **An override lives and dies with what it is scoped to.** Deleting a namespace, or permanently purging an extension, deletes its overrides with it. An ordinary extension deletion does not: that is a soft delete which keeps the row, so the override survives and applies again if the extension is republished. Two things can remove or strand an override without an admin asking for that in so many words:
+
+  - **The orphan-namespace cleanup.** A namespace that has lost every member and holds no extensions is removed, taking its override along. A namespace later re-created under the same name therefore starts on the default limit rather than inheriting one granted to whoever held the name before.
+  - **A namespace change.** Extension overrides follow their extension to the new namespace. The namespace-wide override moves only when the old namespace is being removed and the new one has none of its own - the new namespace's own setting otherwise stands, exactly as memberships are merged. So renaming into a namespace that already has its own namespace-wide override discards the old one with the old namespace, and renaming without removing the old namespace leaves it behind on a namespace that no longer holds the extensions, where it no longer applies to anything. Check the Size overrides page after a namespace change.
+
+Enforcement happens in two stages, because the request body is streamed before the package has been parsed and the namespace is therefore not yet known:
+
+1. While the body is still arriving it is capped at the **ceiling** - the highest of the default and every configured override. A deployment with no overrides has a ceiling equal to its default, so nothing changes.
+2. Once the manifest is read and the namespace and extension are known, the limit that actually applies is resolved and the stored package is rejected with `413 Content Too Large` if it exceeds it.
+
+The trade-off: an oversized upload from a namespace with no override is accepted up to the ceiling before being rejected. The namespace is not in the request, so there is nothing earlier to check it against.
+
+### What clients can see
+
+Two endpoints report limits, and they answer different questions:
+
+- **`GET /api/version`** reports `maxExtensionSize`, the default, and `maxExtensionSizeCeiling`, the ceiling. Both are registry-wide and need no authentication.
+- **`GET /api/-/size-limit?namespace=…&extension=…`** reports the limit that would apply to one package. It requires an access token, and — when the namespace already exists — one with publish permission for it. Neither the namespace nor the extension has to exist yet, so a first publish can ask before creating either.
+
+The `ovsx` CLI reads a package's manifest before uploading, so it knows which namespace it is publishing to and asks the second endpoint for the real limit, refusing an oversized upload locally. Against a registry older than 1.3.0, which cannot answer, it falls back to warning against the default and publishing anyway.
+
+The web UI cannot do the same: the namespace lives inside the package and nothing in the browser parses it, so the publish page checks against the ceiling instead. That never blocks an upload a namespace override would have allowed; anything under the ceiling is sent and answered by the server.
 
 ## Server URL
 

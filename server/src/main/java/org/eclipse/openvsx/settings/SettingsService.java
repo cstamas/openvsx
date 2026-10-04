@@ -25,11 +25,15 @@ import redis.clients.jedis.RedisClusterClient;
 
 import org.eclipse.openvsx.cache.jedis.JedisClusterChannelListener;
 import org.eclipse.openvsx.json.SettingsJson;
+import org.eclipse.openvsx.publish.PublishingConfig;
+import org.eclipse.openvsx.util.AfterCommitExecutor;
+import org.eclipse.openvsx.util.ErrorResultException;
 
 @Service
 public class SettingsService {
 
     public static final String SETTING_REGISTRY_READ_ONLY = "read-only";
+    public static final String SETTING_MAX_EXTENSION_SIZE = "max-extension-size";
     private static final String SETTINGS_UPDATE_CHANNEL = "settings.update";
 
     private final Logger logger = LoggerFactory.getLogger(SettingsService.class);
@@ -37,10 +41,19 @@ public class SettingsService {
     private final @Nullable RedisClusterClient redisClusterClient;
     private final SettingsUpdateListener settingsUpdateListener;
     private final SettingsCache cache;
+    private final PublishingConfig publishingConfig;
+    private final AfterCommitExecutor afterCommit;
 
-    public SettingsService(@Nullable RedisClusterClient redisClusterClient, SettingsCache cache) {
+    public SettingsService(
+            @Nullable RedisClusterClient redisClusterClient,
+            SettingsCache cache,
+            PublishingConfig publishingConfig,
+            AfterCommitExecutor afterCommit
+    ) {
         this.redisClusterClient = redisClusterClient;
         this.cache = cache;
+        this.publishingConfig = publishingConfig;
+        this.afterCommit = afterCommit;
 
         if (redisClusterClient != null) {
             settingsUpdateListener = new SettingsUpdateListener(redisClusterClient);
@@ -68,20 +81,64 @@ public class SettingsService {
         return cache.getBoolean(SETTING_REGISTRY_READ_ONLY, false);
     }
 
+    public long getMaxExtensionSize() {
+        return cache.getLong(SETTING_MAX_EXTENSION_SIZE, publishingConfig.getMaxContentSize());
+    }
+
     public SettingsJson getCurrentSettings() {
         var json = new SettingsJson();
         json.setReadOnly(isReadOnly());
+        json.setMaxExtensionSize(getMaxExtensionSize());
         return json;
     }
 
+    /**
+     * Applies the settings the request carries and leaves out every other one alone. A client that
+     * does not know about a setting - a stale admin tab, an older integration - must not reset it by
+     * omitting it.
+     */
     public String updateFromJson(SettingsJson newSettings) {
+        var readOnly = newSettings.getReadOnly();
+        var maxExtensionSize = newSettings.getMaxExtensionSize();
+        if (maxExtensionSize != null && maxExtensionSize <= 0) {
+            throw new ErrorResultException("Max extension size must be greater than zero.");
+        }
+
+        // Every setting the request carries is written, even one that matches what is read back now.
+        // The comparison would be against a node-local cache entry that can be a minute stale, or
+        // against the configuration fallback on a registry where nothing has been stored yet - so
+        // skipping the write dropped real changes: restoring a value another node had just moved
+        // away from, and storing the setting that is meant to shadow the configuration file. The
+        // upsert is idempotent, so writing unconditionally costs only the statement.
         var changes = new ArrayList<>();
-        if (newSettings.isReadOnly() != isReadOnly()) {
-            changes.add("readOnly -> " + newSettings.isReadOnly());
-            cache.setBoolean(SETTING_REGISTRY_READ_ONLY, newSettings.isReadOnly());
+        if (readOnly != null) {
+            changes.add("readOnly -> " + readOnly);
+            cache.setBoolean(SETTING_REGISTRY_READ_ONLY, readOnly);
+        }
+        if (maxExtensionSize != null) {
+            changes.add("maxExtensionSize -> " + maxExtensionSize);
+            cache.setLong(SETTING_MAX_EXTENSION_SIZE, maxExtensionSize);
+            // The derived size ceiling is cached under its own key, so evict the whole settings
+            // cache rather than just this one entry.
+            cache.clear();
         }
         publishSettingsUpdate();
         return Strings.join(changes, ',');
+    }
+
+    /**
+     * Drop every cached setting on this node and tell the other nodes to do the same. Callers that
+     * change data the settings cache derives from — notably the size ceiling, which is cached under its
+     * own key — must call this; evicting a single key is not enough.
+     * <p>
+     * Deferred to after the commit: these callers change rows the ceiling is derived from, and a clear
+     * issued before their commit lets any node refill the ceiling from the rows as they still are.
+     */
+    public void invalidateCache() {
+        afterCommit.execute(() -> {
+            cache.clear();
+            publishSettingsUpdate();
+        });
     }
 
     private void publishSettingsUpdate() {

@@ -1,0 +1,216 @@
+/******************************************************************************
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation.
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * https://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *****************************************************************************/
+package org.eclipse.openvsx.settings;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import org.eclipse.openvsx.json.SettingsJson;
+import org.eclipse.openvsx.publish.PublishingConfig;
+import org.eclipse.openvsx.util.AfterCommitExecutor;
+import org.eclipse.openvsx.util.ErrorResultException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class SettingsServiceTest {
+
+    private SettingsCache cache;
+    private PublishingConfig publishingConfig;
+    private SettingsService settings;
+
+    @BeforeEach
+    void setUp() {
+        cache = Mockito.mock(SettingsCache.class);
+        publishingConfig = Mockito.mock(PublishingConfig.class);
+        // isReadOnly() unboxes SettingsCache#getBoolean's Boolean return value; an unstubbed mock
+        // would hand back null here and NPE on every call that reaches it.
+        when(cache.getBoolean(anyString(), anyBoolean())).thenReturn(false);
+        settings = new SettingsService(null, cache, publishingConfig, new AfterCommitExecutor());
+    }
+
+    @AfterEach
+    void endTransaction() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    // A clear issued before the commit lets any node refill the ceiling from the rows as they still
+    // are, leaving an entry staler than if nothing had been evicted.
+    @Test
+    void invalidateCacheWaitsForTheCommit() {
+        TransactionSynchronizationManager.initSynchronization();
+
+        settings.invalidateCache();
+        verify(cache, Mockito.never()).clear();
+
+        var synchronizations = TransactionSynchronizationManager.getSynchronizations();
+        TransactionSynchronizationManager.clearSynchronization();
+        synchronizations.forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+
+        verify(cache).clear();
+    }
+
+    @Test
+    void invalidateCacheClearsStraightAwayWithoutATransaction() {
+        settings.invalidateCache();
+
+        verify(cache).clear();
+    }
+
+    @Test
+    void getMaxExtensionSizeFallsBackToPublishingConfigWhenNoOverrideStored() {
+        when(publishingConfig.getMaxContentSize()).thenReturn(512L * 1024 * 1024);
+        // SettingsCache#getLong returns its own defaultValue argument when no row exists;
+        // simulate that by echoing it back.
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+
+        assertThat(settings.getMaxExtensionSize()).isEqualTo(512L * 1024 * 1024);
+    }
+
+    @Test
+    void getMaxExtensionSizeReturnsStoredOverrideWhenPresent() {
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(1024L * 1024 * 1024);
+
+        assertThat(settings.getMaxExtensionSize()).isEqualTo(1024L * 1024 * 1024);
+    }
+
+    @Test
+    void updateFromJsonStoresNewMaxExtensionSizeAndReportsTheChange() {
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(512L * 1024 * 1024);
+
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(1024L * 1024 * 1024);
+
+        var changes = settings.updateFromJson(newSettings);
+
+        verify(cache).setLong(SettingsService.SETTING_MAX_EXTENSION_SIZE, 1024L * 1024 * 1024);
+        assertThat(changes).contains("maxExtensionSize -> 1073741824");
+    }
+
+    /**
+     * On a registry where nothing has been stored yet, the value read back is the configuration
+     * fallback, so storing that same number is exactly the act of pinning it against a later change
+     * to the configuration file. Comparing first turned that into a no-op.
+     */
+    @Test
+    void updateFromJsonStoresMaxExtensionSizeEvenWhenItMatchesWhatIsReadBack() {
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(512L * 1024 * 1024);
+
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(512L * 1024 * 1024);
+
+        var changes = settings.updateFromJson(newSettings);
+
+        verify(cache).setLong(SettingsService.SETTING_MAX_EXTENSION_SIZE, 512L * 1024 * 1024);
+        assertThat(changes).contains("maxExtensionSize -> 536870912");
+    }
+
+    /**
+     * An update carries only the settings it knows about. A tab opened before a setting existed, or an
+     * older integration, sends the shape it knows - omitting a field must leave it alone rather than
+     * reset it to a primitive default.
+     */
+    @Test
+    void updateFromJsonLeavesAnOmittedMaxExtensionSizeAlone() {
+        var newSettings = new SettingsJson();
+        newSettings.setReadOnly(true);
+
+        settings.updateFromJson(newSettings);
+
+        verify(cache, Mockito.never()).setLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong());
+        verify(cache).setBoolean(SettingsService.SETTING_REGISTRY_READ_ONLY, true);
+    }
+
+    /** The dangerous direction: omitting read-only used to deserialize to false and switch it off. */
+    @Test
+    void updateFromJsonLeavesAnOmittedReadOnlyAlone() {
+        when(cache.getBoolean(anyString(), anyBoolean())).thenReturn(true);
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(512L * 1024 * 1024);
+
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(1024L * 1024 * 1024);
+
+        settings.updateFromJson(newSettings);
+
+        verify(cache, Mockito.never()).setBoolean(eq(SettingsService.SETTING_REGISTRY_READ_ONLY), anyBoolean());
+    }
+
+    @Test
+    void updateFromJsonAcceptsARequestThatCarriesNothing() {
+        assertThatCode(() -> settings.updateFromJson(new SettingsJson())).doesNotThrowAnyException();
+    }
+
+    @Test
+    void updateFromJsonRejectsNonPositiveMaxExtensionSize() {
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(0L);
+
+        assertThatThrownBy(() -> settings.updateFromJson(newSettings)).isInstanceOf(ErrorResultException.class);
+    }
+
+    @Test
+    void updateFromJsonFlushesTheCacheWhenMaxExtensionSizeChanges() {
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(512L * 1024 * 1024);
+
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(1024L * 1024 * 1024);
+
+        settings.updateFromJson(newSettings);
+
+        verify(cache).clear();
+    }
+
+    /** The value read back can be a stale local cache entry, so the derived ceiling goes regardless. */
+    @Test
+    void updateFromJsonFlushesTheCacheEvenWhenMaxExtensionSizeMatchesWhatIsReadBack() {
+        when(cache.getLong(eq(SettingsService.SETTING_MAX_EXTENSION_SIZE), anyLong()))
+                .thenReturn(512L * 1024 * 1024);
+
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(512L * 1024 * 1024);
+
+        settings.updateFromJson(newSettings);
+
+        verify(cache).clear();
+    }
+
+    /** A setting the request does not carry is still left alone - that is what partial updates are. */
+    @Test
+    void updateFromJsonWritesNothingForAnOmittedSetting() {
+        var newSettings = new SettingsJson();
+        newSettings.setMaxExtensionSize(1024L * 1024 * 1024);
+
+        settings.updateFromJson(newSettings);
+
+        verify(cache, Mockito.never()).setBoolean(anyString(), anyBoolean());
+    }
+}
