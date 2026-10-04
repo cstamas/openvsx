@@ -79,6 +79,26 @@ describe('AdminDashboard contributed pages', () => {
         expect(screen.getAllByText('Customers').length).toBeGreaterThan(0);
     });
 
+    it('groups the built-in pages into logical sections instead of leaving them ungrouped', () => {
+        renderDashboard(undefined);
+
+        // Each group label appears twice: once in the side panel, once as an overview section heading.
+        for (const group of ['Content', 'Search', 'Maintenance', 'Administration', 'Rate Limiting', 'Analytics']) {
+            expect(screen.getAllByText(group).length).toBeGreaterThan(0);
+        }
+    });
+
+    it('expands the first side panel group by default', () => {
+        renderDashboard(undefined);
+
+        // The side panel's group Collapse unmounts its children unless expanded, so a
+        // child of the first group ("Content") rendering twice - side panel + overview -
+        // proves it starts expanded instead of collapsed like the other groups.
+        expect(screen.getAllByText('Namespaces')).toHaveLength(2);
+        // "Tiers" belongs to the later "Rate Limiting" group, which stays collapsed.
+        expect(screen.getAllByText('Tiers')).toHaveLength(1);
+    });
+
     // adminPages is consumer-provided, and a leading slash used to leave the shadowing check looking
     // at an empty first segment, so this slipped past it and sat in the nav beside the built-in page.
     it('ignores a shadowing page however its path is written', () => {
